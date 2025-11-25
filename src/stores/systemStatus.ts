@@ -3,9 +3,8 @@ import { ref } from 'vue'
 import dayjs from 'dayjs'
 import * as api from '@/api/transmission'
 import type { SessionStats, SessionConfig } from '@/types/transmission'
-import { useStatsStore } from './stats'
 
-const POLL_INTERVAL = 30000
+const POLL_INTERVAL = 5000
 
 interface LoadOptions {
   silent?: boolean
@@ -30,10 +29,6 @@ export const useSystemStatusStore = defineStore('systemStatus', () => {
       ])
       sessionStats.value = stats
       sessionConfig.value = config
-
-      const statsHistoryStore = useStatsStore()
-      const cumulative = stats['cumulative-stats']
-      statsHistoryStore.recordSnapshot(cumulative.uploadedBytes, cumulative.downloadedBytes)
 
       const downloadDir = config['download-dir']
       if (downloadDir) {

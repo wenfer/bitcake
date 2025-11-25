@@ -22,6 +22,14 @@
             <span class="status-label">版本</span>
             <span class="status-value">{{ versionText }}</span>
           </div>
+          <div class="status-item">
+            <span class="status-label">数据更新时间</span>
+            <span class="status-value">{{ lastUpdatedText }}</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">前端版本</span>
+            <span class="status-value">{{ frontendVersion }}</span>
+          </div>
         </div>
         <el-button :icon="Setting" circle @click="$router.push('/settings')" />
       </div>
@@ -59,7 +67,7 @@ import { Setting, List, TrendCharts } from '@element-plus/icons-vue'
 import { useSystemStatusStore } from '@/stores/systemStatus'
 
 const systemStatusStore = useSystemStatusStore()
-const { sessionStats, freeSpaceBytes, sessionConfig } = storeToRefs(systemStatusStore)
+const { sessionStats, freeSpaceBytes, sessionConfig, lastUpdated } = storeToRefs(systemStatusStore)
 
 const uploadSpeedText = computed(() => formatSpeed(sessionStats.value?.uploadSpeed || 0))
 const downloadSpeedText = computed(() => formatSpeed(sessionStats.value?.downloadSpeed || 0))
@@ -67,6 +75,8 @@ const freeSpaceText = computed(() =>
   freeSpaceBytes.value !== null ? formatBytes(freeSpaceBytes.value) : '未知'
 )
 const versionText = computed(() => sessionConfig.value?.version || '未知')
+const lastUpdatedText = computed(() => lastUpdated.value || '—')
+const frontendVersion = __APP_VERSION__ || 'dev'
 
 onMounted(() => {
   systemStatusStore.start()

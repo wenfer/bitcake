@@ -50,6 +50,21 @@ export interface Torrent {
   activityDate: number
   labels?: string[]
   trackers?: TorrentTracker[]
+  trackerStats?: TorrentTrackerStat[]
+  comment?: string
+  creator?: string
+  pieceCount?: number
+  pieceSize?: number
+  dateCreated?: number
+  files?: TorrentFile[]
+  fileStats?: TorrentFileStat[]
+  isPrivate?: boolean
+  downloadLimit?: number
+  uploadLimit?: number
+  downloadLimited?: boolean
+  uploadLimited?: boolean
+  bandwidthPriority?: number
+  webseeds?: string[]
   // 可以根据需要继续添加更多字段
 }
 
@@ -58,6 +73,31 @@ export interface TorrentTracker {
   announce: string
   scrape: string
   tier: number
+}
+
+export interface TorrentTrackerStat {
+  announce: string
+  host: string
+  seederCount: number
+  leecherCount: number
+  downloadCount: number
+  isBackup: boolean
+  lastAnnounceTime: number
+  lastAnnounceSucceeded: boolean
+  lastAnnouncePeerCount: number
+  nextAnnounceTime: number
+}
+
+export interface TorrentFile {
+  name: string
+  length: number
+  bytesCompleted: number
+}
+
+export interface TorrentFileStat {
+  bytesCompleted: number
+  priority: number
+  wanted: boolean
 }
 
 export interface FreeSpaceResult {

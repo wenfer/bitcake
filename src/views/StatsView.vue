@@ -17,16 +17,16 @@
     <el-row :gutter="20" class="summary-row">
       <el-col :xs="24" :sm="12" :lg="6">
         <el-card class="summary-card">
-          <div class="summary-title">总上传量</div>
+          <div class="summary-title">历史总上传量</div>
           <div class="summary-value">{{ formatBytes(totalUploaded) }}</div>
-          <div class="summary-subtitle">自 Transmission 记录以来</div>
+          <div class="summary-subtitle">Transmission 返回的累计值</div>
         </el-card>
       </el-col>
       <el-col :xs="24" :sm="12" :lg="6">
         <el-card class="summary-card">
-          <div class="summary-title">总下载量</div>
+          <div class="summary-title">历史总下载量</div>
           <div class="summary-value">{{ formatBytes(totalDownloaded) }}</div>
-          <div class="summary-subtitle">自 Transmission 记录以来</div>
+          <div class="summary-subtitle">Transmission 返回的累计值</div>
         </el-card>
       </el-col>
       <el-col :xs="24" :sm="12" :lg="6">
@@ -46,200 +46,161 @@
     </el-row>
 
     <el-row :gutter="20" class="summary-row secondary">
-      <el-col :xs="24" :sm="12" :lg="12">
+      <el-col :xs="24" :sm="24" :lg="24">
         <el-card class="summary-card summary-text-card">
-          <div class="summary-title">下载目录</div>
-          <div class="summary-value summary-text" :title="downloadDir || '未知'">
-            {{ downloadDir || '未知' }}
+          <div class="summary-title">会话概况</div>
+          <div class="summary-value summary-text">
+            {{ torrentSummaryText }}
           </div>
+          <div class="summary-subtitle">来自 session-stats</div>
         </el-card>
       </el-col>
+    </el-row>
+
+    <el-row :gutter="20" class="summary-row secondary">
       <el-col :xs="24" :sm="12" :lg="12">
         <el-card class="summary-card summary-text-card">
-          <div class="summary-title">记录天数</div>
+          <div class="summary-title">当前下载速度</div>
           <div class="summary-value">
-            {{ historyStore.dailyStats.length }}
+            {{ formatSpeed(sessionStats?.downloadSpeed || 0) }}
           </div>
-          <div class="summary-subtitle">从本地存储计算</div>
+          <div class="summary-subtitle">实时速率</div>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :sm="12" :lg="12">
+        <el-card class="summary-card summary-text-card">
+          <div class="summary-title">当前上传速度</div>
+          <div class="summary-value">
+            {{ formatSpeed(sessionStats?.uploadSpeed || 0) }}
+          </div>
+          <div class="summary-subtitle">实时速率</div>
         </el-card>
       </el-col>
     </el-row>
 
-    <div class="charts-section">
-      <div class="chart-header">
-        <div>
-          <h3>流量图表</h3>
-          <p>选择时间范围以查看上传/下载趋势</p>
+    <el-row :gutter="20" class="summary-row secondary">
+      <el-col :xs="24" :sm="12" :lg="12">
+        <el-card class="summary-card summary-text-card">
+          <div class="summary-title">磁盘剩余空间</div>
+          <div class="summary-value">
+            {{ freeSpaceText }}
+          </div>
+          <div class="summary-subtitle">根据下载目录计算</div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <el-row :gutter="20" class="charts-grid">
+      <el-col :xs="24" :lg="24">
+        <el-card class="stats-card chart-card">
+          <template #header>
+            <div class="card-header">
+              <span>实时上传/下载趋势</span>
+              <small>最近 {{ speedHistory.length }} 次刷新</small>
+            </div>
+          </template>
+          <VChart class="chart" :option="speedChartOptions" autoresize />
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <el-row :gutter="20" class="charts-grid">
+      <el-col :xs="24" :lg="14">
+        <el-card class="stats-card chart-card">
+          <template #header>
+            <div class="card-header">
+              <span>热门种子上传/下载对比</span>
+              <small>按累计下载排序前 8 个</small>
+            </div>
+          </template>
+          <VChart class="chart" :option="topTorrentChartOptions" autoresize />
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :lg="10">
+        <el-card class="stats-card chart-card">
+          <template #header>
+            <div class="card-header">
+              <span>Tracker 上传占比</span>
+              <small>基于默认 Tracker 汇总</small>
+            </div>
+          </template>
+          <VChart class="chart" :option="trackerShareChartOptions" autoresize />
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <el-card class="stats-card">
+      <template #header>
+        <div class="card-header">
+          <span>Tracker 全量统计</span>
+          <small>按默认 Tracker 汇总上传/下载</small>
         </div>
-        <el-radio-group v-model="timeRange" size="small">
-          <el-radio-button label="1">当天</el-radio-button>
-          <el-radio-button label="7">最近7天</el-radio-button>
-          <el-radio-button label="30">最近30天</el-radio-button>
-        </el-radio-group>
-      </div>
-      <el-row :gutter="20">
-        <el-col :xs="24" :lg="12">
-          <el-card class="chart-card">
-            <template #header>
-              <span>{{ rangeLabel }}上传/下载趋势</span>
-            </template>
-            <div v-if="chartDailyStats.length" class="stacked-chart">
-              <div
-                v-for="item in chartDailyStats"
-                :key="item.date"
-                class="stacked-bar"
-              >
-                <div
-                  class="bar download"
-                  :style="{ height: `${getStackedHeight(item.downloaded)}%` }"
-                  :title="`下载 ${formatBytes(item.downloaded)}`"
-                />
-                <div
-                  class="bar upload"
-                  :style="{ height: `${getStackedHeight(item.uploaded)}%` }"
-                  :title="`上传 ${formatBytes(item.uploaded)}`"
-                />
-                <span class="bar-label">{{ item.date.slice(5) }}</span>
-              </div>
-            </div>
-            <el-empty v-else description="暂无历史数据" />
-          </el-card>
-        </el-col>
-        <el-col :xs="24" :lg="12">
-          <el-card class="chart-card">
-            <template #header>
-              <span>{{ rangeLabel }}站点累计（Top 10）</span>
-            </template>
-            <div v-if="trackerChartData.length" class="grouped-chart">
-              <div
-                v-for="item in trackerChartData"
-                :key="item.tracker"
-                class="grouped-row"
-              >
-                <div class="tracker-label" :title="item.tracker">{{ item.tracker }}</div>
-                <div class="grouped-bars">
-                  <div
-                    class="bar download"
-                    :style="{ width: `${getTrackerWidth(item.downloaded)}%` }"
-                    :title="`下载 ${formatBytes(item.downloaded)}`"
-                  />
-                  <div
-                    class="bar upload"
-                    :style="{ width: `${getTrackerWidth(item.uploaded)}%` }"
-                    :title="`上传 ${formatBytes(item.uploaded)}`"
-                  />
-                </div>
-              </div>
-            </div>
-            <el-empty v-else description="暂无站点数据" />
-          </el-card>
-        </el-col>
-      </el-row>
-    </div>
-
-    <el-row :gutter="20" class="tables-row">
-      <el-col :xs="24" :lg="12">
-        <el-card class="stats-card">
-          <template #header>
-            <div class="card-header">
-              <span>每日流量</span>
-              <small>记录最近 {{ historyStore.dailyStats.length }} 天的数据</small>
-            </div>
+      </template>
+      <el-table
+        v-loading="loading"
+        :data="trackerStats"
+        size="small"
+        empty-text="暂无种子数据"
+      >
+        <el-table-column prop="tracker" label="Tracker" min-width="180" />
+        <el-table-column label="下载">
+          <template #default="{ row }">
+            {{ formatBytes(row.downloaded) }}
           </template>
-          <el-table
-            v-loading="loading"
-            :data="tableDailyStats"
-            size="small"
-            empty-text="暂无历史数据"
-          >
-            <el-table-column prop="date" label="日期" width="120" />
-            <el-table-column label="下载">
-              <template #default="{ row }">
-                {{ formatBytes(row.downloaded) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="上传">
-              <template #default="{ row }">
-                {{ formatBytes(row.uploaded) }}
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :lg="12">
-        <el-card class="stats-card">
-          <template #header>
-            <div class="card-header">
-              <span>Tracker 流量汇总</span>
-              <small>按种子默认 Tracker 汇总</small>
-            </div>
+        </el-table-column>
+        <el-table-column label="上传">
+          <template #default="{ row }">
+            {{ formatBytes(row.uploaded) }}
           </template>
-          <el-table
-            v-loading="loading"
-            :data="trackerStats"
-            size="small"
-            empty-text="暂无种子数据"
-          >
-            <el-table-column prop="tracker" label="Tracker" min-width="180" />
-            <el-table-column label="下载">
-              <template #default="{ row }">
-                {{ formatBytes(row.downloaded) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="上传">
-              <template #default="{ row }">
-                {{ formatBytes(row.uploaded) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="分享率">
-              <template #default="{ row }">
-                {{ (row.ratio || 0).toFixed(2) }}
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-      </el-col>
-    </el-row>
+        </el-table-column>
+        <el-table-column label="分享率">
+          <template #default="{ row }">
+            {{ (row.ratio || 0).toFixed(2) }}
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
+import dayjs from 'dayjs'
+import VChart from 'vue-echarts'
+import { use } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
+import { LineChart, BarChart, PieChart } from 'echarts/charts'
+import { GridComponent, LegendComponent, TooltipComponent, TitleComponent } from 'echarts/components'
 import * as api from '@/api/transmission'
 import type { Torrent } from '@/types/transmission'
-import { useStatsStore } from '@/stores/stats'
 import { useSystemStatusStore } from '@/stores/systemStatus'
 import { getTrackerHost } from '@/utils/torrent'
 
+use([CanvasRenderer, LineChart, BarChart, PieChart, GridComponent, LegendComponent, TooltipComponent, TitleComponent])
+
+interface SpeedPoint {
+  time: string
+  download: number
+  upload: number
+}
+
+const SPEED_HISTORY_LIMIT = 40
+
 const loading = ref(false)
 const torrents = ref<Torrent[]>([])
-const timeRange = ref<'1' | '7' | '30'>('30')
-
-const historyStore = useStatsStore()
 const systemStatusStore = useSystemStatusStore()
-const { sessionConfig, lastUpdated } = storeToRefs(systemStatusStore)
+const { sessionStats, sessionConfig, freeSpaceBytes, lastUpdated } =
+  storeToRefs(systemStatusStore)
+const speedHistory = ref<SpeedPoint[]>([])
 
-const totalUploaded = computed(() => historyStore.latestSnapshot?.uploaded || 0)
-const totalDownloaded = computed(() => historyStore.latestSnapshot?.downloaded || 0)
-
-const sortedDailyStatsAsc = computed(() =>
-  [...historyStore.dailyStats].sort((a, b) => a.date.localeCompare(b.date))
+const totalUploaded = computed(
+  () => sessionStats.value?.['cumulative-stats'].uploadedBytes || 0
 )
-
-const chartDailyStats = computed(() => {
-  const data = sortedDailyStatsAsc.value
-  if (!data.length) return []
-  const limit = Number(timeRange.value)
-  return data.slice(-Math.min(limit, data.length))
-})
-
-const tableDailyStats = computed(() => {
-  return [...historyStore.dailyStats].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 30)
-})
-
-const downloadDir = computed(() => sessionConfig.value?.['download-dir'] || '')
+const totalDownloaded = computed(
+  () => sessionStats.value?.['cumulative-stats'].downloadedBytes || 0
+)
 
 const downloadLimitText = computed(() => {
   const config = sessionConfig.value
@@ -253,6 +214,22 @@ const uploadLimitText = computed(() => {
   if (!config) return '未知'
   if (!config['speed-limit-up-enabled']) return '未启用'
   return `${config['speed-limit-up']} KB/s`
+})
+
+const torrentSummaryText = computed(() => {
+  const stats = sessionStats.value
+  if (!stats) return '暂无数据'
+  const parts = [
+    `总数 ${stats.torrentCount}`,
+    `活跃 ${stats.activeTorrentCount}`,
+    `暂停 ${stats.pausedTorrentCount}`,
+  ]
+  return parts.join(' / ')
+})
+
+const freeSpaceText = computed(() => {
+  if (freeSpaceBytes.value == null) return '未知'
+  return formatBytes(freeSpaceBytes.value)
 })
 
 const trackerStats = computed(() => {
@@ -278,47 +255,177 @@ const trackerStats = computed(() => {
     .sort((a, b) => b.uploaded - a.uploaded)
 })
 
-const trackerChartData = computed(() => {
-  const trackerDaily = [...historyStore.trackerDailyStats]
-  if (!trackerDaily.length) return []
-  const uniqueDates = Array.from(
-    new Set(trackerDaily.map((item) => item.date).sort((a, b) => a.localeCompare(b)))
-  )
-  const limit = Number(timeRange.value)
-  const selectedDates = uniqueDates.slice(-Math.min(limit, uniqueDates.length))
-  const selectedDateSet = new Set(selectedDates)
-
-  const aggregate = new Map<string, { uploaded: number; downloaded: number }>()
-  trackerDaily.forEach((entry) => {
-    if (!selectedDateSet.has(entry.date)) return
-    if (!aggregate.has(entry.tracker)) {
-      aggregate.set(entry.tracker, { uploaded: 0, downloaded: 0 })
-    }
-    const trackerEntry = aggregate.get(entry.tracker)!
-    trackerEntry.uploaded += entry.uploaded
-    trackerEntry.downloaded += entry.downloaded
-  })
-
-  return Array.from(aggregate.entries())
-    .map(([tracker, value]) => ({ tracker, ...value }))
-    .sort((a, b) => b.uploaded - a.uploaded)
+const trackerShareData = computed(() =>
+  trackerStats.value
     .slice(0, 10)
-})
+    .map((item) => ({ name: item.tracker, value: item.uploaded || 0 }))
+)
+
+const topTorrents = computed(() =>
+  [...torrents.value]
+    .sort((a, b) => (b.downloadedEver || 0) - (a.downloadedEver || 0))
+    .slice(0, 8)
+    .map((torrent) => ({
+      name: torrent.name,
+      downloaded: torrent.downloadedEver || 0,
+      uploaded: torrent.uploadedEver || 0,
+    }))
+)
+
+const speedChartOptions = computed(() => ({
+  tooltip: {
+    trigger: 'axis',
+    formatter: (params: any) => {
+      if (!Array.isArray(params)) return ''
+      const header = `${params[0]?.axisValueLabel || ''}<br/>`
+      const lines = params
+        .map(
+          (item) => `${item.marker}${item.seriesName}：${formatSpeed(item.data ?? 0)}`
+        )
+        .join('<br/>')
+      return header + lines
+    },
+  },
+  legend: {
+    data: ['下载速度', '上传速度'],
+  },
+  grid: {
+    left: 30,
+    right: 10,
+    bottom: 10,
+    containLabel: true,
+  },
+  xAxis: {
+    type: 'category',
+    boundaryGap: false,
+    data: speedHistory.value.map((point) => point.time),
+  },
+  yAxis: {
+    type: 'value',
+    axisLabel: {
+      formatter: (value: number) => formatSpeed(value),
+    },
+  },
+  series: [
+    {
+      name: '下载速度',
+      type: 'line',
+      smooth: true,
+      areaStyle: { opacity: 0.15 },
+      data: speedHistory.value.map((point) => point.download),
+    },
+    {
+      name: '上传速度',
+      type: 'line',
+      smooth: true,
+      areaStyle: { opacity: 0.1 },
+      data: speedHistory.value.map((point) => point.upload),
+    },
+  ],
+}))
+
+const topTorrentChartOptions = computed(() => ({
+  tooltip: {
+    trigger: 'axis',
+    axisPointer: {
+      type: 'shadow',
+    },
+    formatter: (params: any) => {
+      if (!Array.isArray(params) || !params.length) return ''
+      const name = params[0].name
+      const lines = params
+        .map((item) => `${item.marker}${item.seriesName}：${formatBytes(item.value || 0)}`)
+        .join('<br/>')
+      return `${name}<br/>${lines}`
+    },
+  },
+  legend: { data: ['累计下载', '累计上传'] },
+  grid: {
+    left: 0,
+    right: 20,
+    bottom: 0,
+    containLabel: true,
+  },
+  xAxis: {
+    type: 'value',
+    axisLabel: {
+      formatter: (value: number) => formatBytes(value),
+    },
+  },
+  yAxis: {
+    type: 'category',
+    data: topTorrents.value.map((item) => item.name),
+    axisLabel: {
+      formatter: (value: string) => (value.length > 16 ? `${value.slice(0, 16)}…` : value),
+    },
+  },
+  series: [
+    {
+      name: '累计下载',
+      type: 'bar',
+      stack: 'total',
+      emphasis: {
+        focus: 'series',
+      },
+      data: topTorrents.value.map((item) => item.downloaded),
+    },
+    {
+      name: '累计上传',
+      type: 'bar',
+      stack: 'total',
+      emphasis: {
+        focus: 'series',
+      },
+      data: topTorrents.value.map((item) => item.uploaded),
+    },
+  ],
+}))
+
+const trackerShareChartOptions = computed(() => ({
+  tooltip: {
+    trigger: 'item',
+    formatter: ({ name, value, percent }: any) =>
+      `${name}<br/>上传：${formatBytes(value || 0)}<br/>占比：${percent}%`,
+  },
+  legend: {
+    show: false,
+  },
+  series: [
+    {
+      name: 'Tracker 上传占比',
+      type: 'pie',
+      radius: ['40%', '70%'],
+      data: trackerShareData.value,
+      label: {
+        formatter: '{d}%'
+      },
+      labelLine: { show: true },
+    },
+  ],
+}))
+
+watch(
+  () => sessionStats.value,
+  (stats) => {
+    if (!stats) return
+    const nextPoint: SpeedPoint = {
+      time: dayjs().format('HH:mm:ss'),
+      download: stats.downloadSpeed || 0,
+      upload: stats.uploadSpeed || 0,
+    }
+    const updated = speedHistory.value.slice()
+    updated.push(nextPoint)
+    if (updated.length > SPEED_HISTORY_LIMIT) {
+      updated.shift()
+    }
+    speedHistory.value = updated
+  },
+  { immediate: true }
+)
 
 const loadTorrents = async () => {
   const torrentData = await api.getTorrents()
   torrents.value = torrentData.torrents
-  const trackerAggregate: Record<string, { uploaded: number; downloaded: number }> = {}
-  torrents.value.forEach((torrent) => {
-    const tracker = torrent.trackers?.[0]
-    const host = tracker ? getTrackerHost(tracker.announce) : '未设置'
-    if (!trackerAggregate[host]) {
-      trackerAggregate[host] = { uploaded: 0, downloaded: 0 }
-    }
-    trackerAggregate[host].uploaded += torrent.uploadedEver || 0
-    trackerAggregate[host].downloaded += torrent.downloadedEver || 0
-  })
-  historyStore.recordTrackerSnapshot(trackerAggregate)
 }
 
 const loadData = async () => {
@@ -340,35 +447,9 @@ const formatBytes = (bytes: number): string => {
   return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`
 }
 
-const stackedMaxValue = computed(() => {
-  if (!chartDailyStats.value.length) return 1
-  const totals = chartDailyStats.value.map((item) => item.uploaded + item.downloaded)
-  return Math.max(...totals, 1)
-})
-
-const trackerMaxValue = computed(() => {
-  if (!trackerChartData.value.length) return 1
-  const values = trackerChartData.value.map((item) =>
-    Math.max(item.uploaded, item.downloaded)
-  )
-  return Math.max(...values, 1)
-})
-
-const getStackedHeight = (value: number) => {
-  if (!value) return 0
-  return Math.max((value / stackedMaxValue.value) * 100, 4)
+const formatSpeed = (bytes: number): string => {
+  return `${formatBytes(bytes)}/s`
 }
-
-const getTrackerWidth = (value: number) => {
-  if (!value) return 0
-  return Math.max((value / trackerMaxValue.value) * 100, 6)
-}
-
-const rangeLabel = computed(() => {
-  if (timeRange.value === '1') return '当天'
-  if (timeRange.value === '7') return '最近 7 天'
-  return '最近 30 天'
-})
 
 onMounted(async () => {
   systemStatusStore.start()
@@ -431,8 +512,8 @@ onMounted(async () => {
 }
 
 .summary-text {
-  font-size: 14px;
-  font-weight: 400;
+  font-size: 16px;
+  font-weight: 500;
   word-break: break-all;
 }
 
@@ -458,109 +539,26 @@ onMounted(async () => {
   color: #909399;
 }
 
-.charts-section {
+.charts-grid {
   margin-top: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.chart-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.chart-header h3 {
-  margin: 0;
-}
-
-.chart-header p {
-  margin: 0;
-  color: #909399;
-  font-size: 13px;
 }
 
 .chart-card {
-  min-height: 320px;
+  min-height: 360px;
 }
 
-.stacked-chart {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  height: 260px;
-  padding: 8px 0;
+.chart {
+  width: 100%;
+  height: 320px;
 }
 
-.stacked-bar {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
+@media (max-width: 768px) {
+  .chart-card {
+    min-height: 300px;
+  }
 
-.stacked-bar .bar {
-  width: 24px;
-  border-radius: 4px;
-}
-
-.stacked-bar .bar.download {
-  background-color: #67c23a;
-}
-
-.stacked-bar .bar.upload {
-  background-color: #409eff;
-  margin-top: 4px;
-}
-
-.stacked-bar .bar-label {
-  font-size: 12px;
-  color: #606266;
-}
-
-.grouped-chart {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding-top: 4px;
-}
-
-.grouped-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.tracker-label {
-  flex: 0 0 120px;
-  font-size: 13px;
-  color: #606266;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.grouped-bars {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.grouped-bars .bar {
-  height: 10px;
-  border-radius: 4px;
-}
-
-.grouped-bars .bar.download {
-  background-color: #67c23a;
-}
-
-.grouped-bars .bar.upload {
-  background-color: #409eff;
+  .chart {
+    height: 260px;
+  }
 }
 </style>

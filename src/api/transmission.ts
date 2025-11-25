@@ -7,10 +7,12 @@ import type {
   PortTestResult,
 } from '@/types/transmission'
 
+type TorrentIds = number | number[] | 'recently-active'
+
 /**
  * 获取种子列表
  */
-export const getTorrents = (fields?: string[]) => {
+export const getTorrents = (fields?: string[], options?: { ids?: TorrentIds }) => {
   const defaultFields = [
     'id',
     'name',
@@ -31,15 +33,22 @@ export const getTorrents = (fields?: string[]) => {
     'downloadDir',
     'hashString',
     'trackers',
+    'trackerStats',
     'uploadedEver',
     'downloadedEver',
     'activityDate',
     'labels',
   ]
 
-  return transmissionClient.request<{ torrents: Torrent[] }>('torrent-get', {
+  const payload: Record<string, any> = {
     fields: fields || defaultFields,
-  })
+  }
+
+  if (options?.ids) {
+    payload.ids = options.ids
+  }
+
+  return transmissionClient.request<{ torrents: Torrent[] }>('torrent-get', payload)
 }
 
 /**
@@ -75,6 +84,41 @@ export const removeTorrents = (ids: number[], deleteLocalData = false) => {
   return transmissionClient.request('torrent-remove', {
     ids,
     'delete-local-data': deleteLocalData,
+  })
+}
+
+/**
+ * 重新校验
+ */
+export const verifyTorrents = (ids: number[]) => {
+  return transmissionClient.request('torrent-verify', { ids })
+}
+
+/**
+ * 重新汇报（向 tracker 汇报）
+ */
+export const reannounceTorrents = (ids: number[]) => {
+  return transmissionClient.request('torrent-reannounce', { ids })
+}
+
+/**
+ * 变更保存目录
+ */
+export const setTorrentLocation = (ids: number[], location: string, move = false) => {
+  return transmissionClient.request('torrent-set-location', {
+    ids,
+    location,
+    move,
+  })
+}
+
+/**
+ * 更新种子配置（限速、文件选择等）
+ */
+export const setTorrents = (ids: number[], params: Record<string, any>) => {
+  return transmissionClient.request('torrent-set', {
+    ids,
+    ...params,
   })
 }
 
