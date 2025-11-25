@@ -42,6 +42,11 @@ jobs:
       - name: Build project
         run: npm run build
 
+      - name: Compress files to ZIP  # 新增压缩步骤
+        run: |
+          zip -r release.zip dist/  # 压缩 dist 目录
+          echo "ZIP_PATH=$(pwd)/release.zip" >> $GITHUB_ENV  # 存储路径
+
       - name: Create Snapshot Release
         uses: softprops/action-gh-release@v1
         with:
@@ -49,7 +54,7 @@ jobs:
           name: ${{ steps.package-version.outputs.version }}-${{ steps.commit-id.outputs.short_sha }}
           body: "Automated snapshot build from commit ${{ github.sha }}"
           prerelease: true
-          files: |
-            dist/**
+          files: ${{ env.ZIP_PATH }}  # 上传压缩包
+
         env:
           GITHUB_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
