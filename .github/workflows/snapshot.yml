@@ -18,13 +18,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
-
-      - name: Install pnpm
-        run: npm install -g pnpm
 
       - name: Install dependencies
-        run: pnpm install
+        run: npm install
 
       - name: Extract package version
         id: package-version
@@ -37,7 +33,7 @@ jobs:
         run: echo "short_sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
 
       - name: Build project
-        run: pnpm build
+        run: npm run build
 
       - name: Create Snapshot Release
         uses: softprops/action-gh-release@v1
