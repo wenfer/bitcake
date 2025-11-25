@@ -1,0 +1,52 @@
+name: Snapshot Release
+
+on:
+  push:
+    branches:
+      - '**'  # 所有分支提交时触发（可替换为特定分支如 main）
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整提交历史（[[0]](#__0) [[10]](#__10)）
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Extract package version
+        id: package-version
+        run: |
+          VERSION=$(jq -r .version package.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Get short commit SHA
+        id: commit-id
+        run: echo "short_sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Build project
+        run: pnpm build
+
+      - name: Create Snapshot Release
+        uses: softprops/action-gh-release@v1  # 替代官方归档方案（[[1]](#__1) [[5]](#__5)）
+        with:
+          tag_name: snapshot-${{ steps.commit-id.outputs.short_sha }}
+          name: ${{ steps.package-version.outputs.version }}-${{ steps.commit-id.outputs.short_sha }}
+          body: "Automated snapshot build from commit ${{ github.sha }}"
+          prerelease: true  # 标记为预发布版本（[[0]](#__0) [[10]](#__10)）
+          files: |
+            dist/**
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
