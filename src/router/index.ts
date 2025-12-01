@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { useConnectionStore } from '@/stores/connection'
+import { isTransmission } from '@/config/torrentClient'
 
 const resolveBase = () => {
   const base = import.meta.env.BASE_URL || '/'
@@ -51,6 +52,18 @@ const router = createRouter({
 
 // 路由守卫：检查认证状态
 router.beforeEach((to, _from, next) => {
+  // Transmission 使用 HTTP Basic 认证，浏览器会弹出原生登录对话框处理认证
+  // 因此不需要在页面内进行登录校验
+  if (isTransmission) {
+    // 如果访问登录页，直接重定向到首页
+    if (to.name === 'Login') {
+      next({ name: 'Home' })
+    } else {
+      next()
+    }
+    return
+  }
+
   const connectionStore = useConnectionStore()
 
   // 页面需要认证但未连接

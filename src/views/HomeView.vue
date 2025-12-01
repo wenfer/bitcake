@@ -28,7 +28,7 @@
         >
           删除选中
         </el-button>
-        <el-button :disabled="!hasSelection" @click="openBatchLimitDialog">
+        <el-button @click="openBatchLimitDialog">
           批量限速
         </el-button>
         <el-button @click="resetColumnWidths" title="重置所有列的宽度为默认值">
@@ -343,25 +343,28 @@
       :style="{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }"
       @click.stop
     >
+      <div v-if="contextMenuTargets.length > 1" class="context-menu-header">
+        已选 {{ contextMenuTargets.length }} 个种子
+      </div>
       <button
-        v-if="contextMenu.torrent?.status === TorrentStatusEnum.STOPPED"
+        v-if="contextMenuHasStoppedTorrent"
         @click="handleContextAction('start')"
       >
-        开始
+        开始{{ contextMenuTargets.length > 1 ? '选中' : '' }}
       </button>
       <button
-        v-else
+        v-if="contextMenuHasRunningTorrent"
         @click="handleContextAction('stop')"
       >
-        暂停
+        暂停{{ contextMenuTargets.length > 1 ? '选中' : '' }}
       </button>
-      <button @click="handleContextAction('verify')">重新校验</button>
-      <button @click="handleContextAction('reannounce')">重新汇报</button>
+      <button @click="handleContextAction('verify')">重新校验{{ contextMenuTargets.length > 1 ? '选中' : '' }}</button>
+      <button @click="handleContextAction('reannounce')">重新汇报{{ contextMenuTargets.length > 1 ? '选中' : '' }}</button>
       <button @click="handleContextAction('location')">变更保存目录</button>
       <button @click="handleContextAction('category')">设置分类</button>
-      <button @click="handleContextAction('detail')">查看详情</button>
+      <button v-if="contextMenuTargets.length === 1" @click="handleContextAction('detail')">查看详情</button>
       <button @click="handleContextAction('limit')">限速设置</button>
-      <button class="danger" @click="handleContextAction('delete')">删除</button>
+      <button class="danger" @click="handleContextAction('delete')">删除{{ contextMenuTargets.length > 1 ? '选中' : '' }}</button>
     </div>
 
     <!-- 添加种子对话框 -->
@@ -608,20 +611,42 @@
       v-model="limitDialogVisible"
       :title="limitDialogTitle"
       :width="limitDialogWidth"
+      class="limit-dialog"
     >
       <p class="dialog-subtitle" v-if="limitDialogMode === 'batch'">
-        已选种子：{{ limitDialogIds.length }} 个
+        全部种子：{{ limitDialogTargetTorrents.length }} 个
       </p>
       <p class="dialog-subtitle" v-else>
         {{ limitDialogTargetName }}
       </p>
-      <el-form :model="limitDialogForm" label-width="120px" v-loading="limitDialogLoading">
+      <el-form :model="limitDialogForm" label-width="100px" v-loading="limitDialogLoading" class="limit-form">
+        <!-- 批量模式：显示tracker筛选 -->
+        <el-form-item v-if="limitDialogMode === 'batch'" label="筛选站点">
+          <el-select
+            v-model="limitDialogForm.selectedTrackers"
+            multiple
+            filterable
+            allow-create
+            default-first-option
+            placeholder="留空则应用于全部种子"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="tracker in limitDialogTrackerOptions"
+              :key="tracker.value"
+              :label="tracker.label"
+              :value="tracker.value"
+            />
+          </el-select>
+          <div class="form-tip">
+            {{ limitDialogFilteredCount }}
+          </div>
+        </el-form-item>
         <el-form-item label="下载限速">
           <div class="limit-row">
             <el-switch
               v-model="limitDialogForm.downloadLimited"
-              active-text="启用"
-              inactive-text="关闭"
+              class="limit-switch"
             />
             <el-input-number
               v-model="limitDialogForm.downloadLimit"
@@ -629,16 +654,23 @@
               :max="1000000"
               :disabled="!limitDialogForm.downloadLimited"
               controls-position="right"
+              class="limit-input"
             />
-            <span class="limit-unit">KB/s</span>
+            <el-select
+              v-model="limitDialogForm.downloadUnit"
+              :disabled="!limitDialogForm.downloadLimited"
+              class="limit-unit-select"
+            >
+              <el-option label="KB/s" value="KB" />
+              <el-option label="MB/s" value="MB" />
+            </el-select>
           </div>
         </el-form-item>
         <el-form-item label="上传限速">
           <div class="limit-row">
             <el-switch
               v-model="limitDialogForm.uploadLimited"
-              active-text="启用"
-              inactive-text="关闭"
+              class="limit-switch"
             />
             <el-input-number
               v-model="limitDialogForm.uploadLimit"
@@ -646,8 +678,27 @@
               :max="1000000"
               :disabled="!limitDialogForm.uploadLimited"
               controls-position="right"
+              class="limit-input"
             />
-            <span class="limit-unit">KB/s</span>
+            <el-select
+              v-model="limitDialogForm.uploadUnit"
+              :disabled="!limitDialogForm.uploadLimited"
+              class="limit-unit-select"
+            >
+              <el-option label="KB/s" value="KB" />
+              <el-option label="MB/s" value="MB" />
+            </el-select>
+          </div>
+        </el-form-item>
+        <el-form-item v-if="limitDialogMode === 'batch'" label="添加标签">
+          <div class="limit-row">
+            <el-switch
+              v-model="limitDialogForm.addLabel"
+              class="limit-switch"
+            />
+            <span class="form-tip-inline" v-if="limitDialogForm.addLabel">
+              如：limit:↓100KB/s↑50KB/s
+            </span>
           </div>
         </el-form-item>
       </el-form>
@@ -731,15 +782,23 @@ const { statusFilter, trackerFilter, categoryFilter } = storeToRefs(filterStore)
 interface LimitFormState {
   downloadLimited: boolean
   downloadLimit: number
+  downloadUnit: 'KB' | 'MB'
   uploadLimited: boolean
   uploadLimit: number
+  uploadUnit: 'KB' | 'MB'
+  selectedTrackers: string[]
+  addLabel: boolean
 }
 
 const createEmptyLimitForm = (): LimitFormState => ({
   downloadLimited: false,
   downloadLimit: 0,
+  downloadUnit: 'KB',
   uploadLimited: false,
   uploadLimit: 0,
+  uploadUnit: 'KB',
+  selectedTrackers: [],
+  addLabel: true,
 })
 
 const statusTextMap: Record<TorrentStatus, string> = {
@@ -791,11 +850,13 @@ const locationForm = ref({
   move: true,
 })
 const locationTarget = ref<Torrent | null>(null)
+const locationTargetIds = ref<number[]>([])
 const showCategoryDialog = ref(false)
 const categoryForm = ref({
   category: '',
 })
 const categoryTarget = ref<Torrent | null>(null)
+const categoryTargetIds = ref<number[]>([])
 const availableCategories = ref<string[]>([])
 const showDetailDialog = ref(false)
 const detailLoading = ref(false)
@@ -823,6 +884,7 @@ const removeDialog = ref({
 const lastFetchedAt = ref('')
 const limitDialogVisible = ref(false)
 const limitDialogIds = ref<number[]>([])
+const limitDialogTargetTorrents = ref<Torrent[]>([])
 const limitDialogForm = ref<LimitFormState>(createEmptyLimitForm())
 const limitDialogSaving = ref(false)
 const limitDialogMode = ref<'batch' | 'single'>('batch')
@@ -831,6 +893,45 @@ const limitDialogLoading = ref(false)
 const limitDialogTitle = computed(() =>
   limitDialogMode.value === 'single' ? '限速设置' : '批量限速'
 )
+
+// 从目标种子中提取所有唯一的tracker
+const limitDialogTrackerOptions = computed(() => {
+  const trackerMap = new Map<string, string>()
+  limitDialogTargetTorrents.value.forEach(torrent => {
+    torrent.trackers?.forEach(tracker => {
+      const displayName = getTrackerDisplayName(tracker.announce)
+      trackerMap.set(displayName, displayName)
+    })
+  })
+  return Array.from(trackerMap.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([displayName]) => ({ label: displayName, value: displayName }))
+})
+
+// 计算筛选后将影响的种子数量
+const limitDialogFilteredTorrents = computed(() => {
+  const selectedTrackers = limitDialogForm.value.selectedTrackers
+  if (!selectedTrackers.length) {
+    return limitDialogTargetTorrents.value
+  }
+  return limitDialogTargetTorrents.value.filter(torrent => {
+    return torrent.trackers?.some(tracker => {
+      const displayName = getTrackerDisplayName(tracker.announce)
+      return selectedTrackers.includes(displayName)
+    })
+  })
+})
+
+const limitDialogFilteredCount = computed(() => {
+  const selectedTrackers = limitDialogForm.value.selectedTrackers
+  const filteredCount = limitDialogFilteredTorrents.value.length
+  const totalCount = limitDialogTargetTorrents.value.length
+  if (!selectedTrackers.length) {
+    return `将应用于所有 ${totalCount} 个种子`
+  }
+  return `将应用于 ${filteredCount} / ${totalCount} 个种子`
+})
+
 const isMobile = useMediaQuery('(max-width: 768px)')
 const isCompactTable = useMediaQuery('(max-width: 1100px)')
 const showMobileFilters = ref(!isMobile.value)
@@ -873,6 +974,17 @@ const contextMenu = ref<{
   torrent: null,
 })
 const contextMenuRef = ref<HTMLElement | null>(null)
+const contextMenuTargets = ref<Torrent[]>([])
+
+// 计算右键菜单目标中是否有已停止的种子
+const contextMenuHasStoppedTorrent = computed(() =>
+  contextMenuTargets.value.some(t => t.status === TorrentStatusEnum.STOPPED)
+)
+
+// 计算右键菜单目标中是否有运行中的种子
+const contextMenuHasRunningTorrent = computed(() =>
+  contextMenuTargets.value.some(t => t.status !== TorrentStatusEnum.STOPPED)
+)
 
 const getDefaultTracker = (torrent: Torrent): string => {
   // 优先选择第一个汇报成功的tracker
@@ -1190,6 +1302,7 @@ watch(
 watch(limitDialogVisible, (visible) => {
   if (!visible) {
     limitDialogIds.value = []
+    limitDialogTargetTorrents.value = []
     limitDialogMode.value = 'batch'
     limitDialogTargetName.value = ''
     limitDialogLoading.value = false
@@ -1221,6 +1334,17 @@ const handleSelectionChange = (selection: Torrent[]) => {
 
 const handleRowContextMenu = (row: Torrent, _column: any, event: MouseEvent) => {
   event.preventDefault()
+
+  // 判断右键的种子是否在已选择列表中
+  const isRowSelected = selectedTorrents.value.some(t => t.id === row.id)
+
+  // 如果右键的种子在选中列表中，使用所有选中的种子；否则只使用当前右键的种子
+  if (isRowSelected && selectedTorrents.value.length > 0) {
+    contextMenuTargets.value = [...selectedTorrents.value]
+  } else {
+    contextMenuTargets.value = [row]
+  }
+
   contextMenu.value = {
     visible: true,
     x: event.clientX,
@@ -1233,6 +1357,7 @@ const handleRowContextMenu = (row: Torrent, _column: any, event: MouseEvent) => 
 const hideContextMenu = () => {
   contextMenu.value.visible = false
   contextMenu.value.torrent = null
+  contextMenuTargets.value = []
 }
 
 const adjustContextMenuPosition = () => {
@@ -1425,100 +1550,114 @@ const handleContextAction = (
     | 'limit'
     | 'category'
 ) => {
-  const torrent = contextMenu.value.torrent
-  if (!torrent) return
+  const targets = [...contextMenuTargets.value]
+  if (!targets.length) return
+
+  const targetIds = targets.map(t => t.id)
+  const isBatch = targets.length > 1
+
   hideContextMenu()
+
   if (action === 'start') {
-    startTorrent(torrent.id)
+    startTorrentsById(targetIds)
     return
   }
   if (action === 'stop') {
-    stopTorrent(torrent.id)
+    stopTorrentsById(targetIds)
     return
   }
   if (action === 'delete') {
-    removeTorrent(torrent.id)
+    if (isBatch) {
+      openRemoveDialog(targetIds, `确定删除选中的 ${targetIds.length} 个种子？`)
+    } else {
+      openRemoveDialog(targetIds, '确定删除该种子？')
+    }
     return
   }
   if (action === 'verify') {
-    verifyTorrent(torrent.id)
+    verifyTorrentsById(targetIds)
     return
   }
   if (action === 'reannounce') {
-    reannounceTorrent(torrent.id)
+    reannounceTorrentsById(targetIds)
     return
   }
   if (action === 'location') {
-    openLocationDialog(torrent)
+    openLocationDialog(targets[0]!, isBatch ? targetIds : undefined)
     return
   }
   if (action === 'category') {
-    openCategoryDialog(torrent)
+    openCategoryDialog(targets[0]!, isBatch ? targetIds : undefined)
     return
   }
   if (action === 'detail') {
-    openDetailDialog(torrent)
+    // 查看详情只支持单个种子
+    if (!isBatch) {
+      openDetailDialog(targets[0]!)
+    }
     return
   }
   if (action === 'limit') {
-    openSingleLimitDialog(torrent)
+    if (isBatch) {
+      openBatchLimitDialogWithTargets(targets)
+    } else {
+      openSingleLimitDialog(targets[0]!)
+    }
   }
 }
 
-// 开始种子
-const startTorrent = async (id: number) => {
+// 批量开始种子
+const startTorrentsById = async (ids: number[]) => {
   try {
-    await api.startTorrents([id])
-    ElMessage.success('已开始')
+    await api.startTorrents(ids)
+    ElMessage.success(ids.length > 1 ? `已开始 ${ids.length} 个种子` : '已开始')
     loadTorrents()
   } catch (error: any) {
     ElMessage.error(`操作失败: ${error.message}`)
   }
 }
 
-// 暂停种子
-const stopTorrent = async (id: number) => {
+// 批量暂停种子
+const stopTorrentsById = async (ids: number[]) => {
   try {
-    await api.stopTorrents([id])
-    ElMessage.success('已暂停')
+    await api.stopTorrents(ids)
+    ElMessage.success(ids.length > 1 ? `已暂停 ${ids.length} 个种子` : '已暂停')
     loadTorrents()
   } catch (error: any) {
     ElMessage.error(`操作失败: ${error.message}`)
   }
 }
 
-// 删除种子
-const removeTorrent = async (id: number) => {
-  openRemoveDialog([id], '确定删除该种子？')
-}
-
-const verifyTorrent = async (id: number) => {
+// 批量校验种子
+const verifyTorrentsById = async (ids: number[]) => {
   try {
-    await api.verifyTorrents([id])
-    ElMessage.success('已开始重新校验')
+    await api.verifyTorrents(ids)
+    ElMessage.success(ids.length > 1 ? `已开始重新校验 ${ids.length} 个种子` : '已开始重新校验')
   } catch (error: any) {
     ElMessage.error(`重新校验失败: ${error.message}`)
   }
 }
 
-const reannounceTorrent = async (id: number) => {
+// 批量汇报种子
+const reannounceTorrentsById = async (ids: number[]) => {
   try {
-    await api.reannounceTorrents([id])
-    ElMessage.success('已通知 Tracker')
+    await api.reannounceTorrents(ids)
+    ElMessage.success(ids.length > 1 ? `已通知 Tracker（${ids.length} 个种子）` : '已通知 Tracker')
   } catch (error: any) {
     ElMessage.error(`重新汇报失败: ${error.message}`)
   }
 }
 
-const openLocationDialog = (torrent: Torrent) => {
+const openLocationDialog = (torrent: Torrent, batchIds?: number[]) => {
   locationTarget.value = torrent
+  locationTargetIds.value = batchIds || [torrent.id]
   locationForm.value.path = torrent.downloadDir
   locationForm.value.move = true
   showLocationDialog.value = true
 }
 
 const submitLocationChange = async () => {
-  if (!locationTarget.value) {
+  if (!locationTargetIds.value.length) {
     showLocationDialog.value = false
     return
   }
@@ -1528,8 +1667,8 @@ const submitLocationChange = async () => {
     return
   }
   try {
-    await api.setTorrentLocation([locationTarget.value.id], path, locationForm.value.move)
-    ElMessage.success('保存目录已更新')
+    await api.setTorrentLocation(locationTargetIds.value, path, locationForm.value.move)
+    ElMessage.success(locationTargetIds.value.length > 1 ? `已更新 ${locationTargetIds.value.length} 个种子的保存目录` : '保存目录已更新')
     showLocationDialog.value = false
     loadTorrents()
   } catch (error: any) {
@@ -1537,8 +1676,9 @@ const submitLocationChange = async () => {
   }
 }
 
-const openCategoryDialog = async (torrent: Torrent) => {
+const openCategoryDialog = async (torrent: Torrent, batchIds?: number[]) => {
   categoryTarget.value = torrent
+  categoryTargetIds.value = batchIds || [torrent.id]
   categoryForm.value.category = torrent.category || ''
   showCategoryDialog.value = true
   // 加载可用分类列表
@@ -1552,15 +1692,15 @@ const openCategoryDialog = async (torrent: Torrent) => {
 }
 
 const submitCategoryChange = async () => {
-  if (!categoryTarget.value) {
+  if (!categoryTargetIds.value.length) {
     showCategoryDialog.value = false
     return
   }
   const category = categoryForm.value.category.trim()
   try {
     if (api.setTorrentCategory) {
-      await api.setTorrentCategory([categoryTarget.value.id], category)
-      ElMessage.success('分类已更新')
+      await api.setTorrentCategory(categoryTargetIds.value, category)
+      ElMessage.success(categoryTargetIds.value.length > 1 ? `已更新 ${categoryTargetIds.value.length} 个种子的分类` : '分类已更新')
       showCategoryDialog.value = false
       loadTorrents()
     } else {
@@ -1694,20 +1834,60 @@ const buildLimitPayload = (form: LimitFormState) => {
     uploadLimited: form.uploadLimited,
   }
   if (form.downloadLimited) {
-    payload.downloadLimit = Math.max(0, Math.round(form.downloadLimit))
+    // 转换为 KB/s (API 使用 KB/s)
+    const downloadLimit = form.downloadUnit === 'MB'
+      ? form.downloadLimit * 1024
+      : form.downloadLimit
+    payload.downloadLimit = Math.max(0, Math.round(downloadLimit))
   }
   if (form.uploadLimited) {
-    payload.uploadLimit = Math.max(0, Math.round(form.uploadLimit))
+    // 转换为 KB/s (API 使用 KB/s)
+    const uploadLimit = form.uploadUnit === 'MB'
+      ? form.uploadLimit * 1024
+      : form.uploadLimit
+    payload.uploadLimit = Math.max(0, Math.round(uploadLimit))
   }
   return payload
 }
 
+// 生成限速标签字符串
+const buildLimitLabel = (form: LimitFormState): string => {
+  const parts: string[] = []
+  if (form.downloadLimited && form.downloadLimit > 0) {
+    parts.push(`↓${form.downloadLimit}${form.downloadUnit}/s`)
+  }
+  if (form.uploadLimited && form.uploadLimit > 0) {
+    parts.push(`↑${form.uploadLimit}${form.uploadUnit}/s`)
+  }
+  if (parts.length === 0) {
+    return ''
+  }
+  return `limit:${parts.join('')}`
+}
+
 const openBatchLimitDialog = () => {
-  if (!selectedIds.value.length) return
+  if (!torrents.value.length) {
+    ElMessage.warning('暂无种子')
+    return
+  }
   limitDialogMode.value = 'batch'
   limitDialogTargetName.value = ''
   limitDialogLoading.value = false
-  limitDialogIds.value = [...selectedIds.value]
+  // 使用所有种子，而不是选中的种子
+  limitDialogIds.value = torrents.value.map(t => t.id)
+  limitDialogTargetTorrents.value = [...torrents.value]
+  resetLimitDialogForm()
+  limitDialogVisible.value = true
+}
+
+// 从右键菜单打开批量限速对话框
+const openBatchLimitDialogWithTargets = (targets: Torrent[]) => {
+  if (!targets.length) return
+  limitDialogMode.value = 'batch'
+  limitDialogTargetName.value = ''
+  limitDialogLoading.value = false
+  limitDialogIds.value = targets.map(t => t.id)
+  limitDialogTargetTorrents.value = targets
   resetLimitDialogForm()
   limitDialogVisible.value = true
 }
@@ -1724,8 +1904,12 @@ const applyLimitFormFromTorrent = (torrent?: Torrent | null) => {
   limitDialogForm.value = {
     downloadLimited: torrent.downloadLimited ?? false,
     downloadLimit: torrent.downloadLimit ?? 0,
+    downloadUnit: 'KB',
     uploadLimited: torrent.uploadLimited ?? false,
     uploadLimit: torrent.uploadLimit ?? 0,
+    uploadUnit: 'KB',
+    selectedTrackers: [],
+    addLabel: false, // 单个种子模式默认不添加标签
   }
 }
 
@@ -1733,12 +1917,17 @@ const openSingleLimitDialog = async (torrent: Torrent) => {
   limitDialogMode.value = 'single'
   limitDialogTargetName.value = `当前种子：${torrent.name}`
   limitDialogIds.value = [torrent.id]
+  limitDialogTargetTorrents.value = [torrent]
   resetLimitDialogForm()
   limitDialogVisible.value = true
   limitDialogLoading.value = true
   try {
     const detail = await fetchTorrentDetail(torrent.id)
     applyLimitFormFromTorrent(detail || torrent)
+    // 更新目标种子列表以获取最新的标签信息
+    if (detail) {
+      limitDialogTargetTorrents.value = [detail]
+    }
   } catch (error) {
     console.warn('加载限速信息失败', error)
     applyLimitFormFromTorrent(torrent)
@@ -1748,14 +1937,44 @@ const openSingleLimitDialog = async (torrent: Torrent) => {
 }
 
 const submitLimitSettings = async () => {
-  if (!limitDialogIds.value.length) {
-    limitDialogVisible.value = false
+  // 批量模式：使用筛选后的种子
+  const targetTorrents = limitDialogMode.value === 'batch'
+    ? limitDialogFilteredTorrents.value
+    : limitDialogTargetTorrents.value
+
+  if (!targetTorrents.length) {
+    ElMessage.warning('没有匹配的种子')
     return
   }
+
+  const targetIds = targetTorrents.map(t => t.id)
   limitDialogSaving.value = true
+
   try {
-    await api.setTorrents(limitDialogIds.value, buildLimitPayload(limitDialogForm.value))
-    ElMessage.success('限速设置已应用')
+    // 1. 设置限速
+    await api.setTorrents(targetIds, buildLimitPayload(limitDialogForm.value))
+
+    // 2. 如果是批量模式且需要添加标签
+    if (limitDialogMode.value === 'batch' && limitDialogForm.value.addLabel) {
+      const limitLabel = buildLimitLabel(limitDialogForm.value)
+      if (limitLabel) {
+        // 为每个种子更新标签
+        for (const torrent of targetTorrents) {
+          // 移除旧的限速标签
+          const existingLabels = (torrent.labels || []).filter(
+            label => !label.startsWith('limit:')
+          )
+          // 添加新的限速标签
+          const newLabels = [...existingLabels, limitLabel]
+          await api.setTorrents([torrent.id], { labels: newLabels })
+        }
+      }
+    }
+
+    ElMessage.success(targetIds.length > 1
+      ? `已对 ${targetIds.length} 个种子应用限速设置`
+      : '限速设置已应用'
+    )
     limitDialogVisible.value = false
     loadTorrents()
   } catch (error: any) {
@@ -1966,6 +2185,14 @@ onBeforeUnmount(() => {
   min-width: 120px;
 }
 
+.context-menu-header {
+  padding: 6px 16px;
+  font-size: 12px;
+  color: #909399;
+  border-bottom: 1px solid #ebeef5;
+  margin-bottom: 4px;
+}
+
 .context-menu button {
   display: block;
   width: 100%;
@@ -2092,11 +2319,36 @@ onBeforeUnmount(() => {
 .limit-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
-.limit-unit {
+.limit-switch {
+  flex-shrink: 0;
+  width: 50px;
+}
+
+.limit-input {
+  width: 120px;
+}
+
+.limit-unit-select {
+  width: 80px;
+}
+
+.limit-form .el-form-item {
+  margin-bottom: 16px;
+}
+
+.form-tip {
+  margin-top: 4px;
+  font-size: 12px;
   color: #909399;
+}
+
+.form-tip-inline {
+  font-size: 12px;
+  color: #909399;
+  margin-left: 8px;
 }
 
 .dialog-subtitle {
