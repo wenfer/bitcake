@@ -1,6 +1,7 @@
 name: Snapshot Release
 permissions:
   contents: write  # 必需权限
+  packages: write  # Docker 镜像推送权限
 
 on:
   push:
@@ -54,17 +55,17 @@ jobs:
         run: |
           # 压缩 Transmission 版本
           cd dist-transmission
-          zip -r ../transmission-vue-${{ steps.package-version.outputs.version }}-transmission.zip .
+          zip -r ../bitcake-${{ steps.package-version.outputs.version }}-transmission.zip .
           cd ..
 
           # 压缩 qBittorrent 版本 (在 public 子目录中)
           cd dist-qbittorrent
-          zip -r ../transmission-vue-${{ steps.package-version.outputs.version }}-qbittorrent.zip .
+          zip -r ../bitcake-${{ steps.package-version.outputs.version }}-qbittorrent.zip .
           cd ..
 
           # 输出文件路径供后续步骤使用
-          echo "TRANSMISSION_ZIP=$(pwd)/transmission-vue-${{ steps.package-version.outputs.version }}-transmission.zip" >> $GITHUB_ENV
-          echo "QBITTORRENT_ZIP=$(pwd)/transmission-vue-${{ steps.package-version.outputs.version }}-qbittorrent.zip" >> $GITHUB_ENV
+          echo "TRANSMISSION_ZIP=$(pwd)/bitcake-${{ steps.package-version.outputs.version }}-transmission.zip" >> $GITHUB_ENV
+          echo "QBITTORRENT_ZIP=$(pwd)/bitcake-${{ steps.package-version.outputs.version }}-qbittorrent.zip" >> $GITHUB_ENV
 
       - name: Create Snapshot Release
         uses: softprops/action-gh-release@v1
@@ -75,8 +76,14 @@ jobs:
             Automated snapshot build from commit ${{ github.sha }}
 
             ## 📦 Build Artifacts
-            - `transmission-vue-${{ steps.package-version.outputs.version }}-transmission.zip` - Transmission 客户端版本
-            - `transmission-vue-${{ steps.package-version.outputs.version }}-qbittorrent.zip` - qBittorrent 客户端版本
+            - `bitcake-${{ steps.package-version.outputs.version }}-transmission.zip` - Transmission 客户端版本
+            - `bitcake-${{ steps.package-version.outputs.version }}-qbittorrent.zip` - qBittorrent 客户端版本
+
+            ## 🐳 Docker Image
+            ```bash
+            docker pull ghcr.io/${{ github.repository_owner }}/bitcake:${{ steps.package-version.outputs.version }}-${{ steps.commit-id.outputs.short_sha }}
+            docker pull ghcr.io/${{ github.repository_owner }}/bitcake:latest
+            ```
           prerelease: true
           files: |
             ${{ env.TRANSMISSION_ZIP }}
@@ -84,3 +91,38 @@ jobs:
 
         env:
           GITHUB_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+
+      # Docker 镜像构建和推送
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/bitcake
+          tags: |
+            type=raw,value=${{ steps.package-version.outputs.version }}-${{ steps.commit-id.outputs.short_sha }}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix={{branch}}-
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
