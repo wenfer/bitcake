@@ -118,7 +118,7 @@
           <template #header>
             <div class="card-header">
               <span>Tracker 上传占比</span>
-              <small>基于默认 Tracker 汇总</small>
+              <small>基于服务器 汇总</small>
             </div>
           </template>
           <VChart class="chart" :option="trackerShareChartOptions" autoresize />
@@ -130,7 +130,7 @@
       <template #header>
         <div class="card-header">
           <span>Tracker 全量统计</span>
-          <small>按默认 Tracker 汇总上传/下载</small>
+          <small>按服务器 汇总上传/下载</small>
         </div>
       </template>
       <el-table
@@ -155,6 +155,16 @@
             {{ (row.ratio || 0).toFixed(2) }}
           </template>
         </el-table-column>
+        <el-table-column label="保种量">
+          <template #default="{ row }">
+            {{ row.seedingCount }}
+          </template>
+        </el-table-column>
+        <el-table-column label="保种体积">
+          <template #default="{ row }">
+            {{ formatBytes(row.seedingSize) }}
+          </template>
+        </el-table-column>
       </el-table>
     </el-card>
   </div>
@@ -173,6 +183,7 @@ import { GridComponent, LegendComponent, TooltipComponent, TitleComponent } from
 import * as api from '@/api/torrents'
 import { torrentBackendName } from '@/config/torrentClient'
 import type { Torrent } from '@/types/transmission'
+import type { TorrentTrackerStat } from '@/types/torrent'
 import { useSystemStatusStore } from '@/stores/systemStatus'
 import { getTrackerDisplayName } from '@/utils/torrent'
 
@@ -234,29 +245,35 @@ const freeSpaceText = computed(() => {
 const trackerStats = computed(() => {
   const trackerMap = new Map<
     string,
-    { tracker: string; uploaded: number; downloaded: number }
+    { tracker: string; uploaded: number; downloaded: number; seedingCount: number; seedingSize: number }
   >()
   torrents.value.forEach((torrent) => {
     // 优先选择第一个汇报成功的tracker
     let tracker = null
+    let trackerStat: TorrentTrackerStat | undefined = undefined
     if (torrent.trackerStats && torrent.trackerStats.length > 0) {
-      const successTracker = torrent.trackerStats.find(stat => stat.lastAnnounceSucceeded)
-      if (successTracker) {
-        tracker = torrent.trackers?.find(t => t.announce === successTracker.announce)
+      trackerStat = torrent.trackerStats.find(stat => stat.lastAnnounceSucceeded)
+      if (trackerStat) {
+        tracker = torrent.trackers?.find(t => t.announce === trackerStat!.announce)
       }
     }
     // 如果没有汇报成功的，则使用第一个tracker
     if (!tracker) {
       tracker = torrent.trackers?.[0]
+      trackerStat = torrent.trackerStats?.[0]
     }
 
     const displayName = tracker ? getTrackerDisplayName(tracker.announce) : '未设置'
     if (!trackerMap.has(displayName)) {
-      trackerMap.set(displayName, { tracker: displayName, uploaded: 0, downloaded: 0 })
+      trackerMap.set(displayName, { tracker: displayName, uploaded: 0, downloaded: 0, seedingCount: 0, seedingSize: 0 })
     }
     const entry = trackerMap.get(displayName)!
     entry.uploaded += torrent.uploadedEver || 0
     entry.downloaded += torrent.downloadedEver || 0
+    if (torrent.status === 6 && trackerStat) {
+      entry.seedingCount++
+      entry.seedingSize += torrent.totalSize || 0
+    }
   })
   return Array.from(trackerMap.values())
     .map((entry) => ({

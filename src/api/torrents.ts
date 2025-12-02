@@ -75,6 +75,7 @@ interface TorrentService {
   reannounceTorrents(ids: number[]): Promise<void>
   setTorrentLocation(ids: number[], location: string, move?: boolean): Promise<void>
   setTorrents(ids: number[], params: Record<string, any>): Promise<void>
+  replaceTrackers(ids: number[], oldUrl: string, newUrl: string): Promise<void>
   setTorrentCategory?(ids: number[], category: string): Promise<void>
   getCategories?(): Promise<string[]>
   getSessionStats(): Promise<SessionStats>
@@ -199,6 +200,39 @@ const transmissionService: TorrentService = {
       ids,
       ...params,
     })
+  },
+
+  async replaceTrackers(ids, oldUrl, newUrl) {
+    // 获取种子详情以获取完整的tracker列表
+    const response = await transmissionClient.request<{ torrents: Torrent[] }>('torrent-get', {
+      ids,
+      fields: ['id', 'trackers'],
+    })
+
+    const torrents = response.torrents || []
+
+    // 对每个种子进行tracker替换
+    for (const torrent of torrents) {
+      const trackers = torrent.trackers || []
+
+      for (const tracker of trackers) {
+        if (tracker.announce.includes(oldUrl)) {
+          const updatedUrl = tracker.announce.replace(oldUrl, newUrl)
+
+          // 先删除旧tracker
+          await transmissionClient.request('trackerRemove', {
+            ids: [torrent.id],
+            trackerRemove: [tracker.announce],
+          })
+
+          // 再添加新tracker
+          await transmissionClient.request('trackerAdd', {
+            ids: [torrent.id],
+            trackerAdd: [updatedUrl],
+          })
+        }
+      }
+    }
   },
 
   getSessionStats() {
@@ -816,6 +850,29 @@ const qbittorrentService: TorrentService = {
     }
   },
 
+  async replaceTrackers(ids, oldUrl, newUrl) {
+    await qbEnsureAuth()
+    const torrentsData = await qbittorrentService.getTorrents()
+    const targetTorrents = torrentsData.torrents.filter((t) => ids.includes(t.id))
+
+    for (const torrent of targetTorrents) {
+      const hash = torrent.hashString
+      const trackers = torrent.trackers || []
+
+      for (const tracker of trackers) {
+        if (tracker.announce.includes(oldUrl)) {
+          const updatedUrl = tracker.announce.replace(oldUrl, newUrl)
+          const formData = qbittorrentClient.buildFormData({
+            hash,
+            origUrl: tracker.announce,
+            newUrl: updatedUrl,
+          })
+          await qbittorrentClient.post('/torrents/editTracker', formData)
+        }
+      }
+    }
+  },
+
   async getSessionStats() {
     await qbEnsureAuth()
     const [transfer, maindata] = await Promise.all([
@@ -1047,6 +1104,8 @@ export const setTorrentLocation = (ids: number[], location: string, move = false
   activeService.setTorrentLocation(ids, location, move)
 export const setTorrents = (ids: number[], params: Record<string, any>) =>
   activeService.setTorrents(ids, params)
+export const replaceTrackers = (ids: number[], oldUrl: string, newUrl: string) =>
+  activeService.replaceTrackers(ids, oldUrl, newUrl)
 export const getSessionStats = () => activeService.getSessionStats()
 export const getSession = () => activeService.getSession()
 export const setSession = (config: Partial<SessionConfig>) => activeService.setSession(config)

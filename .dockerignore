@@ -1,0 +1,42 @@
+# Git
+.git
+.gitignore
+.github
+
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build output (除了 dist-transmission)
+dist-qbittorrent
+
+# Development
+.vscode
+.idea
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Testing
+coverage
+.nyc_output
+
+# Documentation
+*.md
+!DOCKER.md
+docs
+
+# CI/CD
+.github
+
+# Misc
+.DS_Store
+Thumbs.db
+.env*

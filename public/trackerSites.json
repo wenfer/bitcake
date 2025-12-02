@@ -9,7 +9,7 @@
     {
       "name": "财神",
       "trackers": [
-        "tracker.cspt.top",
+        "cspt.top",
         "tracker.cspt.cc",
         "tracker.cspt.date",
         "tracker.cspt.top"
@@ -36,7 +36,8 @@
     {
       "name": "观众",
       "trackers": [
-        "t.audiences.me"
+        "t.audiences.me",
+        "tracker.cinefiles.info"
       ]
     },
     {
@@ -96,7 +97,7 @@
     {
       "name": "麒麟",
       "trackers": [
-        "hdkyl.in",
+        "tracker.hdkyl.in",
         "hdkylin.top"
       ]
     },
@@ -109,7 +110,13 @@
     {
       "name": "憨憨",
       "trackers": [
-        "hhanclub.top"
+        "tracker.hhanclub.top"
+      ]
+    },
+    {
+      "name": "老师",
+      "trackers": [
+        "www.nicept.net"
       ]
     },
     {
@@ -127,7 +134,8 @@
     {
       "name": "猫站",
       "trackers": [
-        "tracker.pterclub.net"
+        "tracker.pterclub.net",
+        "tracker.pterclub.com"
       ]
     },
     {

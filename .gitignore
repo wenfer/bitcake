@@ -17,3 +17,8 @@ dist
 # Env
 .env
 .env.local
+.vscode
+dist*
+.esdata
+.claude
+.pnpm-store

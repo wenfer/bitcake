@@ -36,6 +36,7 @@ A modern, unified web interface for Transmission and qBittorrent.
 ### 使用预构建容器
 
 ```
+# 用这个记得把webui的配置给取消，因为默认的ui就是当前ui
 ---
 services:
   transmission:

@@ -31,6 +31,9 @@
         <el-button @click="openBatchLimitDialog">
           批量限速
         </el-button>
+        <el-button @click="openReplaceTrackerDialog">
+          批量替换Tracker
+        </el-button>
         <el-button @click="resetColumnWidths" title="重置所有列的宽度为默认值">
           重置列宽
         </el-button>
@@ -207,7 +210,7 @@
             v-if="!isCompactTable"
             column-key="defaultTracker"
             prop="defaultTracker"
-            label="默认 Tracker"
+            label="服务器"
             :width="getColumnWidth('defaultTracker', 200)"
             :min-width="160"
             sortable="custom"
@@ -718,6 +721,50 @@
       </template>
     </el-dialog>
 
+    <el-dialog
+      v-model="replaceTrackerDialogVisible"
+      title="批量替换 Tracker"
+      :width="isMobile ? '95%' : '500px'"
+      class="replace-tracker-dialog"
+    >
+      <p class="dialog-subtitle">
+        将对全部 {{ torrents.length }} 个种子进行操作
+      </p>
+      <el-form :model="replaceTrackerForm" label-width="120px" v-loading="replaceTrackerLoading" class="replace-tracker-form">
+        <el-form-item label="原域名/URL" required>
+          <el-input
+            v-model="replaceTrackerForm.oldUrl"
+            placeholder="例如：old-tracker.com 或完整URL"
+            clearable
+          />
+          <div class="form-tip">
+            将匹配包含此字符串的 tracker 地址
+          </div>
+        </el-form-item>
+        <el-form-item label="新域名/URL" required>
+          <el-input
+            v-model="replaceTrackerForm.newUrl"
+            placeholder="例如：new-tracker.com 或完整URL"
+            clearable
+          />
+          <div class="form-tip">
+            使用字符串替换，保留参数等其他部分
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="replaceTrackerDialogVisible = false">取消</el-button>
+        <el-button
+          type="primary"
+          :loading="replaceTrackerLoading"
+          :disabled="!replaceTrackerForm.oldUrl || !replaceTrackerForm.newUrl"
+          @click="submitReplaceTracker"
+        >
+          替换
+        </el-button>
+      </template>
+    </el-dialog>
+
     <el-dialog v-model="removeDialog.visible" title="删除种子" :width="removeDialogWidth">
       <p class="delete-message">
         {{ removeDialog.message || `确定删除选中的 ${removeDialog.ids.length} 个种子？` }}
@@ -904,6 +951,14 @@ const limitDialogLoading = ref(false)
 const limitDialogTitle = computed(() =>
   limitDialogMode.value === 'single' ? '限速设置' : '批量限速'
 )
+
+// 批量替换tracker对话框相关
+const replaceTrackerDialogVisible = ref(false)
+const replaceTrackerLoading = ref(false)
+const replaceTrackerForm = ref({
+  oldUrl: '',
+  newUrl: '',
+})
 
 // 从目标种子中提取所有唯一的tracker
 const limitDialogTrackerOptions = computed(() => {
@@ -2002,6 +2057,49 @@ const submitLimitSettings = async () => {
     ElMessage.error(`保存失败: ${error.message}`)
   } finally {
     limitDialogSaving.value = false
+  }
+}
+
+// 批量替换tracker相关方法
+const openReplaceTrackerDialog = () => {
+  if (!torrents.value.length) {
+    ElMessage.warning('暂无种子')
+    return
+  }
+  replaceTrackerForm.value = {
+    oldUrl: '',
+    newUrl: '',
+  }
+  replaceTrackerDialogVisible.value = true
+}
+
+const submitReplaceTracker = async () => {
+  const { oldUrl, newUrl } = replaceTrackerForm.value
+
+  if (!oldUrl || !newUrl) {
+    ElMessage.warning('请填写原域名和新域名')
+    return
+  }
+
+  if (oldUrl === newUrl) {
+    ElMessage.warning('原域名和新域名不能相同')
+    return
+  }
+
+  replaceTrackerLoading.value = true
+
+  try {
+    // 使用所有种子的ID
+    const allIds = torrents.value.map(t => t.id)
+    await api.replaceTrackers(allIds, oldUrl, newUrl)
+    ElMessage.success(`已对 ${allIds.length} 个种子替换 tracker`)
+    replaceTrackerDialogVisible.value = false
+    // 刷新种子列表
+    await loadTorrents()
+  } catch (error: any) {
+    ElMessage.error(`替换失败: ${error.message || error}`)
+  } finally {
+    replaceTrackerLoading.value = false
   }
 }
 
