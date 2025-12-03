@@ -120,6 +120,24 @@
       ]
     },
     {
+      "name": "肉丝",
+      "trackers": [
+        "tracker.rousipt.com"
+      ]
+    },
+    {
+      "name": "熊猫",
+      "trackers": [
+        "tracker.pandapt.net"
+      ]
+    },
+    {
+      "name": "TCCF",
+      "trackers": [
+        "t.et8.org"
+      ]
+    },
+    {
       "name": "馒头",
       "trackers": [
         "tracker.m-team.cc"

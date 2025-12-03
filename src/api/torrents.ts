@@ -94,6 +94,7 @@ const transmissionService: TorrentService = {
       'status',
       'totalSize',
       'percentDone',
+      'recheckProgress',
       'rateDownload',
       'rateUpload',
       'uploadRatio',

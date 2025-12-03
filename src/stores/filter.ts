@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { TorrentStatus } from '@/types/torrent'
 
-export type StatusFilter = 'all' | 'error' | 'queued' | TorrentStatus
+export type StatusFilter = 'all' | 'error' | 'queued' | 'active' | TorrentStatus
 
 export const useFilterStore = defineStore('filter', () => {
   const statusFilter = ref<StatusFilter>('all')

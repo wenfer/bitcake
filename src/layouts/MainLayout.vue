@@ -32,7 +32,12 @@
                 :key="status.value"
                 :index="`status:${status.value}`"
               >
-                {{ status.label }}
+                <span class="status-label-with-count">
+                  {{ status.label }}
+                  <el-tag class="status-count" size="small" type="info">
+                    {{ getTorrentCount(status.value) }}
+                  </el-tag>
+                </span>
               </el-menu-item>
             </el-sub-menu>
             <el-menu-item
@@ -76,7 +81,12 @@
               :key="status.value"
               :index="`status:${status.value}`"
             >
-              {{ status.label }}
+              <span class="status-label-with-count">
+                {{ status.label }}
+                <el-tag class="status-count" size="small" type="info">
+                  {{ getTorrentCount(status.value) }}
+                </el-tag>
+              </span>
             </el-menu-item>
           </el-sub-menu>
           <el-menu-item
@@ -103,16 +113,20 @@ import { ElMessageBox } from 'element-plus'
 import { useSystemStatusStore } from '@/stores/systemStatus'
 import { useConnectionStore } from '@/stores/connection'
 import { useFilterStore, type StatusFilter } from '@/stores/filter'
+import { useThemeStore, type Theme } from '@/stores/theme'
 import { useMediaQuery } from '@/utils/useMediaQuery'
 import SidebarStatus from './components/SidebarStatus.vue'
 import { torrentBackendName } from '@/config/torrentClient'
 import { TorrentStatusEnum } from '@/types/transmission'
+import type { Torrent } from '@/types/transmission'
 
 const router = useRouter()
 const route = useRoute()
 const systemStatusStore = useSystemStatusStore()
 const connectionStore = useConnectionStore()
 const filterStore = useFilterStore()
+const themeStore = useThemeStore()
+const { torrentCounts } = storeToRefs(systemStatusStore)
 const backendLabel = torrentBackendName
 const { sessionStats, freeSpaceBytes, sessionConfig, lastUpdated } = storeToRefs(systemStatusStore)
 const { statusFilter } = storeToRefs(filterStore)
@@ -130,20 +144,58 @@ const statusTextMap = {
   [TorrentStatusEnum.SEED]: '做种中',
 }
 
+interface StatusOption {
+  label: string
+  value: StatusFilter
+  showCount?: boolean
+}
+
 const statusOptions = [
   { label: '全部', value: 'all' as StatusFilter },
-  { label: '错误', value: 'error' as StatusFilter },
+  { label: statusTextMap[TorrentStatusEnum.DOWNLOAD], value: TorrentStatusEnum.DOWNLOAD as StatusFilter },
   { label: statusTextMap[TorrentStatusEnum.STOPPED], value: TorrentStatusEnum.STOPPED as StatusFilter },
   { label: '队列中', value: 'queued' as StatusFilter },
   { label: statusTextMap[TorrentStatusEnum.CHECK], value: TorrentStatusEnum.CHECK as StatusFilter },
-  { label: statusTextMap[TorrentStatusEnum.DOWNLOAD], value: TorrentStatusEnum.DOWNLOAD as StatusFilter },
-  { label: statusTextMap[TorrentStatusEnum.SEED], value: TorrentStatusEnum.SEED as StatusFilter },
+  { label: '做种中', value: TorrentStatusEnum.SEED as StatusFilter },
+  { label: '活动中', value: 'active' as StatusFilter },
+  { label: '错误', value: 'error' as StatusFilter },
 ]
+
+const getTorrentCount = (statusValue: StatusFilter): number | string => {
+  // Direct mapping from status values to count keys
+  const countKeyMap: Record<string, string> = {
+    'all': 'all',
+    [TorrentStatusEnum.DOWNLOAD]: 'downloading',
+    [TorrentStatusEnum.STOPPED]: 'paused',
+    [TorrentStatusEnum.CHECK]: 'checking',
+    [TorrentStatusEnum.SEED]: 'seeding',
+    'queued': 'queued',
+    'active': 'active',
+    'error': 'error'
+  }
+  
+  // Special case for seeding - show seeding count with active count in parentheses
+  if (statusValue === TorrentStatusEnum.SEED) {
+    return `${torrentCounts.value['seeding'] || 0}`
+  }
+  
+  const countKey = countKeyMap[String(statusValue)]
+  return countKey ? (torrentCounts.value[countKey] || 0) : 0
+}
 
 const navigationItems = [
   { index: '/settings', label: '设置', icon: Setting },
   { index: '/stats', label: '数据统计', icon: TrendCharts },
 ]
+
+const themeOptions = Object.entries(themeStore.themes).map(([key, theme]) => ({
+  label: theme.name,
+  value: key
+}))
+
+const handleThemeChange = (theme: Theme) => {
+  themeStore.setTheme(theme)
+}
 
 const uploadSpeedText = computed(() => formatSpeed(sessionStats.value?.uploadSpeed || 0))
 const downloadSpeedText = computed(() => formatSpeed(sessionStats.value?.downloadSpeed || 0))
@@ -200,6 +252,7 @@ const handleMenuSelect = (index: string) => {
 
 onMounted(() => {
   systemStatusStore.start()
+  themeStore.initTheme()
   updateActiveMenuItem()
 })
 
@@ -244,6 +297,7 @@ const formatSpeed = (bytes: number): string => {
   if (!bytes) return '0 B/s'
   return `${formatBytes(bytes)}/s`
 }
+
 </script>
 
 <style scoped>
@@ -318,6 +372,17 @@ const formatSpeed = (bytes: number): string => {
   height: 100%;
 }
 
+.status-label-with-count {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.status-count {
+  margin-left: auto;
+}
+
 .mobile-drawer :deep(.el-drawer__body) {
   padding: 20px 0;
   display: flex;
@@ -349,6 +414,17 @@ const formatSpeed = (bytes: number): string => {
   flex-direction: column;
   height: calc(100% - 72px);
   padding-bottom: 20px;
+}
+
+.status-label-with-count {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.status-count {
+  margin-left: auto;
 }
 
 @media (max-width: 768px) {

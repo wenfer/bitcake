@@ -58,6 +58,7 @@ export interface Torrent {
   status: TorrentStatus
   totalSize: number
   percentDone: number
+  recheckProgress?: number
   rateDownload: number
   rateUpload: number
   uploadRatio: number

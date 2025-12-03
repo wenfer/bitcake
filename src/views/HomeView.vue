@@ -114,6 +114,7 @@
           style="width: 100%"
           row-key="id"
           :reserve-selection="true"
+          height="600"
           @selection-change="handleSelectionChange"
           @sort-change="handleSortChange"
           @row-contextmenu="handleRowContextMenu"
@@ -161,8 +162,8 @@
           >
             <template #default="{ row }">
               <el-progress
-                :percentage="Math.round(row.percentDone * 100)"
-                :status="row.percentDone === 1 ? 'success' : undefined"
+                :percentage="Math.round(getTorrentProgress(row) * 100)"
+                :status="getTorrentProgress(row) === 1 ? 'success' : undefined"
               />
             </template>
           </el-table-column>
@@ -194,6 +195,30 @@
             </template>
           </el-table-column>
           <el-table-column
+            prop="rateDownload"
+            column-key="rateDownload"
+            label="下载速度"
+            :width="getColumnWidth('rateDownload', 140)"
+            :min-width="120"
+            sortable="custom"
+          >
+            <template #default="{ row }">
+              {{ formatSpeed(row.rateDownload) }}
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="rateUpload"
+            column-key="rateUpload"
+            label="上传速度"
+            :width="getColumnWidth('rateUpload', 140)"
+            :min-width="120"
+            sortable="custom"
+          >
+            <template #default="{ row }">
+              {{ formatSpeed(row.rateUpload) }}
+            </template>
+          </el-table-column>
+          <el-table-column
             v-if="!isCompactTable"
             column-key="popularity"
             prop="popularity"
@@ -211,7 +236,7 @@
             column-key="defaultTracker"
             prop="defaultTracker"
             label="服务器"
-            :width="getColumnWidth('defaultTracker', 200)"
+            :width="getColumnWidth('defaultTracker', 150)"
             :min-width="160"
             sortable="custom"
           >
@@ -243,30 +268,6 @@
           >
             <template #default="{ row }">
               {{ getLeechers(row) }}
-            </template>
-          </el-table-column>
-          <el-table-column
-            prop="rateDownload"
-            column-key="rateDownload"
-            label="下载速度"
-            :width="getColumnWidth('rateDownload', 140)"
-            :min-width="120"
-            sortable="custom"
-          >
-            <template #default="{ row }">
-              {{ formatSpeed(row.rateDownload) }}
-            </template>
-          </el-table-column>
-          <el-table-column
-            prop="rateUpload"
-            column-key="rateUpload"
-            label="上传速度"
-            :width="getColumnWidth('rateUpload', 140)"
-            :min-width="120"
-            sortable="custom"
-          >
-            <template #default="{ row }">
-              {{ formatSpeed(row.rateUpload) }}
             </template>
           </el-table-column>
           <el-table-column
@@ -465,7 +466,7 @@
                     </el-tag>
                   </el-descriptions-item>
                   <el-descriptions-item label="进度">
-                    {{ Math.round(detailTorrent.percentDone * 100) }}%
+                    {{ Math.round(getTorrentProgress(detailTorrent) * 100) }}%
                   </el-descriptions-item>
                   <el-descriptions-item label="大小">
                     {{ formatBytes(detailTorrent.totalSize) }}
@@ -779,7 +780,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick, provide } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { TableInstance, TableColumnCtx } from 'element-plus'
 import dayjs from 'dayjs'
@@ -800,7 +801,8 @@ import { TorrentStatusEnum } from '@/types/transmission'
 import { getTrackerDisplayName, matchesTrackerFilter } from '@/utils/torrent'
 import { getIPGeolocation } from '@/utils/ipGeolocation'
 import { useMediaQuery } from '@/utils/useMediaQuery'
-import { useFilterStore } from '@/stores/filter'
+import { useFilterStore, type StatusFilter } from '@/stores/filter'
+import { useSystemStatusStore } from '@/stores/systemStatus'
 import { storeToRefs } from 'pinia'
 
 const REFRESH_INTERVAL = 3000
@@ -833,6 +835,7 @@ const DETAIL_FIELDS = [
 ]
 
 const filterStore = useFilterStore()
+const systemStatusStore = useSystemStatusStore()
 const { statusFilter, trackerFilter, categoryFilter } = storeToRefs(filterStore)
 
 interface LimitFormState {
@@ -1012,8 +1015,8 @@ const removeDialogWidth = createDialogWidth('420px', '90vw')
 type SortOrder = 'ascending' | 'descending' | null
 
 const sortState = ref<{ prop: string; order: SortOrder }>({
-  prop: '',
-  order: null,
+  prop: 'addedDate',
+  order: 'descending',
 })
 
 const currentPage = ref(1)
@@ -1156,6 +1159,15 @@ const isTorrentError = (torrent: Torrent) => {
   return (torrent.error ?? 0) > 0 || !!torrent.errorString
 }
 
+const getTorrentProgress = (torrent: Torrent): number => {
+  // 对于校验状态，使用校验进度
+  if (torrent.status === TorrentStatusEnum.CHECK || torrent.status === TorrentStatusEnum.CHECK_WAIT) {
+    return torrent.recheckProgress ?? torrent.percentDone
+  }
+  // 其他状态使用下载进度
+  return torrent.percentDone
+}
+
 const getRatioClass = (ratio: number): string => {
   if (!ratio) return 'ratio-zero'
   if (ratio > 0 && ratio < 1) return 'ratio-low'
@@ -1175,7 +1187,9 @@ const filteredTorrents = computed(() => {
           ? isTorrentError(torrent)
           : statusFilter.value === 'queued'
             ? ([TorrentStatusEnum.CHECK_WAIT, TorrentStatusEnum.DOWNLOAD_WAIT, TorrentStatusEnum.SEED_WAIT] as TorrentStatus[]).includes(torrent.status)
-            : torrent.status === statusFilter.value
+            : statusFilter.value === 'active'
+              ? (torrent.rateDownload > 0) || (torrent.rateUpload > 0)
+              : Number(statusFilter.value) === torrent.status
     const matchesTracker =
       !trackerFilter.value ||
       (torrent.trackers ?? []).some((tracker) => matchesTrackerFilter(tracker.announce, trackerFilter.value))
@@ -1486,6 +1500,8 @@ const loadTorrents = async (options: { silent?: boolean } = {}) => {
   try {
     const result = await api.getTorrents()
     torrents.value = result.torrents
+    // Update the torrents in system status store
+    systemStatusStore.setTorrents(result.torrents)
     restoreSelection()
     syncContextMenuTorrent()
     lastFetchedAt.value = dayjs().format('YYYY-MM-DD HH:mm:ss')
@@ -2148,17 +2164,31 @@ const handleAddTorrent = async () => {
 
 // 获取状态文本
 const getStatusText = (torrent: Torrent): string => {
+  // 如果正在校验中，则显示校验中状态，忽略错误状态
+  if (torrent.status === TorrentStatusEnum.CHECK || torrent.status === TorrentStatusEnum.CHECK_WAIT) {
+    return statusTextMap[torrent.status]
+  }
+  
+  // 其他状态下，如果存在错误则显示错误
   if (isTorrentError(torrent)) {
     return '错误'
   }
+  
   return statusTextMap[torrent.status] || '未知'
 }
 
 // 获取状态类型
 const getStatusType = (torrent: Torrent): string => {
+  // 如果正在校验中，则显示校验中状态，忽略错误状态
+  if (torrent.status === TorrentStatusEnum.CHECK || torrent.status === TorrentStatusEnum.CHECK_WAIT) {
+    return 'warning'
+  }
+  
+  // 其他状态下，如果存在错误则显示错误
   if (isTorrentError(torrent)) {
     return 'danger'
   }
+  
   const typeMap: Record<TorrentStatus, string> = {
     [TorrentStatusEnum.STOPPED]: 'info',
     [TorrentStatusEnum.CHECK_WAIT]: 'warning',
@@ -2344,6 +2374,7 @@ onBeforeUnmount(() => {
   border-radius: 6px;
   background: #fff;
   -webkit-overflow-scrolling: touch;
+  min-height: 400px;
 }
 
 .table-scroll :deep(.el-table) {

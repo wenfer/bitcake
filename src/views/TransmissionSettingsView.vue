@@ -434,6 +434,56 @@
             </el-row>
           </el-form>
         </el-tab-pane>
+        
+        <!-- 主题设置 -->
+        <el-tab-pane label="主题设置" name="theme">
+          <el-form
+            :label-position="formLabelPosition"
+            :label-width="formLabelWidth"
+            size="small"
+            class="compact-form"
+          >
+            <el-row :gutter="16">
+              <el-col :xs="24" :md="12">
+                <el-form-item label="选择主题">
+                  <el-select 
+                    v-model="themeStore.currentTheme" 
+                    @change="handleThemeChange"
+                    class="full-width"
+                  >
+                    <el-option
+                      v-for="(theme, key) in themeStore.themes"
+                      :key="key"
+                      :label="theme.name"
+                      :value="key"
+                    />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-row :gutter="16">
+              <el-col :xs="24">
+                <div class="theme-preview">
+                  <h4>主题预览</h4>
+                  <div class="preview-cards">
+                    <div class="preview-card" :class="themeStore.themes.default.cssClass">
+                      <div class="preview-header">默认主题</div>
+                      <div class="preview-content">
+                        <div class="preview-item">界面元素示例</div>
+                      </div>
+                    </div>
+                    <div class="preview-card" :class="themeStore.themes.tech.cssClass">
+                      <div class="preview-header">科技风格</div>
+                      <div class="preview-content">
+                        <div class="preview-item">界面元素示例</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </el-col>
+            </el-row>
+          </el-form>
+        </el-tab-pane>
       </el-tabs>
     </el-card>
 
@@ -467,12 +517,14 @@ import { isTransmission, torrentBackendName } from '@/config/torrentClient'
 import type { SessionConfig } from '@/types/transmission'
 import { useMediaQuery } from '@/utils/useMediaQuery'
 import { exportConfig, importConfig, filterConfig } from '@/utils/configExportImport'
+import { useThemeStore, type Theme } from '@/stores/theme'
 
 const loading = ref(false)
 const settings = ref<Partial<SessionConfig>>({})
 const activeTab = ref('download')
 const isTransmissionClient = isTransmission
 const backendLabel = torrentBackendName
+const themeStore = useThemeStore()
 const encryptionOptions = [
   { label: '需要 (required)', value: 'required' },
   { label: '优先 (preferred)', value: 'preferred' },
@@ -732,6 +784,10 @@ const importSettings = async () => {
       ElMessage.error(`导入失败: ${error.message || '未知错误'}`)
     }
   }
+}
+
+const handleThemeChange = (themeKey: Theme) => {
+  themeStore.setTheme(themeKey)
 }
 
 onMounted(() => {
