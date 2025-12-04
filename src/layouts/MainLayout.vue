@@ -14,6 +14,19 @@
         <h1 class="title">{{ backendLabel }} {{ versionText }}</h1>
       </div>
       <div class="header-right">
+        <el-dropdown @command="handleThemeChange" trigger="click">
+          <el-button :icon="Sunny" circle plain :title="currentTheme === 'default' ? '切换到蓝白主题' : '切换到默认主题'" />
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="default" :disabled="currentTheme === 'default'">
+                <span>默认主题</span>
+              </el-dropdown-item>
+              <el-dropdown-item command="blue" :disabled="currentTheme === 'blue'">
+                <span>蓝白主题</span>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
         <el-button :icon="SwitchButton" circle plain @click="handleLogout" title="退出登录" />
       </div>
     </el-header>
@@ -108,11 +121,12 @@
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import { Setting, List, TrendCharts, Menu, SwitchButton } from '@element-plus/icons-vue'
+import { Setting, List, TrendCharts, Menu, SwitchButton, Sunny } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
 import { useSystemStatusStore } from '@/stores/systemStatus'
 import { useConnectionStore } from '@/stores/connection'
 import { useFilterStore, type StatusFilter } from '@/stores/filter'
+import { useThemeStore, type ThemeType } from '@/stores/theme'
 import { useMediaQuery } from '@/utils/useMediaQuery'
 import SidebarStatus from './components/SidebarStatus.vue'
 import { torrentBackendName } from '@/config/torrentClient'
@@ -123,7 +137,9 @@ const route = useRoute()
 const systemStatusStore = useSystemStatusStore()
 const connectionStore = useConnectionStore()
 const filterStore = useFilterStore()
+const themeStore = useThemeStore()
 const { torrentCounts } = storeToRefs(systemStatusStore)
+const { currentTheme } = storeToRefs(themeStore)
 const backendLabel = torrentBackendName
 const { sessionStats, freeSpaceBytes, sessionConfig, lastUpdated } = storeToRefs(systemStatusStore)
 const { statusFilter } = storeToRefs(filterStore)
@@ -246,11 +262,16 @@ const handleMenuSelect = (index: string) => {
 onMounted(() => {
   systemStatusStore.start()
   updateActiveMenuItem()
+  themeStore.loadTheme()
 })
 
 onBeforeUnmount(() => {
   systemStatusStore.stop()
 })
+
+const handleThemeChange = (theme: string) => {
+  themeStore.setTheme(theme as ThemeType)
+}
 
 const handleLogout = async () => {
   try {
