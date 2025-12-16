@@ -98,6 +98,14 @@ html[data-theme="green"] .title {
   font-weight: 600;
 }
 
+html[data-theme="green"] .header-tips {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+html[data-theme="green"] .tip-content {
+  color: rgba(31, 41, 55, 0.9);
+}
+
 /* 侧边栏 */
 html[data-theme="green"] .aside {
   background: var(--fresh-bg-elevated);
@@ -583,6 +591,14 @@ html[data-theme="green"] .el-descriptions__header {
   /* 简约蓝主题使用 Element Plus 默认颜色 */
 }
 
+html[data-theme="blue"] .header-tips {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+html[data-theme="blue"] .tip-content {
+  color: rgba(255, 255, 255, 0.95);
+}
+
 /* 可爱粉 */
 :root[data-theme="pink"] {
   /* 主色调 - 粉嫩可爱 */
@@ -644,6 +660,14 @@ html[data-theme="pink"] .header {
 html[data-theme="pink"] .title {
   color: var(--pink-primary);
   font-weight: 700;
+}
+
+html[data-theme="pink"] .header-tips {
+  background: rgba(236, 72, 153, 0.15);
+}
+
+html[data-theme="pink"] .tip-content {
+  color: rgba(255, 255, 255, 0.95);
 }
 
 /* 侧边栏 */

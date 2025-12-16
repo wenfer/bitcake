@@ -2,6 +2,8 @@
 
 > 项目目前处于开荒阶段，更新可能会比较频繁，请见谅
 
+> 界面已经更新，预览图已过期，建议自行安装查看效果
+
 # 说明 (这部分是人工编写的)
 
 由于找不到比较趁手的 ui 界面，就用 ai 生成撸了一个，以下说明 90%以上是 ai 生成的，但是信息足够新手起步了
@@ -9,10 +11,6 @@
 原则上来说，是不应该重复造轮子的，但是 ai 生成成本太低了，也顺带着学习了下如何使用 ai 生成
 
 有的人不会更换 webui，我使用 transmission-4.0.5 的官方镜像，重新构建了镜像，需要的自己参考下方，如果不喜欢 4.0.5，就自己替换 webui
-
-本身是为了 transmission 做的，一想着，反正是 ai 生成，兼容个 qbittorrent，给 ai 上点压力，好在大部分功能都实现了
-
-使用中有 bug，或者缺少功能，都可以提 issues
 
 对了，public 目录下有个 trackerSites.json，配置了 tracker 和站点名称的映射，用于把网址显示成站点名称，方便统计的时候查看数据
 
@@ -88,7 +86,11 @@ environment:
 
 3. 在 qBittorrent 设置中启用"使用替代 WebUI"，并指定目录路径
 
-4. 重启 qBittorrent，访问 Web UI（默认 http://localhost:8080）
+> 遇到修改后无法访问 qbit 的问题，可以请求此接口恢复自带 ui
+
+```bash
+{你的qb地址}/api/v2/app/setPreferences?json=%7B"alternative_webui_enabled":false%7D
+```
 
 ### 使用说明
 

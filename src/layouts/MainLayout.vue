@@ -13,6 +13,7 @@
         />
         <h1 class="title">{{ backendLabel }} {{ versionText }}</h1>
       </div>
+      <HeaderTips />
       <div class="header-right">
         <el-dropdown @command="handleThemeChange" trigger="click">
           <el-button :icon="Sunny" circle plain title="切换主题" />
@@ -155,6 +156,7 @@ import { useFilterStore, type StatusFilter } from "@/stores/filter";
 import { useThemeStore, type ThemeType } from "@/stores/theme";
 import { useMediaQuery } from "@/utils/useMediaQuery";
 import SidebarStatus from "./components/SidebarStatus.vue";
+import HeaderTips from "./components/HeaderTips.vue";
 import { torrentBackendName } from "@/config/torrentClient";
 import { TorrentStatusEnum } from "@/types/transmission";
 
@@ -370,6 +372,7 @@ const formatSpeed = (bytes: number): string => {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .title {
@@ -381,6 +384,7 @@ const formatSpeed = (bytes: number): string => {
 .header-right {
   display: flex;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .menu-toggle {
