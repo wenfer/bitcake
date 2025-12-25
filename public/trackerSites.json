@@ -128,6 +128,26 @@
         "tracker.qingwapt.com",
         "tracker.qingwapt.org"
       ]
+    },
+    {
+      "name": "彩虹岛",
+      "trackers": [
+        "chdbits.xyz",
+        "tracker.ptchdbits.co",
+        "tracker.rainbowisland.co"
+      ]
+    },
+    {
+      "name": "天空",
+      "trackers": ["tracker.hdsky.me"]
+    },
+    {
+      "name": "好学",
+      "trackers": ["tracker.hxpt.org"]
+    },
+    {
+      "name": "PT时间",
+      "trackers": ["www.pttime.org"]
     }
   ]
 }

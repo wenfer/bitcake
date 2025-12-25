@@ -1,7 +1,7 @@
 {
   "name": "bitcake",
   "private": true,
-  "version": "0.5.1",
+  "version": "0.5.3",
   "type": "module",
   "description": "A modern, unified web interface for Transmission and qBittorrent",
   "scripts": {
@@ -23,12 +23,14 @@
     "echarts": "^6.0.0",
     "element-plus": "^2.11.8",
     "pinia": "^3.0.4",
+    "sortablejs": "^1.15.6",
     "vue": "^3.5.24",
     "vue-echarts": "^8.0.1",
     "vue-router": "^4.6.3"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
+    "@types/sortablejs": "^1.15.9",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/tsconfig": "^0.8.1",
     "typescript": "~5.9.3",

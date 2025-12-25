@@ -29,6 +29,9 @@
           删除选中
         </el-button>
         <el-button @click="openBatchLimitDialog"> 批量限速 </el-button>
+        <el-button :disabled="!hasSelection" @click="openLabelsDialog">
+          批量标签
+        </el-button>
         <el-button @click="openReplaceTrackerDialog">
           批量替换Tracker
         </el-button>
@@ -160,209 +163,274 @@
             width="48"
             :resizable="false"
           />
-          <el-table-column
-            prop="name"
-            column-key="name"
-            label="名称"
-            :min-width="isCompactTable ? 260 : 320"
-            sortable="custom"
-            show-overflow-tooltip
-          />
-          <el-table-column
-            column-key="status"
-            label="状态"
-            :width="getColumnWidth('status', 120)"
-            :min-width="100"
-          >
-            <template #default="{ row }">
-              <el-tooltip
-                v-if="isTorrentError(row)"
-                :content="row.errorString || '未知错误'"
-                placement="top"
-              >
-                <el-tag :type="getStatusType(row)">
+
+          <!-- 动态渲染的列 -->
+          <template v-for="column in orderedColumns" :key="column.key">
+            <!-- 名称列 -->
+            <el-table-column
+              v-if="column.key === 'name'"
+              :prop="column.prop"
+              :column-key="column.key"
+              :label="column.label"
+              :min-width="
+                isCompactTable ? column.minWidth : column.defaultWidth
+              "
+              :sortable="column.sortable ? 'custom' : false"
+              show-overflow-tooltip
+            />
+
+            <!-- 状态列 -->
+            <el-table-column
+              v-else-if="column.key === 'status'"
+              :column-key="column.key"
+              :label="column.label"
+              :width="getColumnWidth(column.key, column.defaultWidth)"
+              :min-width="column.minWidth"
+            >
+              <template #default="{ row }">
+                <el-tooltip
+                  v-if="isTorrentError(row)"
+                  :content="row.errorString || '未知错误'"
+                  placement="top"
+                >
+                  <el-tag :type="getStatusType(row)">
+                    {{ getStatusText(row) }}
+                  </el-tag>
+                </el-tooltip>
+                <el-tag v-else :type="getStatusType(row)">
                   {{ getStatusText(row) }}
                 </el-tag>
-              </el-tooltip>
-              <el-tag v-else :type="getStatusType(row)">
-                {{ getStatusText(row) }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column
-            prop="percentDone"
-            column-key="percentDone"
-            label="进度"
-            :width="getColumnWidth('percentDone', 140)"
-            :min-width="120"
-            sortable="custom"
-          >
-            <template #default="{ row }">
-              <el-tooltip
-                :content="getProgressTooltip(row)"
-                :disabled="getTorrentProgress(row) === 1"
-                placement="top"
-              >
-                <el-progress
-                  :percentage="Math.round(getTorrentProgress(row) * 100)"
-                  :status="getTorrentProgress(row) === 1 ? 'success' : undefined"
-                />
-              </el-tooltip>
-            </template>
-          </el-table-column>
-          <el-table-column
-            prop="totalSize"
-            column-key="totalSize"
-            label="大小"
-            :width="getColumnWidth('totalSize', 140)"
-            :min-width="120"
-            sortable="custom"
-          >
-            <template #default="{ row }">
-              {{ formatBytes(row.totalSize) }}
-            </template>
-          </el-table-column>
-          <el-table-column
-            v-if="!isCompactTable"
-            column-key="uploadRatio"
-            prop="uploadRatio"
-            label="分享率"
-            :width="getColumnWidth('uploadRatio', 70)"
-            :min-width="70"
-            sortable="custom"
-          >
-            <template #default="{ row }">
-              <el-tag
-                size="small"
-                :class="['ratio-tag', getRatioClass(row.uploadRatio)]"
-              >
-                {{ formatRatio(row.uploadRatio) }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column
-            prop="rateDownload"
-            column-key="rateDownload"
-            label="下载速度"
-            :width="getColumnWidth('rateDownload', 140)"
-            :min-width="120"
-            sortable="custom"
-          >
-            <template #default="{ row }">
-              {{ formatSpeed(row.rateDownload) }}
-            </template>
-          </el-table-column>
-          <el-table-column
-            prop="rateUpload"
-            column-key="rateUpload"
-            label="上传速度"
-            :width="getColumnWidth('rateUpload', 140)"
-            :min-width="120"
-            sortable="custom"
-          >
-            <template #default="{ row }">
-              {{ formatSpeed(row.rateUpload) }}
-            </template>
-          </el-table-column>
-          <el-table-column
-            v-if="!isCompactTable"
-            column-key="defaultTracker"
-            prop="defaultTracker"
-            label="服务器"
-            :width="getColumnWidth('defaultTracker', 150)"
-            :min-width="160"
-            sortable="custom"
-          >
-            <template #default="{ row }">
-              {{ getDefaultTracker(row) }}
-            </template>
-          </el-table-column>
-          <el-table-column
-            v-if="!isCompactTable"
-            column-key="peersDownloading"
-            prop="peersDownloading"
-            label="种子"
-            :width="getColumnWidth('peersDownloading', 130)"
-            :min-width="110"
-            sortable="custom"
-          >
-            <template #default="{ row }">
-              {{ getSeeders(row) }}
-            </template>
-          </el-table-column>
-          <el-table-column
-            v-if="!isCompactTable"
-            column-key="peersUploading"
-            prop="peersUploading"
-            label="用户"
-            :width="getColumnWidth('peersUploading', 130)"
-            :min-width="110"
-            sortable="custom"
-          >
-            <template #default="{ row }">
-              {{ getLeechers(row) }}
-            </template>
-          </el-table-column>
-          <el-table-column
-            v-if="!isCompactTable"
-            column-key="uploadedEver"
-            prop="uploadedEver"
-            label="已上传"
-            :width="getColumnWidth('uploadedEver', 150)"
-            :min-width="130"
-            sortable="custom"
-          >
-            <template #default="{ row }">
-              {{ formatBytes(row.uploadedEver || 0) }}
-            </template>
-          </el-table-column>
-          <el-table-column
-            v-if="!isCompactTable"
-            column-key="addedDate"
-            prop="addedDate"
-            label="添加时间"
-            :width="getColumnWidth('addedDate', 180)"
-            :min-width="150"
-            sortable="custom"
-          >
-            <template #default="{ row }">
-              {{ formatTorrentDate(row.addedDate) }}
-            </template>
-          </el-table-column>
-          <el-table-column
-            v-if="!isCompactTable"
-            column-key="activityDate"
-            prop="activityDate"
-            label="最后活动"
-            :width="getColumnWidth('activityDate', 180)"
-            :min-width="150"
-            sortable="custom"
-          >
-            <template #default="{ row }">
-              {{ formatLastActivity(row.activityDate) }}
-            </template>
-          </el-table-column>
-          <el-table-column
-            v-if="!isCompactTable"
-            column-key="labels"
-            label="标签"
-            :width="getColumnWidth('labels', 200)"
-            :min-width="150"
-          >
-            <template #default="{ row }">
-              <template v-if="row.labels?.length">
-                <el-tag
-                  v-for="label in row.labels"
-                  :key="label"
-                  size="small"
-                  class="label-tag"
+              </template>
+            </el-table-column>
+
+            <!-- 进度列 -->
+            <el-table-column
+              v-else-if="column.key === 'percentDone'"
+              :prop="column.prop"
+              :column-key="column.key"
+              :label="column.label"
+              :width="getColumnWidth(column.key, column.defaultWidth)"
+              :min-width="column.minWidth"
+              :sortable="column.sortable ? 'custom' : false"
+            >
+              <template #default="{ row }">
+                <el-tooltip
+                  :content="getProgressTooltip(row)"
+                  :disabled="getTorrentProgress(row) === 1"
+                  placement="top"
                 >
-                  {{ label }}
+                  <el-progress
+                    :percentage="Math.round(getTorrentProgress(row) * 100)"
+                    :status="
+                      getTorrentProgress(row) === 1 ? 'success' : undefined
+                    "
+                  />
+                </el-tooltip>
+              </template>
+            </el-table-column>
+
+            <!-- 大小列 -->
+            <el-table-column
+              v-else-if="column.key === 'totalSize'"
+              :prop="column.prop"
+              :column-key="column.key"
+              :label="column.label"
+              :width="getColumnWidth(column.key, column.defaultWidth)"
+              :min-width="column.minWidth"
+              :sortable="column.sortable ? 'custom' : false"
+            >
+              <template #default="{ row }">
+                {{ formatBytes(row.totalSize) }}
+              </template>
+            </el-table-column>
+
+            <!-- 分享率列 -->
+            <el-table-column
+              v-else-if="
+                column.key === 'uploadRatio' &&
+                (column.showInCompact || !isCompactTable)
+              "
+              :column-key="column.key"
+              :prop="column.prop"
+              :label="column.label"
+              :width="getColumnWidth(column.key, column.defaultWidth)"
+              :min-width="column.minWidth"
+              :sortable="column.sortable ? 'custom' : false"
+            >
+              <template #default="{ row }">
+                <el-tag
+                  size="small"
+                  :class="['ratio-tag', getRatioClass(row.uploadRatio)]"
+                >
+                  {{ formatRatio(row.uploadRatio) }}
                 </el-tag>
               </template>
-              <span v-else>—</span>
-            </template>
-          </el-table-column>
+            </el-table-column>
+
+            <!-- 下载速度列 -->
+            <el-table-column
+              v-else-if="column.key === 'rateDownload'"
+              :prop="column.prop"
+              :column-key="column.key"
+              :label="column.label"
+              :width="getColumnWidth(column.key, column.defaultWidth)"
+              :min-width="column.minWidth"
+              :sortable="column.sortable ? 'custom' : false"
+            >
+              <template #default="{ row }">
+                {{ formatSpeed(row.rateDownload) }}
+              </template>
+            </el-table-column>
+
+            <!-- 上传速度列 -->
+            <el-table-column
+              v-else-if="column.key === 'rateUpload'"
+              :prop="column.prop"
+              :column-key="column.key"
+              :label="column.label"
+              :width="getColumnWidth(column.key, column.defaultWidth)"
+              :min-width="column.minWidth"
+              :sortable="column.sortable ? 'custom' : false"
+            >
+              <template #default="{ row }">
+                {{ formatSpeed(row.rateUpload) }}
+              </template>
+            </el-table-column>
+
+            <!-- 服务器列 -->
+            <el-table-column
+              v-else-if="
+                column.key === 'defaultTracker' &&
+                (column.showInCompact || !isCompactTable)
+              "
+              :column-key="column.key"
+              :prop="column.prop"
+              :label="column.label"
+              :width="getColumnWidth(column.key, column.defaultWidth)"
+              :min-width="column.minWidth"
+              :sortable="column.sortable ? 'custom' : false"
+            >
+              <template #default="{ row }">
+                {{ getDefaultTracker(row) }}
+              </template>
+            </el-table-column>
+
+            <!-- 种子列 -->
+            <el-table-column
+              v-else-if="
+                column.key === 'peersDownloading' &&
+                (column.showInCompact || !isCompactTable)
+              "
+              :column-key="column.key"
+              :prop="column.prop"
+              :label="column.label"
+              :width="getColumnWidth(column.key, column.defaultWidth)"
+              :min-width="column.minWidth"
+              :sortable="column.sortable ? 'custom' : false"
+            >
+              <template #default="{ row }">
+                {{ getSeeders(row) }}
+              </template>
+            </el-table-column>
+
+            <!-- 用户列 -->
+            <el-table-column
+              v-else-if="
+                column.key === 'peersUploading' &&
+                (column.showInCompact || !isCompactTable)
+              "
+              :column-key="column.key"
+              :prop="column.prop"
+              :label="column.label"
+              :width="getColumnWidth(column.key, column.defaultWidth)"
+              :min-width="column.minWidth"
+              :sortable="column.sortable ? 'custom' : false"
+            >
+              <template #default="{ row }">
+                {{ getLeechers(row) }}
+              </template>
+            </el-table-column>
+
+            <!-- 已上传列 -->
+            <el-table-column
+              v-else-if="
+                column.key === 'uploadedEver' &&
+                (column.showInCompact || !isCompactTable)
+              "
+              :column-key="column.key"
+              :prop="column.prop"
+              :label="column.label"
+              :width="getColumnWidth(column.key, column.defaultWidth)"
+              :min-width="column.minWidth"
+              :sortable="column.sortable ? 'custom' : false"
+            >
+              <template #default="{ row }">
+                {{ formatBytes(row.uploadedEver || 0) }}
+              </template>
+            </el-table-column>
+
+            <!-- 添加时间列 -->
+            <el-table-column
+              v-else-if="
+                column.key === 'addedDate' &&
+                (column.showInCompact || !isCompactTable)
+              "
+              :column-key="column.key"
+              :prop="column.prop"
+              :label="column.label"
+              :width="getColumnWidth(column.key, column.defaultWidth)"
+              :min-width="column.minWidth"
+              :sortable="column.sortable ? 'custom' : false"
+            >
+              <template #default="{ row }">
+                {{ formatTorrentDate(row.addedDate) }}
+              </template>
+            </el-table-column>
+
+            <!-- 最后活动列 -->
+            <el-table-column
+              v-else-if="
+                column.key === 'activityDate' &&
+                (column.showInCompact || !isCompactTable)
+              "
+              :column-key="column.key"
+              :prop="column.prop"
+              :label="column.label"
+              :width="getColumnWidth(column.key, column.defaultWidth)"
+              :min-width="column.minWidth"
+              :sortable="column.sortable ? 'custom' : false"
+            >
+              <template #default="{ row }">
+                {{ formatLastActivity(row.activityDate) }}
+              </template>
+            </el-table-column>
+
+            <!-- 标签列 -->
+            <el-table-column
+              v-else-if="
+                column.key === 'labels' &&
+                (column.showInCompact || !isCompactTable)
+              "
+              :column-key="column.key"
+              :label="column.label"
+              :width="getColumnWidth(column.key, column.defaultWidth)"
+              :min-width="column.minWidth"
+            >
+              <template #default="{ row }">
+                <template v-if="row.labels?.length">
+                  <el-tag
+                    v-for="label in row.labels"
+                    :key="label"
+                    size="small"
+                    class="label-tag"
+                  >
+                    {{ label }}
+                  </el-tag>
+                </template>
+                <span v-else>—</span>
+              </template>
+            </el-table-column>
+          </template>
         </el-table>
       </div>
 
@@ -408,6 +476,7 @@
       </button>
       <button @click="handleContextAction('location')">变更保存目录</button>
       <button @click="handleContextAction('category')">设置分类</button>
+      <button @click="handleContextAction('labels')">修改标签</button>
       <button
         v-if="contextMenuTargets.length === 1"
         @click="handleContextAction('detail')"
@@ -514,6 +583,84 @@
       <template #footer>
         <el-button @click="showCategoryDialog = false">取消</el-button>
         <el-button type="primary" @click="submitCategoryChange">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 批量修改标签对话框 -->
+    <el-dialog
+      v-model="showLabelsDialog"
+      title="批量修改标签"
+      :width="defaultDialogWidth"
+    >
+      <p class="dialog-subtitle">
+        {{ labelsDialogTargetTorrents.length }} 个种子
+      </p>
+
+      <el-form :model="labelsForm" label-width="100px">
+        <!-- 操作模式选择 -->
+        <el-form-item label="操作模式">
+          <el-radio-group v-model="labelsForm.mode">
+            <el-radio label="add">添加标签</el-radio>
+            <el-radio label="replace">替换标签</el-radio>
+            <el-radio label="remove">移除标签</el-radio>
+          </el-radio-group>
+          <div class="form-tip">
+            {{ getLabelsModeDescription() }}
+          </div>
+        </el-form-item>
+
+        <!-- 标签输入 -->
+        <el-form-item
+          :label="labelsForm.mode === 'remove' ? '移除标签' : '标签'"
+        >
+          <el-select
+            v-model="labelsForm.selectedLabels"
+            multiple
+            filterable
+            allow-create
+            default-first-option
+            :placeholder="getLabelsPlaceholder()"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="label in availableLabelsOptions"
+              :key="label.value"
+              :label="label.label"
+              :value="label.value"
+            />
+          </el-select>
+          <div class="form-tip">
+            {{ getLabelsFormTip() }}
+          </div>
+        </el-form-item>
+
+        <!-- 当前标签预览（非移除模式下显示） -->
+        <el-form-item
+          v-if="labelsForm.mode !== 'remove' && currentLabelsPreview.length > 0"
+          label="当前标签"
+        >
+          <div class="current-labels-preview">
+            <el-tag
+              v-for="label in currentLabelsPreview"
+              :key="label"
+              size="small"
+              class="label-preview-tag"
+            >
+              {{ label }}
+            </el-tag>
+          </div>
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="showLabelsDialog = false">取消</el-button>
+        <el-button
+          type="primary"
+          :disabled="!isLabelsFormValid"
+          @click="submitLabelsChange"
+        >
+          确定
+        </el-button>
       </template>
     </el-dialog>
 
@@ -991,6 +1138,7 @@ import {
 import { ElMessage, ElLoading } from "element-plus";
 import type { TableInstance, TableColumnCtx } from "element-plus";
 import dayjs from "dayjs";
+import Sortable from "sortablejs";
 import {
   Plus,
   Refresh,
@@ -1017,6 +1165,7 @@ import { storeToRefs } from "pinia";
 
 const REFRESH_INTERVAL = 3000;
 const COLUMN_WIDTH_STORAGE_KEY = "tv_table_column_widths";
+const COLUMN_ORDER_STORAGE_KEY = "tv_table_column_order";
 const DETAIL_FIELDS = [
   "id",
   "name",
@@ -1110,6 +1259,11 @@ const errorMappings: ErrorMapping[] = [
     message: "重复汇报，通常可忽略",
   },
   {
+    keywords: ["Request too frequent"],
+    type: "频繁汇报",
+    message: "频繁汇报，通常可忽略",
+  },
+  {
     keywords: ["You already are downloading"],
     type: "重复汇报",
     message: "重复下载，通常可忽略",
@@ -1145,7 +1299,7 @@ const errorMappings: ErrorMapping[] = [
     message: "种子未注册",
   },
   {
-    keywords: ["Tracker gave HTTP response code 5"],
+    keywords: ["Tracker gave HTTP response code 5", "502"],
     type: "Tracker错误",
     message: "Tracker服务器错误",
   },
@@ -1221,6 +1375,144 @@ const defaultColumnWidths: Record<string, number> = {
   labels: 100,
 };
 
+// 定义表格列配置
+interface ColumnConfig {
+  key: string;
+  label: string;
+  prop?: string;
+  sortable?: boolean;
+  minWidth?: number;
+  defaultWidth?: number;
+  showInCompact?: boolean; // 是否在紧凑模式下显示
+}
+
+const tableColumns: ColumnConfig[] = [
+  {
+    key: "name",
+    label: "名称",
+    prop: "name",
+    sortable: true,
+    minWidth: 260,
+    defaultWidth: 320,
+    showInCompact: true,
+  },
+  {
+    key: "status",
+    label: "状态",
+    minWidth: 100,
+    defaultWidth: 120,
+    showInCompact: true,
+  },
+  {
+    key: "percentDone",
+    label: "进度",
+    prop: "percentDone",
+    sortable: true,
+    minWidth: 120,
+    defaultWidth: 140,
+    showInCompact: true,
+  },
+  {
+    key: "totalSize",
+    label: "大小",
+    prop: "totalSize",
+    sortable: true,
+    minWidth: 120,
+    defaultWidth: 140,
+    showInCompact: true,
+  },
+  {
+    key: "uploadRatio",
+    label: "分享率",
+    prop: "uploadRatio",
+    sortable: true,
+    minWidth: 70,
+    defaultWidth: 70,
+    showInCompact: false,
+  },
+  {
+    key: "rateDownload",
+    label: "下载速度",
+    prop: "rateDownload",
+    sortable: true,
+    minWidth: 120,
+    defaultWidth: 140,
+    showInCompact: true,
+  },
+  {
+    key: "rateUpload",
+    label: "上传速度",
+    prop: "rateUpload",
+    sortable: true,
+    minWidth: 120,
+    defaultWidth: 140,
+    showInCompact: true,
+  },
+  {
+    key: "defaultTracker",
+    label: "服务器",
+    prop: "defaultTracker",
+    sortable: true,
+    minWidth: 160,
+    defaultWidth: 150,
+    showInCompact: false,
+  },
+  {
+    key: "peersDownloading",
+    label: "种子",
+    prop: "peersDownloading",
+    sortable: true,
+    minWidth: 110,
+    defaultWidth: 130,
+    showInCompact: false,
+  },
+  {
+    key: "peersUploading",
+    label: "用户",
+    prop: "peersUploading",
+    sortable: true,
+    minWidth: 110,
+    defaultWidth: 130,
+    showInCompact: false,
+  },
+  {
+    key: "uploadedEver",
+    label: "已上传",
+    prop: "uploadedEver",
+    sortable: true,
+    minWidth: 130,
+    defaultWidth: 150,
+    showInCompact: false,
+  },
+  {
+    key: "addedDate",
+    label: "添加时间",
+    prop: "addedDate",
+    sortable: true,
+    minWidth: 150,
+    defaultWidth: 180,
+    showInCompact: false,
+  },
+  {
+    key: "activityDate",
+    label: "最后活动",
+    prop: "activityDate",
+    sortable: true,
+    minWidth: 150,
+    defaultWidth: 180,
+    showInCompact: false,
+  },
+  {
+    key: "labels",
+    label: "标签",
+    minWidth: 150,
+    defaultWidth: 200,
+    showInCompact: false,
+  },
+];
+
+const defaultColumnOrder = tableColumns.map((col) => col.key);
+
 let refreshTimer: number | undefined;
 
 const loading = ref(false);
@@ -1253,6 +1545,13 @@ const categoryForm = ref({
 const categoryTarget = ref<Torrent | null>(null);
 const categoryTargetIds = ref<number[]>([]);
 const availableCategories = ref<string[]>([]);
+// 批量修改标签对话框相关
+const showLabelsDialog = ref(false);
+const labelsDialogTargetTorrents = ref<Torrent[]>([]);
+const labelsForm = ref({
+  mode: "add" as "add" | "replace" | "remove",
+  selectedLabels: [] as string[],
+});
 const showDetailDialog = ref(false);
 const detailLoading = ref(false);
 const detailTorrent = ref<Torrent | null>(null);
@@ -1344,6 +1643,7 @@ const isMobile = useMediaQuery("(max-width: 768px)");
 const isCompactTable = useMediaQuery("(max-width: 1100px)");
 const showMobileFilters = ref(!isMobile.value);
 const columnWidths = ref<Record<string, number>>({ ...defaultColumnWidths });
+const columnOrder = ref<string[]>([...defaultColumnOrder]);
 const createDialogWidth = (desktopWidth: string, mobileWidth = "94vw") =>
   computed(() => (isMobile.value ? mobileWidth : desktopWidth));
 const defaultDialogWidth = createDialogWidth("600px");
@@ -1363,6 +1663,44 @@ const pageSize = ref(50);
 const pageSizeOptions = [25, 50, 100, 200, 500];
 
 const hasSelection = computed(() => selectedTorrents.value.length > 0);
+
+// 批量标签相关计算属性
+const availableLabelsOptions = computed(() => {
+  const labelsSet = new Set<string>();
+  torrents.value.forEach((torrent) => {
+    if (torrent.labels && torrent.labels.length > 0) {
+      torrent.labels.forEach((label) => {
+        // 排除特殊标签：分类和限速标签
+        if (!label.startsWith("category:") && !label.startsWith("limit:")) {
+          labelsSet.add(label);
+        }
+      });
+    }
+  });
+  return Array.from(labelsSet)
+    .sort()
+    .map((label) => ({ label, value: label }));
+});
+
+const currentLabelsPreview = computed(() => {
+  const labelsSet = new Set<string>();
+  labelsDialogTargetTorrents.value.forEach((torrent) => {
+    if (torrent.labels && torrent.labels.length > 0) {
+      torrent.labels.forEach((label) => {
+        // 排除特殊标签
+        if (!label.startsWith("category:") && !label.startsWith("limit:")) {
+          labelsSet.add(label);
+        }
+      });
+    }
+  });
+  return Array.from(labelsSet).sort();
+});
+
+const isLabelsFormValid = computed(() => {
+  return labelsForm.value.selectedLabels.length > 0;
+});
+
 const toggleMobileFilters = () => {
   if (!isMobile.value) return;
   showMobileFilters.value = !showMobileFilters.value;
@@ -1434,6 +1772,51 @@ const loadColumnWidths = () => {
     columnWidths.value = { ...defaultColumnWidths };
   }
 };
+
+// 持久化列顺序
+const persistColumnOrder = () => {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      COLUMN_ORDER_STORAGE_KEY,
+      JSON.stringify(columnOrder.value)
+    );
+  } catch (error) {
+    console.warn("保存列顺序失败", error);
+  }
+};
+
+// 加载列顺序
+const loadColumnOrder = () => {
+  if (typeof window === "undefined") return;
+  try {
+    const stored = window.localStorage.getItem(COLUMN_ORDER_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // 验证顺序数组的有效性，确保包含所有列
+      const validOrder = parsed.filter((key: string) =>
+        tableColumns.some((col) => col.key === key)
+      );
+      // 添加新增的列（如果配置中有新列但存储中没有）
+      const newColumns = tableColumns
+        .map((col) => col.key)
+        .filter((key) => !validOrder.includes(key));
+      columnOrder.value = [...validOrder, ...newColumns];
+    } else {
+      columnOrder.value = [...defaultColumnOrder];
+    }
+  } catch (error) {
+    console.warn("读取列顺序失败", error);
+    columnOrder.value = [...defaultColumnOrder];
+  }
+};
+
+// 根据顺序获取有序的列配置
+const orderedColumns = computed(() => {
+  return columnOrder.value
+    .map((key) => tableColumns.find((col) => col.key === key))
+    .filter(Boolean) as ColumnConfig[];
+});
 
 const getPeersDownloading = (torrent: Torrent): number => {
   return torrent.peersSendingToUs ?? 0;
@@ -1512,7 +1895,7 @@ const getProgressTooltip = (torrent: Torrent): string => {
 
   // 如果已完成，不显示提示
   if (progress === 1) {
-    return '';
+    return "";
   }
 
   // 构建提示内容：进度 + 剩余时间
@@ -1528,7 +1911,7 @@ const getProgressTooltip = (torrent: Torrent): string => {
       torrent.status !== TorrentStatusEnum.STOPPED
     ) {
       const etaText = formatETA(eta, torrent.status);
-      if (etaText && etaText !== '—' && etaText !== '未知') {
+      if (etaText && etaText !== "—" && etaText !== "未知") {
         parts.push(`剩余时间: ${etaText}`);
       }
     }
@@ -1539,7 +1922,7 @@ const getProgressTooltip = (torrent: Torrent): string => {
     parts.push(`下载速度: ${formatSpeed(torrent.rateDownload)}`);
   }
 
-  return parts.join('\n');
+  return parts.join("\n");
 };
 
 const getRatioClass = (ratio: number): string => {
@@ -1894,7 +2277,9 @@ const handleRowClick = (row: Torrent, _column: any, event: MouseEvent) => {
   if (!tableRef.value) return;
 
   // 获取当前行在分页数据中的索引
-  const clickedIndex = paginatedTorrents.value.findIndex((t) => t.id === row.id);
+  const clickedIndex = paginatedTorrents.value.findIndex(
+    (t) => t.id === row.id
+  );
   if (clickedIndex === -1) return;
 
   // 判断是否在选中状态
@@ -1910,7 +2295,10 @@ const handleRowClick = (row: Torrent, _column: any, event: MouseEvent) => {
     lastClickedIndex.value = clickedIndex;
   } else if (event.shiftKey) {
     // Shift + 点击：范围选择
-    if (lastClickedIndex.value >= 0 && lastClickedIndex.value < paginatedTorrents.value.length) {
+    if (
+      lastClickedIndex.value >= 0 &&
+      lastClickedIndex.value < paginatedTorrents.value.length
+    ) {
       // 清除当前所有选中
       tableRef.value.clearSelection();
 
@@ -1971,14 +2359,17 @@ const handleRowDoubleClick = (row: Torrent) => {
 
 const handleKeydown = (event: KeyboardEvent) => {
   // Ctrl+A 或 Cmd+A 全选当前页
-  if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
+  if ((event.ctrlKey || event.metaKey) && event.key === "a") {
     // 检查焦点是否在输入框或文本区域中
     const activeElement = document.activeElement;
     const tagName = activeElement?.tagName.toLowerCase();
 
     // 如果焦点在输入框、文本区域或可编辑元素中，不拦截默认行为
-    if (tagName === 'input' || tagName === 'textarea' ||
-        (activeElement as HTMLElement)?.isContentEditable) {
+    if (
+      tagName === "input" ||
+      tagName === "textarea" ||
+      (activeElement as HTMLElement)?.isContentEditable
+    ) {
       return;
     }
 
@@ -2042,17 +2433,22 @@ const handleColumnResize = (
 
 const resetColumnWidths = () => {
   columnWidths.value = { ...defaultColumnWidths };
+  columnOrder.value = [...defaultColumnOrder];
   if (typeof window !== "undefined") {
     try {
       window.localStorage.removeItem(COLUMN_WIDTH_STORAGE_KEY);
+      window.localStorage.removeItem(COLUMN_ORDER_STORAGE_KEY);
     } catch (error) {
-      console.error("Failed to clear column widths from localStorage:", error);
+      console.error(
+        "Failed to clear column settings from localStorage:",
+        error
+      );
     }
   }
   nextTick(() => {
     tableRef.value?.doLayout?.();
   });
-  ElMessage.success("列宽已重置为默认值");
+  ElMessage.success("列宽和列顺序已重置为默认值");
 };
 
 // 加载种子列表
@@ -2203,6 +2599,7 @@ const handleContextAction = (
     | "detail"
     | "limit"
     | "category"
+    | "labels"
 ) => {
   const targets = [...contextMenuTargets.value];
   if (!targets.length) return;
@@ -2245,6 +2642,10 @@ const handleContextAction = (
   }
   if (action === "category") {
     openCategoryDialog(targets[0]!, isBatch ? targetIds : undefined);
+    return;
+  }
+  if (action === "labels") {
+    openLabelsDialogWithTargets(targets);
     return;
   }
   if (action === "detail") {
@@ -2398,6 +2799,157 @@ const searchCategory = (queryString: string, cb: (results: any[]) => void) => {
     )
     .map((cat) => ({ value: cat }));
   cb(results);
+};
+
+// 批量修改标签相关函数
+const openLabelsDialog = () => {
+  if (!selectedTorrents.value.length) {
+    ElMessage.warning("请先选择种子");
+    return;
+  }
+  labelsDialogTargetTorrents.value = [...selectedTorrents.value];
+  labelsForm.value = {
+    mode: "add",
+    selectedLabels: [],
+  };
+  showLabelsDialog.value = true;
+};
+
+const openLabelsDialogWithTargets = (targets: Torrent[]) => {
+  if (!targets.length) return;
+  labelsDialogTargetTorrents.value = [...targets];
+  labelsForm.value = {
+    mode: "add",
+    selectedLabels: [],
+  };
+  showLabelsDialog.value = true;
+};
+
+const getLabelsModeDescription = () => {
+  switch (labelsForm.value.mode) {
+    case "add":
+      return "在现有标签基础上添加新标签";
+    case "replace":
+      return "清空现有标签，重新设置（分类和限速标签不受影响）";
+    case "remove":
+      return "删除指定的标签";
+    default:
+      return "";
+  }
+};
+
+const getLabelsPlaceholder = () => {
+  switch (labelsForm.value.mode) {
+    case "add":
+      return "输入新标签或从现有标签中选择";
+    case "replace":
+      return "输入标签或从现有标签中选择";
+    case "remove":
+      return "选择要移除的标签";
+    default:
+      return "";
+  }
+};
+
+const getLabelsFormTip = () => {
+  const count = labelsForm.value.selectedLabels.length;
+  if (count === 0) return "请选择或输入标签";
+
+  const torrentCount = labelsDialogTargetTorrents.value.length;
+  switch (labelsForm.value.mode) {
+    case "add":
+      return `将为 ${torrentCount} 个种子添加 ${count} 个标签`;
+    case "replace":
+      return `将为 ${torrentCount} 个种子替换为 ${count} 个标签`;
+    case "remove":
+      return `将从 ${torrentCount} 个种子中移除 ${count} 个标签`;
+    default:
+      return "";
+  }
+};
+
+const submitLabelsChange = async () => {
+  if (!isLabelsFormValid.value) {
+    ElMessage.warning("请选择或输入标签");
+    return;
+  }
+
+  const targetTorrents = labelsDialogTargetTorrents.value;
+  const selectedLabels = labelsForm.value.selectedLabels
+    .map((label) => label.trim())
+    .filter(Boolean);
+  const mode = labelsForm.value.mode;
+
+  const loadingInstance = ElLoading.service({
+    text: `正在更新标签 (0/${targetTorrents.length})`,
+  });
+
+  try {
+    for (let i = 0; i < targetTorrents.length; i++) {
+      const torrent = targetTorrents[i];
+      if (!torrent) continue;
+      const currentLabels = torrent.labels || [];
+
+      // 提取特殊标签（分类和限速）
+      const categoryLabel = currentLabels.find((l) =>
+        l.startsWith("category:")
+      );
+      const limitLabel = currentLabels.find((l) => l.startsWith("limit:"));
+      const specialLabels = [categoryLabel, limitLabel].filter(
+        Boolean
+      ) as string[];
+
+      // 提取普通标签（排除特殊标签）
+      const normalLabels = currentLabels.filter(
+        (l) => !l.startsWith("category:") && !l.startsWith("limit:")
+      );
+
+      let newNormalLabels: string[];
+
+      // 根据操作模式处理标签
+      switch (mode) {
+        case "add":
+          // 添加：合并并去重
+          newNormalLabels = Array.from(
+            new Set([...normalLabels, ...selectedLabels])
+          );
+          break;
+
+        case "replace":
+          // 替换：直接使用新标签
+          newNormalLabels = [...selectedLabels];
+          break;
+
+        case "remove":
+          // 移除：过滤掉要移除的标签
+          newNormalLabels = normalLabels.filter(
+            (label) => !selectedLabels.includes(label)
+          );
+          break;
+
+        default:
+          newNormalLabels = normalLabels;
+      }
+
+      // 合并特殊标签和普通标签
+      const finalLabels = [...specialLabels, ...newNormalLabels];
+
+      // 调用API更新
+      await api.setTorrents([torrent.id], { labels: finalLabels });
+
+      loadingInstance.setText(
+        `正在更新标签 (${i + 1}/${targetTorrents.length})`
+      );
+    }
+
+    ElMessage.success(`已更新 ${targetTorrents.length} 个种子的标签`);
+    showLabelsDialog.value = false;
+    loadTorrents();
+  } catch (error: any) {
+    ElMessage.error(`修改标签失败: ${error.message}`);
+  } finally {
+    loadingInstance.close();
+  }
 };
 
 const fetchTorrentDetail = async (id: number) => {
@@ -3008,7 +3560,7 @@ const formatETA = (eta?: number, status?: TorrentStatus): string => {
   return `${minutes}分钟`;
 };
 
-// 格式化描述字段，将URL转换为超链接
+// 格式化描述字段,将URL转换为超链接
 const formatCommentWithLinks = (comment: string): string => {
   if (!comment) return "";
   // URL 正则表达式，匹配 http:// 或 https:// 开头的链接
@@ -3027,13 +3579,118 @@ const formatCommentWithLinks = (comment: string): string => {
   });
 };
 
+// 初始化表格列头拖拽排序
+let sortableInstance: Sortable | null = null;
+
+const initColumnDragSort = () => {
+  if (!tableRef.value) {
+    console.warn("表格引用不存在");
+    return;
+  }
+
+  nextTick(() => {
+    // 获取表格的thead元素中的tr
+    const el = tableRef.value?.$el;
+    if (!el) {
+      console.warn("找不到表格元素");
+      return;
+    }
+
+    const headerWrapper = el.querySelector(".el-table__header-wrapper");
+    if (!headerWrapper) {
+      console.warn("找不到表格头部容器");
+      return;
+    }
+
+    const tr = headerWrapper.querySelector("thead tr");
+    if (!tr) {
+      console.warn("找不到表格头部行");
+      return;
+    }
+
+    console.log(
+      "初始化列头拖拽排序，找到了表格头部行，th元素数量：",
+      tr.querySelectorAll("th").length
+    );
+
+    // 如果已经初始化过，先销毁
+    if (sortableInstance) {
+      sortableInstance.destroy();
+    }
+
+    // 初始化Sortable
+    sortableInstance = new Sortable(tr, {
+      animation: 150,
+      delay: 0,
+      ghostClass: "sortable-ghost",
+      chosenClass: "sortable-chosen",
+      dragClass: "sortable-drag",
+      filter: ".el-table-column--selection", // 过滤掉选择框列
+      draggable: "th", // 可拖拽的是th元素
+      onStart: () => {
+        console.log("开始拖拽");
+        // 拖拽开始时添加样式提示
+        document.body.style.cursor = "grabbing";
+      },
+      onEnd: (evt: any) => {
+        console.log("拖拽结束", evt);
+        document.body.style.cursor = "";
+
+        const { oldIndex, newIndex } = evt;
+
+        // oldIndex 和 newIndex 包含了选择框列，需要减1
+        // 因为选择框列不可拖拽，所以实际的索引需要减1
+        if (oldIndex === undefined || newIndex === undefined) return;
+        if (oldIndex === newIndex) return;
+
+        // 调整索引（减去选择框列的索引）
+        const adjustedOldIndex = oldIndex - 1;
+        const adjustedNewIndex = newIndex - 1;
+
+        console.log("调整后的索引", adjustedOldIndex, adjustedNewIndex);
+
+        if (adjustedOldIndex < 0 || adjustedNewIndex < 0) return;
+        if (
+          adjustedOldIndex >= columnOrder.value.length ||
+          adjustedNewIndex >= columnOrder.value.length
+        )
+          return;
+
+        // 更新列顺序
+        const newOrder = [...columnOrder.value];
+        const [movedItem] = newOrder.splice(adjustedOldIndex, 1);
+        if (!movedItem) return;
+        newOrder.splice(adjustedNewIndex, 0, movedItem);
+
+        columnOrder.value = newOrder;
+        persistColumnOrder();
+
+        ElMessage.success("列顺序已更新");
+
+        // 重新初始化拖拽（因为DOM结构变了）
+        nextTick(() => {
+          initColumnDragSort();
+        });
+      },
+    });
+
+    console.log("Sortable实例创建成功");
+  });
+};
+
 onMounted(() => {
   loadColumnWidths();
+  loadColumnOrder();
   loadTorrents();
   startAutoRefresh();
   window.addEventListener("click", hideContextMenu);
   window.addEventListener("scroll", hideContextMenu, true);
   window.addEventListener("keydown", handleKeydown);
+
+  // 延迟初始化列头拖拽排序，确保表格完全渲染
+  setTimeout(() => {
+    initColumnDragSort();
+  }, 500);
 });
 
 onBeforeUnmount(() => {
@@ -3041,6 +3698,12 @@ onBeforeUnmount(() => {
   window.removeEventListener("click", hideContextMenu);
   window.removeEventListener("scroll", hideContextMenu, true);
   window.removeEventListener("keydown", handleKeydown);
+
+  // 清理拖拽实例
+  if (sortableInstance) {
+    sortableInstance.destroy();
+    sortableInstance = null;
+  }
 });
 </script>
 
@@ -3486,5 +4149,61 @@ onBeforeUnmount(() => {
   .files-actions-buttons :deep(.el-button) {
     flex: 1;
   }
+}
+
+/* 批量修改标签对话框样式 */
+.current-labels-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+  background: var(--el-fill-color-light);
+  border-radius: 4px;
+  min-height: 40px;
+}
+
+.label-preview-tag {
+  margin: 0;
+}
+
+.no-labels-text {
+  color: var(--el-text-color-secondary);
+  font-size: 14px;
+}
+
+.form-tip {
+  margin-top: 4px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+/* 拖拽排序相关样式 */
+.table-scroll :deep(th) {
+  cursor: move;
+  cursor: grab;
+  user-select: none;
+}
+
+.table-scroll :deep(th:active) {
+  cursor: grabbing;
+}
+
+.table-scroll :deep(th.el-table-column--selection) {
+  cursor: default;
+}
+
+.table-scroll :deep(.sortable-ghost) {
+  opacity: 0.4;
+  background: #f0f9ff;
+}
+
+.table-scroll :deep(.sortable-chosen) {
+  background: #ecfdf5;
+}
+
+.table-scroll :deep(.sortable-drag) {
+  opacity: 0.8;
+  background: #dbeafe;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 </style>
