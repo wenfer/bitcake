@@ -369,6 +369,25 @@
               </template>
             </el-table-column>
 
+            <!-- 保存目录列 -->
+            <el-table-column
+              v-else-if="
+                column.key === 'downloadDir' &&
+                (column.showInCompact || !isCompactTable)
+              "
+              :prop="column.prop"
+              :column-key="column.key"
+              :label="column.label"
+              :width="getColumnWidth(column.key, column.defaultWidth)"
+              :min-width="column.minWidth"
+              :sortable="column.sortable ? 'custom' : false"
+              show-overflow-tooltip
+            >
+              <template #default="{ row }">
+                {{ row.downloadDir || "—" }}
+              </template>
+            </el-table-column>
+
             <!-- 添加时间列 -->
             <el-table-column
               v-else-if="
@@ -1382,6 +1401,7 @@ const defaultColumnWidths: Record<string, number> = {
   rateUpload: 100,
   eta: 140,
   uploadedEver: 100,
+  downloadDir: 200,
   addedDate: 150,
   activityDate: 150,
   labels: 100,
@@ -1494,6 +1514,15 @@ const tableColumns: ColumnConfig[] = [
     sortable: true,
     minWidth: 130,
     defaultWidth: 150,
+    showInCompact: false,
+  },
+  {
+    key: "downloadDir",
+    label: "保存目录",
+    prop: "downloadDir",
+    sortable: true,
+    minWidth: 160,
+    defaultWidth: 220,
     showInCompact: false,
   },
   {
@@ -2026,6 +2055,8 @@ const getSortValue = (torrent: Torrent, prop?: string) => {
         : Number.MAX_SAFE_INTEGER;
     case "uploadedEver":
       return torrent.uploadedEver ?? 0;
+    case "downloadDir":
+      return (torrent.downloadDir || "").toLowerCase();
     case "addedDate":
       return torrent.addedDate ?? 0;
     case "activityDate":
