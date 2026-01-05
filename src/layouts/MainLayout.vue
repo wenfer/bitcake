@@ -373,14 +373,18 @@ const formatSpeed = (bytes: number): string => {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex-wrap: wrap;
-  flex-shrink: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: nowrap;
 }
 
 .title {
   margin: 0;
   font-size: 20px;
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .header-right {
@@ -489,8 +493,8 @@ const formatSpeed = (bytes: number): string => {
   }
 
   .header {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
     padding: 12px 16px;
     gap: 12px;
   }
