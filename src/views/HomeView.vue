@@ -525,9 +525,13 @@
           </el-upload>
         </el-form-item>
         <el-form-item label="下载目录">
-          <el-input
+          <el-autocomplete
             v-model="addForm.downloadDir"
+            :fetch-suggestions="searchDownloadDirs"
             placeholder="留空使用默认目录"
+            style="width: 100%"
+            clearable
+            trigger-on-focus
           />
         </el-form-item>
         <el-form-item label="自动开始">
@@ -551,7 +555,14 @@
     >
       <el-form :model="locationForm" label-width="120px">
         <el-form-item label="新的保存目录">
-          <el-input v-model="locationForm.path" placeholder="/data/downloads" />
+          <el-autocomplete
+            v-model="locationForm.path"
+            :fetch-suggestions="searchDownloadDirs"
+            placeholder="/data/downloads"
+            style="width: 100%"
+            clearable
+            trigger-on-focus
+          />
         </el-form-item>
         <el-form-item label="">
           <el-checkbox v-model="locationForm.move">同时移动文件</el-checkbox>
@@ -1202,6 +1213,7 @@ const {
   downloadDirFilter,
   errorTypeFilter,
 } = storeToRefs(filterStore);
+const { sessionConfig } = storeToRefs(systemStatusStore);
 
 interface LimitFormState {
   downloadLimited: boolean;
@@ -2130,6 +2142,24 @@ const downloadDirOptions = computed(() => {
     }));
 });
 
+const allDownloadDirs = computed(() => {
+  const set = new Set<string>();
+  const def = sessionConfig.value?.["download-dir"];
+  if (def) set.add(def);
+  torrents.value.forEach((t) => {
+    if (t.downloadDir) set.add(t.downloadDir);
+  });
+  return Array.from(set).sort((a, b) => a.localeCompare(b));
+});
+
+const searchDownloadDirs = (queryString: string, cb: (results: any[]) => void) => {
+  const q = (queryString || "").trim().toLowerCase();
+  const list = allDownloadDirs.value.filter(
+    (dir) => !q || dir.toLowerCase().includes(q)
+  );
+  cb(list.map((dir) => ({ value: dir })));
+};
+
 const errorTypeOptions = computed(() => {
   const errorTypes = new Set<string>();
 
@@ -2219,6 +2249,15 @@ watch(showLocationDialog, (visible) => {
   if (!visible) {
     locationTarget.value = null;
     locationForm.value.path = "";
+  }
+});
+
+watch(showAddDialog, (visible) => {
+  if (visible) {
+    const def = sessionConfig.value?.["download-dir"] || "";
+    if (def && !addForm.value.downloadDir) {
+      addForm.value.downloadDir = def;
+    }
   }
 });
 
