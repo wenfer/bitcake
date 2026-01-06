@@ -165,6 +165,9 @@ html[data-theme="green"] .el-button.is-link.el-button--danger {
 }
 
 /* 菜单样式 */
+html[data-theme="green"] .el-menu-item.is-active {
+  color: var(--fresh-primary);
+}
 
 /* 表格样式 */
 html[data-theme="green"] .el-table {
@@ -652,6 +655,9 @@ html[data-theme="pink"] .el-button.is-link.el-button--danger {
 }
 
 /* 菜单样式 */
+html[data-theme="pink"] .el-menu-item.is-active {
+  color: var(--pink-primary);
+}
 /* 菜单样式 */
 
 /* 表格样式 */
