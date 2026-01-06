@@ -395,6 +395,7 @@ const formatSpeed = (bytes: number): string => {
   display: flex;
   gap: 8px;
   flex-shrink: 0;
+  justify-self: end;
 }
 
 .menu-toggle {
