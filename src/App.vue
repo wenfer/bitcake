@@ -169,14 +169,20 @@ html[data-theme="green"] .el-button--primary:hover {
   box-shadow: var(--fresh-shadow-md);
 }
 
-html[data-theme="green"] .el-button--danger {
+html[data-theme="green"] .el-button--danger:not(.is-link) {
   background: var(--fresh-danger);
   border-color: var(--fresh-danger);
 }
 
-html[data-theme="green"] .el-button--danger:hover {
+html[data-theme="green"] .el-button--danger:not(.is-link):hover {
   background: #dc2626;
   border-color: #dc2626;
+}
+
+html[data-theme="green"] .el-button.is-link.el-button--danger {
+  background: transparent;
+  border-color: transparent;
+  color: var(--fresh-danger);
 }
 
 /* 菜单样式 */
@@ -741,14 +747,20 @@ html[data-theme="pink"] .el-button--primary:hover {
   box-shadow: var(--pink-shadow-lg);
 }
 
-html[data-theme="pink"] .el-button--danger {
+html[data-theme="pink"] .el-button--danger:not(.is-link) {
   background: linear-gradient(135deg, #ff6b9d 0%, #ff8fb5 100%);
   border-color: #ff6b9d;
 }
 
-html[data-theme="pink"] .el-button--danger:hover {
+html[data-theme="pink"] .el-button--danger:not(.is-link):hover {
   background: linear-gradient(135deg, #e55a8a 0%, #ff6b9d 100%);
   border-color: #e55a8a;
+}
+
+html[data-theme="pink"] .el-button.is-link.el-button--danger {
+  background: transparent;
+  border-color: transparent;
+  color: var(--pink-danger);
 }
 
 /* 菜单样式 */
