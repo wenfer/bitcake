@@ -1,148 +1,321 @@
 {
-  "sites": [
-    {
-      "name": "蟹黄堡",
-      "trackers": ["crabpt"]
-    },
-    {
-      "name": "财神",
-      "trackers": [
-        "cspt"
-      ]
-    },
-    {
-      "name": "春天",
-      "trackers": ["springsunday"]
-    },
-    {
-      "name": "我堡",
-      "trackers": ["ourbits"]
-    },
-    {
-      "name": "星空",
-      "trackers": ["star-space"]
-    },
-    {
-      "name": "观众",
-      "trackers": ["audiences", "cinefiles"]
-    },
-    {
-      "name": "织梦",
-      "trackers": ["zmpt"]
-    },
-    {
-      "name": "杜比",
-      "trackers": ["hddolby"]
-    },
-    {
-      "name": "家园",
-      "trackers": ["hdhome"]
-    },
-    {
-      "name": "U堡",
-      "trackers": ["ubits"]
-    },
-    {
-      "name": "三月",
-      "trackers": ["duckboobee"]
-    },
-    {
-      "name": "末日",
-      "trackers": ["agsvpt"]
-    },
-    {
-      "name": "海豹",
-      "trackers": ["greatposterwall"]
-    },
-    {
-      "name": "躺平",
-      "trackers": ["tangpt"]
-    },
-    {
-      "name": "车站",
-      "trackers": ["carpt"]
-    },
-    {
-      "name": "海豹",
-      "trackers": ["greatposterwall"]
-    },
-    {
-      "name": "好大",
-      "trackers": ["hdarea"]
-    },
-    {
-      "name": "朋友",
-      "trackers": ["keepfrds"]
-    },
-    {
-      "name": "麒麟",
-      "trackers": ["hdkyl"]
-    },
-    {
-      "name": "猪猪",
-      "trackers": ["piggo"]
-    },
-    {
-      "name": "憨憨",
-      "trackers": ["hhanclub"]
-    },
-    {
-      "name": "老师",
-      "trackers": ["nicept"]
-    },
-    {
-      "name": "肉丝",
-      "trackers": ["rousipt"]
-    },
-    {
-      "name": "熊猫",
-      "trackers": ["pandapt"]
-    },
-    {
-      "name": "TCCF",
-      "trackers": ["et8"]
-    },
-    {
-      "name": "馒头",
-      "trackers": ["m-team"]
-    },
-    {
-      "name": "皇后",
-      "trackers": ["open.cd"]
-    },
-    {
-      "name": "猫站",
-      "trackers": ["pterclub"]
-    },
-    {
-      "name": "TTG",
-      "trackers": ["totheglory"]
-    },
-    {
-      "name": "青蛙",
-      "trackers": [
-        "qingwa"
-      ]
-    },
-    {
-      "name": "彩虹岛",
-      "trackers": [
-        "chdbits",
-        "ptchdbits",
-        "rainbowisland"
-      ]
-    },
-    {
-      "name": "天空",
-      "trackers": ["hdsky"]
-    },
-    {
-      "name": "好学",
-      "trackers": ["hxpt"]
-    },
-    {
-      "name": "PT时间",
-      "trackers": ["pttime"]
-    }
-  ]
+	"sites": [{
+		"name": "蟹黄堡",
+		"trackers": ["crabpt"]
+	}, {
+		"name": "财神",
+		"trackers": ["cspt"]
+	}, {
+		"name": "春天",
+		"trackers": ["springsunday"]
+	}, {
+		"name": "我堡",
+		"trackers": ["ourbits"]
+	}, {
+		"name": "星空",
+		"trackers": ["star-space"]
+	}, {
+		"name": "观众",
+		"trackers": ["audiences", "cinefiles"]
+	}, {
+		"name": "织梦",
+		"trackers": ["zmpt"]
+	}, {
+		"name": "杜比",
+		"trackers": ["hddolby"]
+	}, {
+		"name": "家园",
+		"trackers": ["hdhome"]
+	}, {
+		"name": "U堡",
+		"trackers": ["ubits"]
+	}, {
+		"name": "三月",
+		"trackers": ["duckboobee"]
+	}, {
+		"name": "末日",
+		"trackers": ["agsvpt"]
+	}, {
+		"name": "海豹",
+		"trackers": ["greatposterwall"]
+	}, {
+		"name": "躺平",
+		"trackers": ["tangpt"]
+	}, {
+		"name": "车站",
+		"trackers": ["carpt"]
+	}, {
+		"name": "好大",
+		"trackers": ["hdarea"]
+	}, {
+		"name": "朋友",
+		"trackers": ["keepfrds"]
+	}, {
+		"name": "麒麟",
+		"trackers": ["hdkyl"]
+	}, {
+		"name": "猪猪",
+		"trackers": ["piggo"]
+	}, {
+		"name": "憨憨",
+		"trackers": ["hhanclub"]
+	}, {
+		"name": "老师",
+		"trackers": ["nicept"]
+	}, {
+		"name": "肉丝",
+		"trackers": ["rousipt"]
+	}, {
+		"name": "熊猫",
+		"trackers": ["pandapt"]
+	}, {
+		"name": "TCCF",
+		"trackers": ["et8"]
+	}, {
+		"name": "馒头",
+		"trackers": ["m-team"]
+	}, {
+		"name": "皇后",
+		"trackers": ["open.cd"]
+	}, {
+		"name": "猫站",
+		"trackers": ["pterclub"]
+	}, {
+		"name": "TTG",
+		"trackers": ["totheglory"]
+	}, {
+		"name": "青蛙",
+		"trackers": ["qingwa"]
+	}, {
+		"name": "彩虹岛",
+		"trackers": ["chdbits", "ptchdbits", "rainbowisland"]
+	}, {
+		"name": "天空",
+		"trackers": ["hdsky"]
+	}, {
+		"name": "好学",
+		"trackers": ["hxpt"]
+	}, {
+		"name": "PT时间",
+		"trackers": ["pttime"]
+	}, {
+		"name": "2xFree",
+		"trackers": ["2xfree"]
+	}, {
+		"name": "52PT",
+		"trackers": ["52pt"]
+	}, {
+		"name": "ACG.RIP",
+		"trackers": ["acg.rip"]
+	}, {
+		"name": "exoticaz",
+		"trackers": ["exoticaz"]
+	}, {
+		"name": "EZTV",
+		"trackers": ["eztv"]
+	}, {
+		"name": "hdvbits",
+		"trackers": ["hdvbits"]
+	}, {
+		"name": "iHDBits",
+		"trackers": ["ihdbits"]
+	}, {
+		"name": "IPT",
+		"trackers": ["iptorrents"]
+	}, {
+		"name": "JoyHD",
+		"trackers": ["joyhd"]
+	}, {
+		"name": "JPTV",
+		"trackers": ["jptv"]
+	}, {
+		"name": "MonikaDesign",
+		"trackers": ["monikadesign"]
+	}, {
+		"name": "NYAA",
+		"trackers": ["nyaa.ink"]
+	}, {
+		"name": "NYAA",
+		"trackers": ["sukebei.nyaa"]
+	}, {
+		"name": "NYAA",
+		"trackers": ["nyaa.si"]
+	}, {
+		"name": "OK",
+		"trackers": ["okpt"]
+	}, {
+		"name": "PTLSP",
+		"trackers": ["ptlsp"]
+	}, {
+		"name": "ptvicomo",
+		"trackers": ["ptvicomo"]
+	}, {
+		"name": "铂金家",
+		"trackers": ["pthome"]
+	}, {
+		"name": "鲨鱼",
+		"trackers": ["sharkpt"]
+	}, {
+		"name": "U2",
+		"trackers": ["u2.dmhy"]
+	}, {
+		"name": "u9a9",
+		"trackers": ["u9a9"]
+	}, {
+		"name": "UltraHD",
+		"trackers": ["ultrahd"]
+	}, {
+		"name": "伊甸园",
+		"trackers": ["hdbd"]
+	}, {
+		"name": "兽站",
+		"trackers": ["hd4fans"]
+	}, {
+		"name": "冬樱",
+		"trackers": ["wintersakura"]
+	}, {
+		"name": "冰淇淋",
+		"trackers": ["fangwen2"]
+	}, {
+		"name": "冰淇淋",
+		"trackers": ["icc2022"]
+	}, {
+		"name": "动漫花园",
+		"trackers": ["dmhy"]
+	}, {
+		"name": "北洋园",
+		"trackers": ["tjupt"]
+	}, {
+		"name": "北邮人",
+		"trackers": ["byr.pt"]
+	}, {
+		"name": "南洋",
+		"trackers": ["nanyangpt"]
+	}, {
+		"name": "吐鲁番",
+		"trackers": ["eastgame"]
+	}, {
+		"name": "咖啡",
+		"trackers": ["ptcafe"]
+	}, {
+		"name": "壹",
+		"trackers": ["1ptba"]
+	}, {
+		"name": "备胎",
+		"trackers": ["beitai.pt"]
+	}, {
+		"name": "大青虫",
+		"trackers": ["cyanbug"]
+	}, {
+		"name": "天雪(skyey2)",
+		"trackers": ["skyey2"]
+	}, {
+		"name": "天雪(skyeysnow)",
+		"trackers": ["skyeysnow"]
+	}, {
+		"name": "奥申",
+		"trackers": ["oshen"]
+	}, {
+		"name": "好多油",
+		"trackers": ["hdupt"]
+	}, {
+		"name": "小蚂蚁",
+		"trackers": ["hdmayi"]
+	}, {
+		"name": "库非",
+		"trackers": ["kufei"]
+	}, {
+		"name": "彩虹岛",
+		"trackers": ["chddiy"]
+	}, {
+		"name": "影",
+		"trackers": ["shadowflow"]
+	}, {
+		"name": "打胶",
+		"trackers": ["dajiao"]
+	}, {
+		"name": "明教",
+		"trackers": ["hdpt"]
+	}, {
+		"name": "朱雀",
+		"trackers": ["zhuque"]
+	}, {
+		"name": "杏坛",
+		"trackers": ["xingtan"]
+	}, {
+		"name": "梓喵",
+		"trackers": ["azusa"]
+	}, {
+		"name": "海棠",
+		"trackers": ["htpt"]
+	}, {
+		"name": "海胆之家",
+		"trackers": ["haidan"]
+	}, {
+		"name": "漫喵",
+		"trackers": ["comicat"]
+	}, {
+		"name": "烧包乐园",
+		"trackers": ["ptsbao"]
+	}, {
+		"name": "瓷器",
+		"trackers": ["hdchina"]
+	}, {
+		"name": "白兔",
+		"trackers": ["hares"]
+	}, {
+		"name": "百川",
+		"trackers": ["hitpt"]
+	}, {
+		"name": "红叶",
+		"trackers": ["leaves.red"]
+	}, {
+		"name": "红豆饭",
+		"trackers": ["hdfans"]
+	}, {
+		"name": "聆音",
+		"trackers": ["soulvoice"]
+	}, {
+		"name": "自由农场",
+		"trackers": ["0ff.cc"]
+	}, {
+		"name": "葡萄",
+		"trackers": ["sjtu.edu.cn"]
+	}, {
+		"name": "蜜柑",
+		"trackers": ["mikanime"]
+	}, {
+		"name": "蝴蝶",
+		"trackers": ["hudbt.hust"]
+	}, {
+		"name": "蝶粉",
+		"trackers": ["discfan"]
+	}, {
+		"name": "铂金学院",
+		"trackers": ["ptchina"]
+	}, {
+		"name": "阿童木",
+		"trackers": ["hdatmos"]
+	}, {
+		"name": "飞天拉面",
+		"trackers": ["fsm"]
+	}, {
+		"name": "马杀鸡",
+		"trackers": ["msg"]
+	}, {
+		"name": "高清时间",
+		"trackers": ["hdtime"]
+	}, {
+		"name": "高清空间",
+		"trackers": ["hdfun"]
+	}, {
+		"name": "高清视频",
+		"trackers": ["hdvideo"]
+	}, {
+		"name": "龙之家",
+		"trackers": ["dragonhd"]
+	}, {
+		"name": "学校",
+		"trackers": ["btschool"]
+	}]
 }
