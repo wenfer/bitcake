@@ -153,7 +153,7 @@ import {
 import { ElMessageBox } from "element-plus";
 import { useSystemStatusStore } from "@/stores/systemStatus";
 import { useConnectionStore } from "@/stores/connection";
-import { useFilterStore, type StatusFilter } from "@/stores/filter";
+import { useFilterStore, type StatusFilter, statusToUrl } from "@/stores/filter";
 import { useThemeStore, type ThemeType } from "@/stores/theme";
 import { useMediaQuery } from "@/utils/useMediaQuery";
 import SidebarStatus from "./components/SidebarStatus.vue";
@@ -288,11 +288,17 @@ const handleMenuSelect = (index: string) => {
   // 处理状态过滤
   if (index.startsWith("status:")) {
     const status = index.replace("status:", "") as StatusFilter;
-    filterStore.setStatusFilter(status);
-    filterStore.setTrackerFilter("");
-    if (route.path !== "/") {
-      router.push("/");
+    const urlParam = statusToUrl(status);
+    // 使用 query params 更新 URL，状态会在 HomeView 中从 URL 恢复
+    const query: Record<string, string> = {};
+    if (urlParam !== 'all') {
+      query.status = urlParam;
     }
+    // 保留 tracker 过滤参数（如果有的话）
+    if (filterStore.trackerFilter) {
+      query.tracker = filterStore.trackerFilter;
+    }
+    router.push({ path: '/', query });
   }
   // 处理普通路由
   else {

@@ -1189,10 +1189,11 @@ import {
 } from "@/utils/torrent";
 import { getIPGeolocation } from "@/utils/ipGeolocation";
 import { useMediaQuery } from "@/utils/useMediaQuery";
-import { useFilterStore } from "@/stores/filter";
+import { useFilterStore, urlToStatus, statusToUrl } from "@/stores/filter";
 import { useSystemStatusStore } from "@/stores/systemStatus";
 import { storeToRefs } from "pinia";
 import { isTransmission } from "@/config/torrentClient";
+import { useRoute, useRouter } from "vue-router";
 
 const REFRESH_INTERVAL = 3000;
 const COLUMN_WIDTH_STORAGE_KEY = "tv_table_column_widths";
@@ -1224,6 +1225,8 @@ const DETAIL_FIELDS = [
   "category",
 ];
 
+const route = useRoute();
+const router = useRouter();
 const filterStore = useFilterStore();
 const systemStatusStore = useSystemStatusStore();
 const {
@@ -1234,6 +1237,57 @@ const {
   errorTypeFilter,
 } = storeToRefs(filterStore);
 const { sessionConfig } = storeToRefs(systemStatusStore);
+
+// URL 参数同步功能
+const syncFiltersFromUrl = () => {
+  const statusParam = route.query.status as string | undefined;
+  const trackerParam = route.query.tracker as string | undefined;
+
+  if (statusParam) {
+    const status = urlToStatus(statusParam);
+    filterStore.setStatusFilter(status);
+  } else {
+    filterStore.setStatusFilter('all');
+  }
+
+  if (trackerParam) {
+    filterStore.setTrackerFilter(trackerParam);
+  }
+};
+
+// 监听路由变化，同步 URL 参数到 store
+watch(
+  () => route.query,
+  () => {
+    if (route.path === '/') {
+      syncFiltersFromUrl();
+    }
+  }
+);
+
+// 监听 trackerFilter 变化，同步到 URL
+watch(trackerFilter, (newTracker) => {
+  if (route.path !== '/') return;
+
+  const query: Record<string, string> = {};
+  const currentStatus = statusToUrl(statusFilter.value);
+  if (currentStatus !== 'all') {
+    query.status = currentStatus;
+  }
+  if (newTracker) {
+    query.tracker = newTracker;
+  }
+
+  // 只有当 query 确实发生变化时才更新 URL
+  const currentQuery = route.query;
+  const queryChanged =
+    (query.status !== currentQuery.status) ||
+    (query.tracker !== currentQuery.tracker);
+
+  if (queryChanged) {
+    router.replace({ path: '/', query });
+  }
+});
 
 interface LimitFormState {
   downloadLimited: boolean;
@@ -3830,6 +3884,9 @@ const initColumnDragSort = () => {
 };
 
 onMounted(() => {
+  // 首先从 URL 恢复过滤状态
+  syncFiltersFromUrl();
+
   loadColumnWidths();
   loadColumnOrder();
   loadTorrents();

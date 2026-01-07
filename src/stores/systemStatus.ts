@@ -8,6 +8,16 @@ import { TorrentStatusEnum } from '@/types/transmission'
 
 const POLL_INTERVAL = 3000
 
+// 统计所需的最小字段集，减少数据传输
+const STATS_FIELDS = [
+  'id',
+  'status',
+  'error',
+  'errorString',
+  'rateDownload',
+  'rateUpload',
+]
+
 interface LoadOptions {
   silent?: boolean
 }
@@ -58,13 +68,13 @@ export const useSystemStatusStore = defineStore('systemStatus', () => {
       } else if ([TorrentStatusEnum.CHECK_WAIT, TorrentStatusEnum.DOWNLOAD_WAIT, TorrentStatusEnum.SEED_WAIT].includes(torrent.status)) {
         counts.queued = (counts.queued || 0) + 1
       }
-      
+
       // Count error torrents
       if ((torrent.error ?? 0) > 0 || !!torrent.errorString) {
         counts.error = (counts.error || 0) + 1
       }
     })
-    
+
     return counts
   })
 
@@ -73,12 +83,36 @@ export const useSystemStatusStore = defineStore('systemStatus', () => {
       loading.value = true
     }
     try {
-      const [stats, config] = await Promise.all([
+      const [stats, config, torrentsResult] = await Promise.all([
         api.getSessionStats(),
         api.getSession(),
+        api.getTorrents(STATS_FIELDS),
       ])
       sessionStats.value = stats
       sessionConfig.value = config
+
+      // 更新种子列表用于统计（只在没有完整数据时更新）
+      // 如果 HomeView 已经加载了完整数据，这里的数据会被覆盖
+      if (torrentsResult.torrents) {
+        // 合并数据：保留现有种子的完整字段，只更新统计相关字段
+        const existingMap = new Map(torrents.value.map(t => [t.id, t]))
+        const updatedTorrents = torrentsResult.torrents.map(newT => {
+          const existing = existingMap.get(newT.id)
+          if (existing) {
+            // 更新统计相关字段
+            return {
+              ...existing,
+              status: newT.status,
+              error: newT.error,
+              errorString: newT.errorString,
+              rateDownload: newT.rateDownload,
+              rateUpload: newT.rateUpload,
+            }
+          }
+          return newT
+        })
+        torrents.value = updatedTorrents
+      }
 
       const downloadDir = config['download-dir']
       if (downloadDir) {
