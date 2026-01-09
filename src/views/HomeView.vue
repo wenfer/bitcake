@@ -140,317 +140,23 @@
     </Transition>
 
     <div class="table-container">
-      <div class="table-scroll">
-        <el-table
-          ref="tableRef"
-          v-loading="loading"
-          :data="paginatedTorrents"
-          stripe
-          border
-          style="width: 100%; height: 100%"
-          row-key="id"
-          :reserve-selection="true"
-          @selection-change="handleSelectionChange"
-          @sort-change="handleSortChange"
-          @row-click="handleRowClick"
-          @row-contextmenu="handleRowContextMenu"
-          @row-dblclick="handleRowDoubleClick"
-          @header-dragend="handleColumnResize"
-        >
-          <el-table-column
-            type="selection"
-            column-key="selection"
-            width="48"
-            :resizable="false"
-          />
-
-          <!-- 动态渲染的列 -->
-          <template v-for="column in orderedColumns" :key="column.key">
-            <!-- 名称列 -->
-            <el-table-column
-              v-if="column.key === 'name'"
-              :prop="column.prop"
-              :column-key="column.key"
-              :label="column.label"
-              :min-width="
-                isCompactTable ? column.minWidth : column.defaultWidth
-              "
-              :sortable="column.sortable ? 'custom' : false"
-              show-overflow-tooltip
+      <div class="table-scroll" v-loading="loading">
+        <el-auto-resizer>
+          <template #default="{ height, width }">
+            <el-table-v2
+              :columns="tableV2Columns"
+              :data="paginatedTorrents"
+              :width="width"
+              :height="height"
+              fixed
+              :sort-by="v2SortState"
+              @column-sort="handleV2Sort"
+              @column-resize="handleColumnResizeV2"
+              :row-event-handlers="v2RowEventHandlers"
+              :row-class="v2RowClassName"
             />
-
-            <!-- 状态列 -->
-            <el-table-column
-              v-else-if="column.key === 'status'"
-              :column-key="column.key"
-              :label="column.label"
-              :width="getColumnWidth(column.key, column.defaultWidth)"
-              :min-width="column.minWidth"
-            >
-              <template #default="{ row }">
-                <el-tooltip
-                  v-if="isTorrentError(row)"
-                  :content="row.errorString || '未知错误'"
-                  placement="top"
-                >
-                  <el-tag :type="getStatusType(row)">
-                    {{ getStatusText(row) }}
-                  </el-tag>
-                </el-tooltip>
-                <el-tag v-else :type="getStatusType(row)">
-                  {{ getStatusText(row) }}
-                </el-tag>
-              </template>
-            </el-table-column>
-
-            <!-- 进度列 -->
-            <el-table-column
-              v-else-if="column.key === 'percentDone'"
-              :prop="column.prop"
-              :column-key="column.key"
-              :label="column.label"
-              :width="getColumnWidth(column.key, column.defaultWidth)"
-              :min-width="column.minWidth"
-              :sortable="column.sortable ? 'custom' : false"
-            >
-              <template #default="{ row }">
-                <el-tooltip
-                  :content="getProgressTooltip(row)"
-                  :disabled="getTorrentProgress(row) === 1"
-                  placement="top"
-                >
-                  <el-progress
-                    :percentage="Math.round(getTorrentProgress(row) * 100)"
-                    :status="
-                      getTorrentProgress(row) === 1 ? 'success' : undefined
-                    "
-                  />
-                </el-tooltip>
-              </template>
-            </el-table-column>
-
-            <!-- 大小列 -->
-            <el-table-column
-              v-else-if="column.key === 'totalSize'"
-              :prop="column.prop"
-              :column-key="column.key"
-              :label="column.label"
-              :width="getColumnWidth(column.key, column.defaultWidth)"
-              :min-width="column.minWidth"
-              :sortable="column.sortable ? 'custom' : false"
-            >
-              <template #default="{ row }">
-                {{ formatBytes(row.totalSize) }}
-              </template>
-            </el-table-column>
-
-            <!-- 分享率列 -->
-            <el-table-column
-              v-else-if="
-                column.key === 'uploadRatio' &&
-                (column.showInCompact || !isCompactTable)
-              "
-              :column-key="column.key"
-              :prop="column.prop"
-              :label="column.label"
-              :width="getColumnWidth(column.key, column.defaultWidth)"
-              :min-width="column.minWidth"
-              :sortable="column.sortable ? 'custom' : false"
-            >
-              <template #default="{ row }">
-                <el-tag
-                  size="small"
-                  :class="['ratio-tag', getRatioClass(row.uploadRatio)]"
-                >
-                  {{ formatRatio(row.uploadRatio) }}
-                </el-tag>
-              </template>
-            </el-table-column>
-
-            <!-- 下载速度列 -->
-            <el-table-column
-              v-else-if="column.key === 'rateDownload'"
-              :prop="column.prop"
-              :column-key="column.key"
-              :label="column.label"
-              :width="getColumnWidth(column.key, column.defaultWidth)"
-              :min-width="column.minWidth"
-              :sortable="column.sortable ? 'custom' : false"
-            >
-              <template #default="{ row }">
-                {{ formatSpeed(row.rateDownload) }}
-              </template>
-            </el-table-column>
-
-            <!-- 上传速度列 -->
-            <el-table-column
-              v-else-if="column.key === 'rateUpload'"
-              :prop="column.prop"
-              :column-key="column.key"
-              :label="column.label"
-              :width="getColumnWidth(column.key, column.defaultWidth)"
-              :min-width="column.minWidth"
-              :sortable="column.sortable ? 'custom' : false"
-            >
-              <template #default="{ row }">
-                {{ formatSpeed(row.rateUpload) }}
-              </template>
-            </el-table-column>
-
-            <!-- 服务器列 -->
-            <el-table-column
-              v-else-if="
-                column.key === 'defaultTracker' &&
-                (column.showInCompact || !isCompactTable)
-              "
-              :column-key="column.key"
-              :prop="column.prop"
-              :label="column.label"
-              :width="getColumnWidth(column.key, column.defaultWidth)"
-              :min-width="column.minWidth"
-              :sortable="column.sortable ? 'custom' : false"
-            >
-              <template #default="{ row }">
-                {{ getDefaultTracker(row) }}
-              </template>
-            </el-table-column>
-
-            <!-- 种子列 -->
-            <el-table-column
-              v-else-if="
-                column.key === 'peersDownloading' &&
-                (column.showInCompact || !isCompactTable)
-              "
-              :column-key="column.key"
-              :prop="column.prop"
-              :label="column.label"
-              :width="getColumnWidth(column.key, column.defaultWidth)"
-              :min-width="column.minWidth"
-              :sortable="column.sortable ? 'custom' : false"
-            >
-              <template #default="{ row }">
-                {{ getSeeders(row) }}
-              </template>
-            </el-table-column>
-
-            <!-- 用户列 -->
-            <el-table-column
-              v-else-if="
-                column.key === 'peersUploading' &&
-                (column.showInCompact || !isCompactTable)
-              "
-              :column-key="column.key"
-              :prop="column.prop"
-              :label="column.label"
-              :width="getColumnWidth(column.key, column.defaultWidth)"
-              :min-width="column.minWidth"
-              :sortable="column.sortable ? 'custom' : false"
-            >
-              <template #default="{ row }">
-                {{ getLeechers(row) }}
-              </template>
-            </el-table-column>
-
-            <!-- 已上传列 -->
-            <el-table-column
-              v-else-if="
-                column.key === 'uploadedEver' &&
-                (column.showInCompact || !isCompactTable)
-              "
-              :column-key="column.key"
-              :prop="column.prop"
-              :label="column.label"
-              :width="getColumnWidth(column.key, column.defaultWidth)"
-              :min-width="column.minWidth"
-              :sortable="column.sortable ? 'custom' : false"
-            >
-              <template #default="{ row }">
-                {{ formatBytes(row.uploadedEver || 0) }}
-              </template>
-            </el-table-column>
-
-            <!-- 保存目录列 -->
-            <el-table-column
-              v-else-if="
-                column.key === 'downloadDir' &&
-                (column.showInCompact || !isCompactTable)
-              "
-              :prop="column.prop"
-              :column-key="column.key"
-              :label="column.label"
-              :width="getColumnWidth(column.key, column.defaultWidth)"
-              :min-width="column.minWidth"
-              :sortable="column.sortable ? 'custom' : false"
-              show-overflow-tooltip
-            >
-              <template #default="{ row }">
-                {{ row.downloadDir || "—" }}
-              </template>
-            </el-table-column>
-
-            <!-- 添加时间列 -->
-            <el-table-column
-              v-else-if="
-                column.key === 'addedDate' &&
-                (column.showInCompact || !isCompactTable)
-              "
-              :column-key="column.key"
-              :prop="column.prop"
-              :label="column.label"
-              :width="getColumnWidth(column.key, column.defaultWidth)"
-              :min-width="column.minWidth"
-              :sortable="column.sortable ? 'custom' : false"
-            >
-              <template #default="{ row }">
-                {{ formatTorrentDate(row.addedDate) }}
-              </template>
-            </el-table-column>
-
-            <!-- 最后活动列 -->
-            <el-table-column
-              v-else-if="
-                column.key === 'activityDate' &&
-                (column.showInCompact || !isCompactTable)
-              "
-              :column-key="column.key"
-              :prop="column.prop"
-              :label="column.label"
-              :width="getColumnWidth(column.key, column.defaultWidth)"
-              :min-width="column.minWidth"
-              :sortable="column.sortable ? 'custom' : false"
-            >
-              <template #default="{ row }">
-                {{ formatLastActivity(row.activityDate) }}
-              </template>
-            </el-table-column>
-
-            <!-- 标签列 -->
-            <el-table-column
-              v-else-if="
-                column.key === 'labels' &&
-                (column.showInCompact || !isCompactTable)
-              "
-              :column-key="column.key"
-              :label="column.label"
-              :width="getColumnWidth(column.key, column.defaultWidth)"
-              :min-width="column.minWidth"
-            >
-              <template #default="{ row }">
-                <template v-if="row.labels?.length">
-                  <el-tag
-                    v-for="label in row.labels"
-                    :key="label"
-                    size="small"
-                    class="label-tag"
-                  >
-                    {{ label }}
-                  </el-tag>
-                </template>
-                <span v-else>—</span>
-              </template>
-            </el-table-column>
           </template>
-        </el-table>
+        </el-auto-resizer>
       </div>
 
       <div class="pagination" v-if="displayedTorrents.length > 0">
@@ -718,7 +424,7 @@
                     {{ detailTorrent.name }}
                   </el-descriptions-item>
                   <el-descriptions-item label="状态">
-                    <el-tag size="small" :type="getStatusType(detailTorrent)">
+                    <el-tag size="small" :type="getStatusType(detailTorrent) as any">
                       {{ getStatusText(detailTorrent) }}
                     </el-tag>
                   </el-descriptions-item>
@@ -1164,11 +870,21 @@ import {
   onBeforeUnmount,
   watch,
   nextTick,
+  h,
 } from "vue";
-import { ElMessage, ElLoading } from "element-plus";
-import type { TableInstance, TableColumnCtx } from "element-plus";
+import {
+  ElMessage,
+  ElLoading,
+  ElTableV2,
+  ElAutoResizer,
+  ElCheckbox,
+  ElTag,
+  ElProgress,
+  ElTooltip,
+} from "element-plus";
+import type { TableInstance, TableColumnCtx, Column, CheckboxValueType } from "element-plus";
 import dayjs from "dayjs";
-import Sortable from "sortablejs";
+// import Sortable from "sortablejs"; // Removed for TableV2 compatibility
 import {
   Plus,
   Refresh,
@@ -1885,6 +1601,7 @@ const loadColumnWidths = () => {
 };
 
 // 持久化列顺序
+/*
 const persistColumnOrder = () => {
   if (typeof window === "undefined") return;
   try {
@@ -1896,6 +1613,7 @@ const persistColumnOrder = () => {
     console.warn("保存列顺序失败", error);
   }
 };
+*/
 
 // 加载列顺序
 const loadColumnOrder = () => {
@@ -2431,6 +2149,7 @@ const handleSortChange = ({
   };
 };
 
+/*
 const handleSelectionChange = (selection: Torrent[]) => {
   selectedTorrents.value = selection;
   if (suppressSelectionChange.value) {
@@ -2438,6 +2157,7 @@ const handleSelectionChange = (selection: Torrent[]) => {
   }
   selectedIdsState.value = selection.map((torrent) => torrent.id);
 };
+*/
 
 const handleRowClick = (row: Torrent, _column: any, event: MouseEvent) => {
   if (!tableRef.value) return;
@@ -3789,103 +3509,380 @@ const formatCommentWithLinks = (comment: string): string => {
 };
 
 // 初始化表格列头拖拽排序
-let sortableInstance: Sortable | null = null;
+// let sortableInstance: Sortable | null = null;
 
 const initColumnDragSort = () => {
-  if (!tableRef.value) {
-    console.warn("表格引用不存在");
-    return;
-  }
+  // TableV2暂不支持SortableJS拖拽排序
+  return;
+};
 
-  nextTick(() => {
-    // 获取表格的thead元素中的tr
-    const el = tableRef.value?.$el;
-    if (!el) {
-      console.warn("找不到表格元素");
-      return;
-    }
+// Table V2 Logic
 
-    const headerWrapper = el.querySelector(".el-table__header-wrapper");
-    if (!headerWrapper) {
-      console.warn("找不到表格头部容器");
-      return;
-    }
+const isAllSelected = computed(() => {
+  return (
+    paginatedTorrents.value.length > 0 &&
+    selectedIdsState.value.length === paginatedTorrents.value.length &&
+    paginatedTorrents.value.every((t) => selectedIdsState.value.includes(t.id))
+  );
+});
 
-    const tr = headerWrapper.querySelector("thead tr");
-    if (!tr) {
-      console.warn("找不到表格头部行");
-      return;
-    }
+const isIndeterminate = computed(() => {
+  const selectedCount = paginatedTorrents.value.filter((t) =>
+    selectedIdsState.value.includes(t.id)
+  ).length;
+  return selectedCount > 0 && selectedCount < paginatedTorrents.value.length;
+});
 
-    console.log(
-      "初始化列头拖拽排序，找到了表格头部行，th元素数量：",
-      tr.querySelectorAll("th").length
-    );
-
-    // 如果已经初始化过，先销毁
-    if (sortableInstance) {
-      sortableInstance.destroy();
-    }
-
-    // 初始化Sortable
-    sortableInstance = new Sortable(tr, {
-      animation: 150,
-      delay: 0,
-      ghostClass: "sortable-ghost",
-      chosenClass: "sortable-chosen",
-      dragClass: "sortable-drag",
-      filter: ".el-table-column--selection", // 过滤掉选择框列
-      draggable: "th", // 可拖拽的是th元素
-      onStart: () => {
-        console.log("开始拖拽");
-        // 拖拽开始时添加样式提示
-        document.body.style.cursor = "grabbing";
-      },
-      onEnd: (evt: any) => {
-        console.log("拖拽结束", evt);
-        document.body.style.cursor = "";
-
-        const { oldIndex, newIndex } = evt;
-
-        // oldIndex 和 newIndex 包含了选择框列，需要减1
-        // 因为选择框列不可拖拽，所以实际的索引需要减1
-        if (oldIndex === undefined || newIndex === undefined) return;
-        if (oldIndex === newIndex) return;
-
-        // 调整索引（减去选择框列的索引）
-        const adjustedOldIndex = oldIndex - 1;
-        const adjustedNewIndex = newIndex - 1;
-
-        console.log("调整后的索引", adjustedOldIndex, adjustedNewIndex);
-
-        if (adjustedOldIndex < 0 || adjustedNewIndex < 0) return;
-        if (
-          adjustedOldIndex >= columnOrder.value.length ||
-          adjustedNewIndex >= columnOrder.value.length
-        )
-          return;
-
-        // 更新列顺序
-        const newOrder = [...columnOrder.value];
-        const [movedItem] = newOrder.splice(adjustedOldIndex, 1);
-        if (!movedItem) return;
-        newOrder.splice(adjustedNewIndex, 0, movedItem);
-
-        columnOrder.value = newOrder;
-        persistColumnOrder();
-
-        ElMessage.success("列顺序已更新");
-
-        // 重新初始化拖拽（因为DOM结构变了）
-        nextTick(() => {
-          initColumnDragSort();
-        });
-      },
+const toggleAllSelection = (val: CheckboxValueType) => {
+  if (!!val) {
+    const ids = paginatedTorrents.value.map((t) => t.id);
+    const newSelected = [...selectedIdsState.value];
+    ids.forEach((id) => {
+      if (!newSelected.includes(id)) {
+        newSelected.push(id);
+      }
     });
+    selectedIdsState.value = newSelected;
+    selectedTorrents.value = torrents.value.filter((t) =>
+      newSelected.includes(t.id)
+    );
+  } else {
+    const ids = paginatedTorrents.value.map((t) => t.id);
+    const newSelected = selectedIdsState.value.filter(
+      (id) => !ids.includes(id)
+    );
+    selectedIdsState.value = newSelected;
+    selectedTorrents.value = torrents.value.filter((t) =>
+      newSelected.includes(t.id)
+    );
+  }
+};
 
-    console.log("Sortable实例创建成功");
+const toggleRowSelection = (row: Torrent, val: CheckboxValueType) => {
+  if (!!val) {
+    if (!selectedIdsState.value.includes(row.id)) {
+      selectedIdsState.value = [...selectedIdsState.value, row.id];
+    }
+  } else {
+    selectedIdsState.value = selectedIdsState.value.filter(
+      (id) => id !== row.id
+    );
+  }
+  selectedTorrents.value = torrents.value.filter((t) =>
+    selectedIdsState.value.includes(t.id)
+  );
+};
+
+const v2SortState = computed(() => {
+  if (!sortState.value.order) return undefined;
+  return {
+    key: sortState.value.prop,
+    order: sortState.value.order === "ascending" ? "asc" : "desc",
+  } as any;
+});
+
+const handleV2Sort = ({ key, order }: { key: any; order: any }) => {
+  handleSortChange({
+    column: null,
+    prop: key,
+    order: order === "asc" ? "ascending" : "descending",
   });
 };
+
+const handleColumnResizeV2 = ({
+  column,
+  width,
+}: {
+  column: any;
+  width: number;
+}) => {
+  handleColumnResize(width, 0, {
+    columnKey: column.key,
+    minWidth: column.minWidth,
+  } as any);
+};
+
+const v2RowEventHandlers = {
+  onClick: ({ rowData, event }: { rowData: Torrent; event: Event }) => {
+    handleRowClick(rowData, null, event as MouseEvent);
+  },
+  onDblclick: ({ rowData }: { rowData: Torrent }) => {
+    handleRowDoubleClick(rowData);
+  },
+  onContextmenu: ({
+    rowData,
+    event,
+  }: {
+    rowData: Torrent;
+    event: Event;
+  }) => {
+    handleRowContextMenu(rowData, null, event as MouseEvent);
+  },
+};
+
+const v2RowClassName = ({ rowData, rowIndex }: { rowData: Torrent; rowIndex: number }) => {
+  const classes = [];
+  if (rowIndex % 2 === 1) {
+    classes.push("el-table-v2__row--striped");
+  }
+  if (selectedIdsState.value.includes(rowData.id)) {
+    classes.push("current-row");
+  }
+  return classes.join(" ");
+};
+
+const onColumnResizeMouseDown = (e: MouseEvent, column: any) => {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const startX = e.clientX;
+  const startWidth = column.width || 80;
+
+  const onMouseMove = (e: MouseEvent) => {
+    requestAnimationFrame(() => {
+      const diff = e.clientX - startX;
+      const newWidth = Math.max(column.minWidth || 50, startWidth + diff);
+      
+      handleColumnResizeV2({
+        column,
+        width: newWidth
+      });
+    });
+  };
+
+  const onMouseUp = () => {
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+    document.body.style.cursor = '';
+  };
+
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
+  document.body.style.cursor = 'col-resize';
+};
+
+const tableV2Columns = computed<Column<Torrent>[]>(() => {
+  const selectionCol: Column<Torrent> = {
+    key: "selection",
+    width: 48,
+    fixed: true,
+    align: "center",
+    headerCellRenderer: () => {
+      return h(ElCheckbox, {
+        modelValue: isAllSelected.value,
+        indeterminate: isIndeterminate.value,
+        "onUpdate:modelValue": toggleAllSelection,
+      });
+    },
+    cellRenderer: ({ rowData }) => {
+      return h(ElCheckbox, {
+        modelValue: selectedIdsState.value.includes(rowData.id),
+        "onUpdate:modelValue": (val: CheckboxValueType) =>
+          toggleRowSelection(rowData, val),
+        onClick: (e: Event) => e.stopPropagation(),
+      });
+    },
+  };
+
+  const dynamicCols = orderedColumns.value.map((col) => {
+    const common: Column<Torrent> = {
+      key: col.key,
+      dataKey: col.key,
+      title: col.label,
+      width: getColumnWidth(col.key, col.defaultWidth),
+      sortable: col.sortable,
+      resizable: true,
+      minWidth: col.minWidth,
+      headerCellRenderer: (props: any) => {
+        return h('div', { 
+          class: 'el-table-v2__header-cell-text',
+          style: { height: '100%', display: 'flex', alignItems: 'center', width: '100%' } 
+        }, [
+          h('span', { style: { flex: '0 1 auto', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '4px' }, title: props.column.title }, props.column.title),
+          
+          props.column.sortable && h('span', { 
+            class: 'el-table-v2__sort-icon',
+            style: { 
+              cursor: 'pointer', 
+              flexShrink: 0,
+              display: 'inline-flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              height: '14px',
+              width: '24px',
+              verticalAlign: 'middle',
+              overflow: 'initial',
+              position: 'relative'
+            }
+          }, [
+            h('i', {
+              class: {
+                'sort-caret': true,
+                'ascending': true,
+                'active': props.sortBy?.key === props.column.key && props.sortBy?.order === 'asc'
+              },
+              style: {
+                width: 0,
+                height: 0,
+                border: '5px solid transparent',
+                position: 'absolute',
+                left: '7px',
+                borderBottomColor: props.sortBy?.key === props.column.key && props.sortBy?.order === 'asc' ? '#409eff' : '#c0c4cc',
+                top: '-5px'
+              }
+            }),
+            h('i', {
+              class: {
+                'sort-caret': true,
+                'descending': true,
+                'active': props.sortBy?.key === props.column.key && props.sortBy?.order === 'desc'
+              },
+              style: {
+                width: 0,
+                height: 0,
+                border: '5px solid transparent',
+                position: 'absolute',
+                left: '7px',
+                borderTopColor: props.sortBy?.key === props.column.key && props.sortBy?.order === 'desc' ? '#409eff' : '#c0c4cc',
+                bottom: '-5px'
+              }
+            })
+          ]),
+
+          h('div', {
+            class: 'el-table-v2__column-resizer',
+            onMousedown: (e: MouseEvent) => onColumnResizeMouseDown(e, props.column),
+            onClick: (e: MouseEvent) => e.stopPropagation(),
+          })
+        ]);
+      }
+      // hidden: !col.showInCompact && isCompactTable.value // Logic handled in orderedColumns? No, orderedColumns only filters by columnOrder which contains all keys usually.
+      // Wait, orderedColumns logic in original code:
+      // <template v-for="column in orderedColumns">
+      //   <el-table-column v-if="..." ... />
+      // </template>
+      // The v-if conditions check showInCompact.
+    };
+    
+    // Filter out hidden columns based on compact mode
+    if (!col.showInCompact && isCompactTable.value) {
+      return null;
+    }
+
+    if (col.key === "name") {
+      common.cellRenderer = ({ rowData }) =>
+        h(
+          "span",
+          {
+            style: {
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              display: "block",
+              width: "100%",
+            },
+            title: rowData.name,
+          },
+          rowData.name
+        );
+    } else if (col.key === "status") {
+      common.cellRenderer = ({ rowData }) => {
+        const type = getStatusType(rowData) as any;
+        const text = getStatusText(rowData);
+        const isError = isTorrentError(rowData);
+        const tag = h(ElTag, { type }, () => text);
+        if (isError) {
+          return h(
+            ElTooltip,
+            { content: rowData.errorString || "未知错误", placement: "top" },
+            () => tag
+          );
+        }
+        return tag;
+      };
+    } else if (col.key === "percentDone") {
+      common.cellRenderer = ({ rowData }) => {
+        const progress = getTorrentProgress(rowData);
+        const percentage = Math.round(progress * 100);
+        const status = progress === 1 ? "success" : undefined;
+        const bar = h(ElProgress, { percentage, status });
+        const tooltipContent = getProgressTooltip(rowData);
+        return h(
+          ElTooltip,
+          {
+            content: tooltipContent,
+            disabled: progress === 1,
+            placement: "top",
+          },
+          () => bar
+        );
+      };
+    } else if (col.key === "totalSize") {
+      common.cellRenderer = ({ rowData }) => h("span", formatBytes(rowData.totalSize));
+    } else if (col.key === "uploadRatio") {
+      common.cellRenderer = ({ rowData }) => {
+        return h(
+          ElTag,
+          {
+            size: "small",
+            class: ["ratio-tag", getRatioClass(rowData.uploadRatio)],
+          },
+          () => formatRatio(rowData.uploadRatio)
+        );
+      };
+    } else if (col.key === "rateDownload") {
+      common.cellRenderer = ({ rowData }) => h("span", formatSpeed(rowData.rateDownload));
+    } else if (col.key === "rateUpload") {
+      common.cellRenderer = ({ rowData }) => h("span", formatSpeed(rowData.rateUpload));
+    } else if (col.key === "defaultTracker") {
+      common.cellRenderer = ({ rowData }) => h("span", getDefaultTracker(rowData));
+    } else if (col.key === "peersDownloading") {
+      common.cellRenderer = ({ rowData }) => h("span", getSeeders(rowData));
+    } else if (col.key === "peersUploading") {
+      common.cellRenderer = ({ rowData }) => h("span", getLeechers(rowData));
+    } else if (col.key === "uploadedEver") {
+      common.cellRenderer = ({ rowData }) =>
+        h("span", formatBytes(rowData.uploadedEver || 0));
+    } else if (col.key === "downloadDir") {
+      common.cellRenderer = ({ rowData }) =>
+        h(
+          "span",
+          {
+            style: {
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              display: "block",
+              width: "100%",
+            },
+            title: rowData.downloadDir || "—",
+          },
+          rowData.downloadDir || "—"
+        );
+    } else if (col.key === "addedDate") {
+      common.cellRenderer = ({ rowData }) =>
+        h("span", formatTorrentDate(rowData.addedDate));
+    } else if (col.key === "activityDate") {
+      common.cellRenderer = ({ rowData }) =>
+        h("span", formatLastActivity(rowData.activityDate));
+    } else if (col.key === "labels") {
+      common.cellRenderer = ({ rowData }) => {
+        if (!rowData.labels?.length) return h("span", "—");
+        return h(
+          "div",
+          { style: { display: "flex", flexWrap: "wrap", gap: "4px" } },
+          rowData.labels.map((label: string) =>
+            h(ElTag, { size: "small", class: "label-tag" }, () => label)
+          )
+        );
+      };
+    }
+
+    return common;
+  });
+
+  return [selectionCol, ...dynamicCols.filter(Boolean)] as Column<Torrent>[];
+});
 
 onMounted(() => {
   // 首先从 URL 恢复过滤状态
@@ -3914,10 +3911,10 @@ onBeforeUnmount(() => {
   window.removeEventListener("keydown", handleKeydown);
 
   // 清理拖拽实例
-  if (sortableInstance) {
-    sortableInstance.destroy();
-    sortableInstance = null;
-  }
+  // if (sortableInstance) {
+  //   sortableInstance.destroy();
+  //   sortableInstance = null;
+  // }
 });
 </script>
 
@@ -4419,5 +4416,50 @@ onBeforeUnmount(() => {
   opacity: 0.8;
   background: #dbeafe;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Table V2 Custom Styles */
+.table-scroll :deep(.el-table-v2__row--striped) .el-table-v2__row-cell {
+  background-color: #fafafa;
+}
+.table-scroll :deep(.current-row) .el-table-v2__row-cell {
+  background-color: #ecf5ff !important;
+}
+.table-scroll :deep(.el-table-v2__header-cell) {
+  background-color: #f5f7fa;
+  color: #909399;
+  font-weight: 600;
+  border-right: 1px solid #ebeef5;
+  border-bottom: 1px solid #ebeef5;
+  overflow: visible;
+  position: relative;
+}
+/* Ensure the handle is positioned correctly */
+.table-scroll :deep(.el-table-v2__column-resizer) {
+  position: absolute;
+  right: -3px;
+  top: 0;
+  height: 100%;
+  width: 10px; /* wider touch area */
+  cursor: col-resize;
+  z-index: 10;
+  background-color: transparent; /* Invisible but clickable */
+}
+
+/* Hide default Element Plus TableV2 sort icon */
+.table-scroll :deep(.el-table-v2__header-cell .el-icon.el-table-v2__sort-icon) {
+  display: none !important;
+}
+
+.table-scroll :deep(.el-table-v2__row-cell) {
+  border-right: 1px solid #ebeef5;
+  border-bottom: 1px solid #ebeef5;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+}
+.table-scroll :deep(.el-table-v2__left) {
+  border-right: 1px solid #ebeef5;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.05);
 }
 </style>
