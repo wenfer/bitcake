@@ -522,38 +522,36 @@
                       </el-button>
                     </div>
                   </div>
-                  <el-table
-                    :data="detailFiles"
-                    size="small"
-                    border
-                    max-height="400"
-                    :row-key="detailFileRowKey"
+                  <el-tree
+                    ref="detailFilesTreeRef"
+                    class="files-tree"
+                    :data="detailFileTree"
+                    node-key="key"
+                    show-checkbox
+                    default-expand-all
+                    :expand-on-click-node="false"
+                    :props="{ children: 'children', label: 'label' }"
+                    @check="handleDetailFileCheck"
                   >
-                    <el-table-column label="下载" width="60" align="center">
-                      <template #default="{ row }">
-                        <el-checkbox
-                          v-model="detailFileSelections[row.index]"
-                        />
-                      </template>
-                    </el-table-column>
-                    <el-table-column
-                      prop="name"
-                      label="文件名"
-                      min-width="300"
-                      show-overflow-tooltip
-                    />
-                    <el-table-column label="大小" width="100" align="right">
-                      <template #default="{ row }">
-                        {{ formatBytes(row.length) }}
-                      </template>
-                    </el-table-column>
-                    <el-table-column label="进度" width="150" align="right">
-                      <template #default="{ row }">
-                        {{ formatBytes(row.bytesCompleted) }} /
-                        {{ formatBytes(row.length) }}
-                      </template>
-                    </el-table-column>
-                  </el-table>
+                    <template #default="{ data }">
+                      <div class="file-node">
+                        <el-icon class="file-icon" v-if="data.isDir"><Folder /></el-icon>
+                        <el-icon class="file-icon" v-else><Document /></el-icon>
+                        <span class="file-name">{{ data.label }}</span>
+                        <span class="file-meta" v-if="!data.isDir">
+                          {{
+                            formatBytes(
+                              detailTorrent?.files?.[data.index!]?.bytesCompleted || 0
+                            )
+                          }}
+                          /
+                          {{
+                            formatBytes(detailTorrent?.files?.[data.index!]?.length || 0)
+                          }}
+                        </span>
+                      </div>
+                    </template>
+                  </el-tree>
                 </div>
                 <el-empty v-else description="无文件信息" :image-size="80" />
               </el-tab-pane>
@@ -877,6 +875,7 @@ import {
   ElLoading,
   ElTableV2,
   ElAutoResizer,
+  ElTree,
   ElCheckbox,
   ElTag,
   ElProgress,
@@ -894,6 +893,8 @@ import {
   Delete,
   Upload,
   Filter,
+  Folder,
+  Document,
 } from "@element-plus/icons-vue";
 import * as api from "@/api/torrents";
 import type { Torrent, TorrentStatus } from "@/types/transmission";
@@ -2046,7 +2047,86 @@ const detailSelectedFileCount = computed(
     ).length
 );
 
-const detailFileRowKey = (row: { index: number }) => row.index;
+const detailFilesTreeRef = ref<any>(null);
+const detailTreeInitialized = ref(false);
+
+type FileTreeNode = {
+  key: string | number;
+  label: string;
+  isDir: boolean;
+  index?: number;
+  children?: FileTreeNode[];
+};
+
+const buildDetailFileTree = (files: Array<{ name: string; index: number }>): FileTreeNode[] => {
+  const root: FileTreeNode = { key: "__root__", label: "", isDir: true, children: [] };
+  const ensureDir = (parent: FileTreeNode, name: string, fullPath: string): FileTreeNode => {
+    parent.children = parent.children || [];
+    let child = parent.children.find((n) => n.isDir && n.label === name);
+    if (!child) {
+      child = { key: fullPath, label: name, isDir: true, children: [] };
+      parent.children.push(child);
+    }
+    return child;
+  };
+  files.forEach((file) => {
+    const parts = (file.name || "").split("/").filter(Boolean);
+    let parent = root;
+    let acc = "";
+    parts.forEach((part, i) => {
+      acc = acc ? `${acc}/${part}` : part;
+      const isLast = i === parts.length - 1;
+      if (isLast) {
+        parent.children = parent.children || [];
+        parent.children.push({
+          key: file.index,
+          label: part,
+          isDir: false,
+          index: file.index,
+        });
+      } else {
+        parent = ensureDir(parent, part, acc);
+      }
+    });
+  });
+  return root.children || [];
+};
+
+const detailFileTree = computed<FileTreeNode[]>(() => {
+  const files = detailTorrent.value?.files ?? [];
+  return buildDetailFileTree(files.map((f, index) => ({ name: f.name, index })));
+});
+
+const detailCheckedFileKeys = computed<number[]>(() =>
+  detailFiles.value
+    .filter((f) => detailFileSelections.value[f.index] ?? true)
+    .map((f) => f.index)
+);
+
+const handleDetailFileCheck = () => {
+  if (!detailFilesTreeRef.value) return;
+  const keys = detailFilesTreeRef.value.getCheckedKeys(true) as Array<number | string>;
+  const checkedFileIndexes = keys.filter((k) => typeof k === "number") as number[];
+  const selections: Record<number, boolean> = {};
+  detailFiles.value.forEach((f) => {
+    selections[f.index] = checkedFileIndexes.includes(f.index);
+  });
+  detailFileSelections.value = selections;
+};
+
+watch(detailActiveTab, (tab) => {
+  if (tab !== "content") return;
+  nextTick(() => {
+    if (detailFilesTreeRef.value && !detailTreeInitialized.value) {
+      detailFilesTreeRef.value.setCheckedKeys(detailCheckedFileKeys.value);
+      detailTreeInitialized.value = true;
+    }
+  });
+});
+
+watch(detailTorrent, () => {
+  detailTreeInitialized.value = false;
+});
 
 watch([searchKeyword, statusFilter, trackerFilter], () => {
   currentPage.value = 1;
@@ -2962,6 +3042,14 @@ const toggleAllDetailFiles = (wanted: boolean) => {
     selections[file.index] = wanted;
   });
   detailFileSelections.value = selections;
+  nextTick(() => {
+    if (detailFilesTreeRef.value) {
+      const keys = wanted
+        ? (detailTorrent.value?.files ?? []).map((_, idx) => idx)
+        : [];
+      detailFilesTreeRef.value.setCheckedKeys(keys);
+    }
+  });
 };
 
 const saveDetailFileSelections = async () => {
@@ -4173,6 +4261,34 @@ onBeforeUnmount(() => {
 .files-actions-buttons {
   display: flex;
   gap: 8px;
+}
+
+.files-tree {
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  background: #fff;
+  padding: 6px 8px;
+  max-height: 400px;
+  overflow: auto;
+}
+.files-tree :deep(.el-tree-node__content) {
+  height: 32px;
+}
+.file-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.file-icon {
+  color: #909399;
+}
+.file-name {
+  flex: 1;
+}
+.file-meta {
+  color: #909399;
+  font-size: 12px;
 }
 
 .limit-row {
