@@ -186,6 +186,7 @@ import type { Torrent } from '@/types/transmission'
 import type { TorrentTrackerStat } from '@/types/torrent'
 import { useSystemStatusStore } from '@/stores/systemStatus'
 import { getTrackerDisplayName } from '@/utils/torrent'
+import { formatBytes, formatSpeed } from '@/utils/format'
 
 use([CanvasRenderer, LineChart, BarChart, PieChart, GridComponent, LegendComponent, TooltipComponent, TitleComponent])
 
@@ -465,18 +466,6 @@ const loadData = async () => {
   } finally {
     loading.value = false
   }
-}
-
-const formatBytes = (bytes: number): string => {
-  if (!bytes) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`
-}
-
-const formatSpeed = (bytes: number): string => {
-  return `${formatBytes(bytes)}/s`
 }
 
 onMounted(async () => {

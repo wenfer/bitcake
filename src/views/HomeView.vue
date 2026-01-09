@@ -905,6 +905,7 @@ import {
 } from "@/utils/torrent";
 import { getIPGeolocation } from "@/utils/ipGeolocation";
 import { useMediaQuery } from "@/utils/useMediaQuery";
+import { formatBytes, formatSpeed } from "@/utils/format";
 import { useFilterStore, urlToStatus, statusToUrl } from "@/stores/filter";
 import { useSystemStatusStore } from "@/stores/systemStatus";
 import { storeToRefs } from "pinia";
@@ -3413,21 +3414,6 @@ const getStatusType = (torrent: Torrent): string => {
     [TorrentStatusEnum.SEED]: "success",
   };
   return typeMap[torrent.status] || "info";
-};
-
-// 格式化字节
-const formatBytes = (bytes: number): string => {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
-};
-
-// 格式化速度
-const formatSpeed = (bytes: number): string => {
-  if (bytes === 0) return "0 B/s";
-  return `${formatBytes(bytes)}/s`;
 };
 
 // 格式化剩余时间

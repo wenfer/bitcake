@@ -156,6 +156,7 @@ import { useConnectionStore } from "@/stores/connection";
 import { useFilterStore, type StatusFilter, statusToUrl } from "@/stores/filter";
 import { useThemeStore, type ThemeType } from "@/stores/theme";
 import { useMediaQuery } from "@/utils/useMediaQuery";
+import { formatBytes, formatSpeed } from "@/utils/format";
 import SidebarStatus from "./components/SidebarStatus.vue";
 import HeaderTips from "./components/HeaderTips.vue";
 import { torrentBackendName } from "@/config/torrentClient";
@@ -343,19 +344,6 @@ const handleLogout = async () => {
   } catch (error) {
     // 用户取消
   }
-};
-
-const formatBytes = (bytes: number): string => {
-  if (!bytes) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
-};
-
-const formatSpeed = (bytes: number): string => {
-  if (!bytes) return "0 B/s";
-  return `${formatBytes(bytes)}/s`;
 };
 </script>
 

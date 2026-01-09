@@ -355,6 +355,7 @@ import { Refresh, Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useSystemStatusStore } from '@/stores/systemStatus'
 import { getTrackerDisplayName } from '@/utils/torrent'
+import { formatBytes, formatSpeed } from '@/utils/format'
 import * as api from '@/api/torrents'
 import type { Torrent, TorrentStatus } from '@/types/torrent'
 import { TorrentStatusEnum } from '@/types/torrent'
@@ -677,19 +678,8 @@ const paginatedData = computed(() => {
   return filteredReseedData.value.slice(start, end)
 })
 
-// 格式化文件大小
-const formatSize = (bytes: number): string => {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i]
-}
-
-// 格式化速度
-const formatSpeed = (bytesPerSecond: number): string => {
-  return formatSize(bytesPerSecond) + '/s'
-}
+// 格式化文件大小（别名，兼容现有代码）
+const formatSize = formatBytes
 
 // 获取分享率样式类
 const getRatioClass = (ratio: number): string => {
