@@ -540,12 +540,11 @@ const qbStateMap: Record<string, TorrentStatus> = {
 
 const resolveQbStatus = (state: string): TorrentStatus => {
   // 调试：输出原始状态
-  console.log('qBittorrent state:', state)
+  
 
   // 精确匹配
   if (qbStateMap[state]) {
     const mapped = qbStateMap[state]
-    console.log('  → Mapped to:', mapped)
     return mapped
   }
 
@@ -569,7 +568,6 @@ const resolveQbStatus = (state: string): TorrentStatus => {
     result = TorrentStatusEnum.STOPPED
   }
 
-  console.log('  → Fuzzy matched to:', result)
   return result
 }
 
