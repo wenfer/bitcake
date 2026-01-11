@@ -252,14 +252,18 @@ const uploadLimitKBps = computed(() => {
   const c = sessionConfig.value;
   if (!c) return null;
   if (c['alt-speed-enabled']) return c['alt-speed-up'] ?? null;
-  if (c['speed-limit-up-enabled']) return c['speed-limit-up'] ?? null;
+  const up = c['speed-limit-up'] ?? 0;
+  const enabled = !!c['speed-limit-up-enabled'];
+  if (enabled || up > 0) return up || null;
   return null;
 });
 const downloadLimitKBps = computed(() => {
   const c = sessionConfig.value;
   if (!c) return null;
   if (c['alt-speed-enabled']) return c['alt-speed-down'] ?? null;
-  if (c['speed-limit-down-enabled']) return c['speed-limit-down'] ?? null;
+  const down = c['speed-limit-down'] ?? 0;
+  const enabled = !!c['speed-limit-down-enabled'];
+  if (enabled || down > 0) return down || null;
   return null;
 });
 const formatSpeedCompact = (bytesPerSecond: number): string => {
