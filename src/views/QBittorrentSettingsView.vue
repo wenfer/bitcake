@@ -46,8 +46,8 @@
             </el-row>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="新增种子自动开始">
-                  <el-switch v-model="settings['start-added-torrents']" />
+                <el-form-item label="添加时不自动开始下载">
+                  <el-switch v-model="qbDontStartAuto" />
                 </el-form-item>
               </el-col>
             </el-row>
@@ -436,6 +436,12 @@ const encryptionOptions = [
 const isMobile = useMediaQuery('(max-width: 768px)')
 const formLabelPosition = computed(() => (isMobile.value ? 'top' : 'left'))
 const formLabelWidth = computed(() => (isMobile.value ? 'auto' : '120px'))
+const qbDontStartAuto = computed<boolean>({
+  get: () => !(settings.value['start-added-torrents'] ?? true),
+  set: (v) => {
+    settings.value['start-added-torrents'] = !v
+  }
+})
 
 // Connection & Port settings
 const maxConnec = ref(0)
@@ -537,6 +543,7 @@ const saveSettings = async () => {
   loading.value = true
   try {
     const updates: Partial<SessionConfig> = {}
+    const savedStartAdded = settings.value['start-added-torrents']
 
     // Save basic editable fields
     editableFields.forEach((key) => {
@@ -577,6 +584,9 @@ const saveSettings = async () => {
     await api.setSession(updates)
     ElMessage.success('设置已保存')
     await loadSettings()
+    if (typeof savedStartAdded === 'boolean') {
+      settings.value['start-added-torrents'] = savedStartAdded
+    }
   } catch (error: any) {
     ElMessage.error(`保存设置失败: ${error.message}`)
   } finally {
