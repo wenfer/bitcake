@@ -156,7 +156,7 @@ import { useConnectionStore } from "@/stores/connection";
 import { useFilterStore, type StatusFilter, statusToUrl } from "@/stores/filter";
 import { useThemeStore, type ThemeType } from "@/stores/theme";
 import { useMediaQuery } from "@/utils/useMediaQuery";
-import { formatBytes, formatSpeed } from "@/utils/format";
+import { formatBytes } from "@/utils/format";
 import SidebarStatus from "./components/SidebarStatus.vue";
 import HeaderTips from "./components/HeaderTips.vue";
 import { torrentBackendName } from "@/config/torrentClient";
@@ -248,12 +248,38 @@ const navigationItems = [
 //   value: key
 // }))
 
-const uploadSpeedText = computed(() =>
-  formatSpeed(sessionStats.value?.uploadSpeed || 0)
-);
-const downloadSpeedText = computed(() =>
-  formatSpeed(sessionStats.value?.downloadSpeed || 0)
-);
+const uploadLimitKBps = computed(() => {
+  const c = sessionConfig.value;
+  if (!c) return null;
+  if (c['alt-speed-enabled']) return c['alt-speed-up'] ?? null;
+  if (c['speed-limit-up-enabled']) return c['speed-limit-up'] ?? null;
+  return null;
+});
+const downloadLimitKBps = computed(() => {
+  const c = sessionConfig.value;
+  if (!c) return null;
+  if (c['alt-speed-enabled']) return c['alt-speed-down'] ?? null;
+  if (c['speed-limit-down-enabled']) return c['speed-limit-down'] ?? null;
+  return null;
+});
+const formatSpeedCompact = (bytesPerSecond: number): string => {
+  if (!bytesPerSecond) return "0B/s";
+  return `${formatBytes(bytesPerSecond).replace(" ", "")}/s`;
+};
+const formatLimitText = (kbps: number | null): string | null => {
+  if (kbps == null) return null;
+  return formatSpeedCompact(kbps * 1024);
+};
+const uploadSpeedText = computed(() => {
+  const bps = sessionStats.value?.uploadSpeed || 0;
+  const limitText = formatLimitText(uploadLimitKBps.value);
+  return limitText ? `${formatSpeedCompact(bps)} [限${limitText}]` : `${formatSpeedCompact(bps)}`;
+});
+const downloadSpeedText = computed(() => {
+  const bps = sessionStats.value?.downloadSpeed || 0;
+  const limitText = formatLimitText(downloadLimitKBps.value);
+  return limitText ? `${formatSpeedCompact(bps)} [限${limitText}]` : `${formatSpeedCompact(bps)}`;
+});
 const freeSpaceText = computed(() =>
   freeSpaceBytes.value !== null ? formatBytes(freeSpaceBytes.value) : "未知"
 );
@@ -261,11 +287,11 @@ const versionText = computed(() => sessionConfig.value?.version || "");
 const lastUpdatedText = computed(() => lastUpdated.value || "—");
 const frontendVersion = __APP_VERSION__ || "dev";
 const statusMetrics = computed(() => [
-  { label: "上传速度", value: uploadSpeedText.value },
-  { label: "下载速度", value: downloadSpeedText.value },
-  { label: "可用空间", value: freeSpaceText.value },
-  { label: "更新时间", value: lastUpdatedText.value },
-  { label: "前端版本", value: `v${frontendVersion}` },
+  { label: "上传", value: uploadSpeedText.value },
+  { label: "下载", value: downloadSpeedText.value },
+  { label: "空间", value: freeSpaceText.value },
+  { label: "更新", value: lastUpdatedText.value },
+  { label: "版本", value: `v${frontendVersion}` },
 ]);
 
 // 根据当前路由和过滤器状态计算当前活动的菜单项
