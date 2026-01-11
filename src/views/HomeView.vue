@@ -6,38 +6,70 @@
           添加种子
         </el-button>
         <el-button :icon="Refresh" @click="loadTorrents()">刷新</el-button>
-        <el-button
-          :icon="VideoPlay"
-          :disabled="!hasSelection"
-          @click="startSelected"
-        >
-          开始选中
-        </el-button>
-        <el-button
-          :icon="VideoPause"
-          :disabled="!hasSelection"
-          @click="stopSelected"
-        >
-          暂停选中
-        </el-button>
-        <el-button
-          type="danger"
-          :icon="Delete"
-          :disabled="!hasSelection"
-          @click="removeSelected"
-        >
-          删除选中
-        </el-button>
-        <el-button @click="openBatchLimitDialog"> 批量限速 </el-button>
-        <el-button :disabled="!hasSelection" @click="openLabelsDialog">
-          批量标签
-        </el-button>
-        <el-button @click="openReplaceTrackerDialog">
-          批量替换Tracker
-        </el-button>
-        <el-button @click="resetColumnWidths" title="重置所有列的宽度为默认值">
-          重置列宽
-        </el-button>
+        <template v-if="!isMobile">
+          <el-button
+            :icon="VideoPlay"
+            :disabled="!hasSelection"
+            @click="startSelected"
+          >
+            开始选中
+          </el-button>
+          <el-button
+            :icon="VideoPause"
+            :disabled="!hasSelection"
+            @click="stopSelected"
+          >
+            暂停选中
+          </el-button>
+          <el-button
+            type="danger"
+            :icon="Delete"
+            :disabled="!hasSelection"
+            @click="removeSelected"
+          >
+            删除选中
+          </el-button>
+          <el-button @click="openBatchLimitDialog"> 批量限速 </el-button>
+          <el-button :disabled="!hasSelection" @click="openLabelsDialog">
+            批量标签
+          </el-button>
+          <el-button @click="openReplaceTrackerDialog">
+            批量替换Tracker
+          </el-button>
+          <el-button @click="resetColumnWidths" title="重置所有列的宽度为默认值">
+            重置列宽
+          </el-button>
+        </template>
+        <template v-else>
+          <el-dropdown trigger="click" @command="handleActionCommand">
+            <el-button :icon="Operation">操作</el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="start" :disabled="!hasSelection">
+                  开始选中
+                </el-dropdown-item>
+                <el-dropdown-item command="stop" :disabled="!hasSelection">
+                  暂停选中
+                </el-dropdown-item>
+                <el-dropdown-item command="remove" :disabled="!hasSelection">
+                  删除选中
+                </el-dropdown-item>
+                <el-dropdown-item command="limit">
+                  批量限速
+                </el-dropdown-item>
+                <el-dropdown-item command="labels" :disabled="!hasSelection">
+                  批量标签
+                </el-dropdown-item>
+                <el-dropdown-item command="replaceTracker">
+                  批量替换Tracker
+                </el-dropdown-item>
+                <el-dropdown-item command="resetWidth">
+                  重置列宽
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </template>
       </div>
       <el-button
         v-if="isMobile"
@@ -895,6 +927,7 @@ import {
   Filter,
   Folder,
   Document,
+  Operation,
 } from "@element-plus/icons-vue";
 import * as api from "@/api/torrents";
 import type { Torrent, TorrentStatus } from "@/types/transmission";
@@ -2596,6 +2629,45 @@ const removeSelected = () => {
     [...selectedIds.value],
     `确定删除选中的 ${selectedIds.value.length} 个种子？`
   );
+};
+
+const handleActionCommand = (
+  command:
+    | "start"
+    | "stop"
+    | "remove"
+    | "limit"
+    | "labels"
+    | "replaceTracker"
+    | "resetWidth"
+) => {
+  if (command === "start") {
+    startSelected();
+    return;
+  }
+  if (command === "stop") {
+    stopSelected();
+    return;
+  }
+  if (command === "remove") {
+    removeSelected();
+    return;
+  }
+  if (command === "limit") {
+    openBatchLimitDialog();
+    return;
+  }
+  if (command === "labels") {
+    openLabelsDialog();
+    return;
+  }
+  if (command === "replaceTracker") {
+    openReplaceTrackerDialog();
+    return;
+  }
+  if (command === "resetWidth") {
+    resetColumnWidths();
+  }
 };
 
 const handleContextAction = (
