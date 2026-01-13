@@ -2,7 +2,7 @@
   <div class="login-view">
     <el-card class="login-card">
       <template #header>
-        <h2>{{ backendLabel }} 登录</h2>
+        <h2><img :src="logoSrc" class="login-logo" /> {{ backendLabel }} 登录</h2>
       </template>
       <el-form :model="form" :rules="rules" ref="formRef" label-width="80px" @submit.prevent="handleLogin">
         <el-form-item label="用户名" prop="username">
@@ -22,18 +22,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { useConnectionStore } from '@/stores/connection'
 import { configureConnection, testConnection } from '@/api/torrents'
-import { torrentBackendName, torrentApiBase } from '@/config/torrentClient'
+import { torrentBackendName, torrentApiBase, isTransmission } from '@/config/torrentClient'
 
 const router = useRouter()
 const connectionStore = useConnectionStore()
 const loading = ref(false)
 const formRef = ref<FormInstance>()
 const backendLabel = torrentBackendName
+const logoSrc = computed(() => {
+  const baseUrl = import.meta.env.BASE_URL || '/'
+  const filename = isTransmission ? 'Transmission.png' : 'qbittorrent.svg'
+  return `${baseUrl}icons/${filename}`.replace(/\/+/g, '/').replace(':/', '://')
+})
 
 const form = ref({
   username: '',
@@ -114,6 +119,12 @@ onMounted(() => {
   margin: 0;
   text-align: center;
   font-size: 22px;
+}
+.login-card h2 .login-logo {
+  width: 28px;
+  height: 28px;
+  margin-right: 8px;
+  vertical-align: -6px;
 }
 
 .login-button {

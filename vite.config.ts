@@ -36,7 +36,23 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: './',
-    plugins: [vue()],
+    plugins: [
+      vue(),
+      {
+        name: 'bitcake-favicon',
+        enforce: 'pre',
+        transformIndexHtml(html: string) {
+          const iconPath = isQbittorrent ? 'icons/qbittorrent.svg' : 'icons/Transmission.png'
+          const typeAttr = isQbittorrent ? 'image/svg+xml' : 'image/png'
+          const linkTag = `<link rel="icon" type="${typeAttr}" href="${iconPath}" />`
+          const hasFavicon = /<link\s+rel=["']icon["'][^>]*>/i.test(html)
+          if (hasFavicon) {
+            return html.replace(/<link\s+rel=["']icon["'][^>]*>/i, linkTag)
+          }
+          return html.replace('</head>', `  ${linkTag}\n  </head>`)
+        }
+      }
+    ],
     resolve: {
       alias: {
         '@': resolve(__dirname, 'src'),
