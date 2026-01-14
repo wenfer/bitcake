@@ -94,20 +94,61 @@
             </el-row>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="启用备用限速">
+                <el-form-item label="开启备用速度限制">
                   <el-switch v-model="settings['alt-speed-enabled']" />
+                </el-form-item>
+              </el-col>
+              <el-col :xs="24" :md="12">
+                <el-form-item label="开启备用速度限制定时启用">
+                  <el-switch v-model="settings['alt-speed-time-enabled']" />
                 </el-form-item>
               </el-col>
             </el-row>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
                 <el-form-item label="备用下载限速 (KB/s)">
-                  <el-input-number v-model="settings['alt-speed-down']" :disabled="!settings['alt-speed-enabled']" :min="0" class="full-width" />
+                  <el-input-number v-model="settings['alt-speed-down']" :min="0" class="full-width" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
                 <el-form-item label="备用上传限速 (KB/s)">
-                  <el-input-number v-model="settings['alt-speed-up']" :disabled="!settings['alt-speed-enabled']" :min="0" class="full-width" />
+                  <el-input-number v-model="settings['alt-speed-up']" :min="0" class="full-width" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-row v-if="settings['alt-speed-time-enabled']" :gutter="16">
+              <el-col :xs="24" :md="8">
+                <el-form-item label="开始时间">
+                  <el-time-select
+                    v-model="altSpeedBeginTime"
+                    start="00:00"
+                    end="23:30"
+                    step="00:30"
+                    class="full-width"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :xs="24" :md="8">
+                <el-form-item label="结束时间">
+                  <el-time-select
+                    v-model="altSpeedEndTime"
+                    start="00:00"
+                    end="23:30"
+                    step="00:30"
+                    class="full-width"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :xs="24" :md="8">
+                <el-form-item label="生效日期">
+                  <el-select v-model="altSpeedScheduleDay" class="full-width">
+                    <el-option
+                      v-for="option in scheduleDayOptions"
+                      :key="option.value"
+                      :label="option.label"
+                      :value="option.value"
+                    />
+                  </el-select>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -477,6 +518,19 @@ const webUiBanDuration = ref(3600)
 const alternativeWebuiEnabled = ref(false)
 const alternativeWebuiPath = ref('')
 
+const scheduleDayOptions = [
+  { label: '每天', value: 0 },
+  { label: '工作日', value: 1 },
+  { label: '周末', value: 2 },
+  { label: '周一', value: 3 },
+  { label: '周二', value: 4 },
+  { label: '周三', value: 5 },
+  { label: '周四', value: 6 },
+  { label: '周五', value: 7 },
+  { label: '周六', value: 8 },
+  { label: '周日', value: 9 },
+]
+
 const editableFields: (keyof SessionConfig)[] = [
   'download-dir',
   'incomplete-dir',
@@ -489,6 +543,10 @@ const editableFields: (keyof SessionConfig)[] = [
   'alt-speed-enabled',
   'alt-speed-down',
   'alt-speed-up',
+  'alt-speed-time-begin',
+  'alt-speed-time-enabled',
+  'alt-speed-time-end',
+  'alt-speed-time-day',
   'seedRatioLimited',
   'seedRatioLimit',
   'seedIdleLimited',
@@ -509,6 +567,74 @@ const editableFields: (keyof SessionConfig)[] = [
   'seed-queue-enabled',
   'queue-stalled-enabled',
 ]
+
+const minutesToTime = (minutes?: number) => {
+  if (minutes === undefined) return '00:00'
+  const mins = Math.max(0, Math.min(1439, minutes))
+  const h = Math.floor(mins / 60)
+  const m = mins % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
+const timeToMinutes = (time: string) => {
+  const [hStr = '0', mStr = '0'] = (time || '').split(':')
+  const h = parseInt(hStr, 10)
+  const m = parseInt(mStr, 10)
+  if (Number.isNaN(h) || Number.isNaN(m)) return 0
+  return h * 60 + m
+}
+
+const qbDaysToMask = (days?: number) => {
+  switch (days) {
+    case 0: return 127
+    case 1: return 62
+    case 2: return 65
+    case 3: return 2
+    case 4: return 4
+    case 5: return 8
+    case 6: return 16
+    case 7: return 32
+    case 8: return 64
+    case 9: return 1
+    default: return 0
+  }
+}
+
+const maskToQbDays = (mask?: number) => {
+  const v = mask || 0
+  if (v === 127) return 0
+  if (v === 62) return 1
+  if (v === 65) return 2
+  if (v === 2) return 3
+  if (v === 4) return 4
+  if (v === 8) return 5
+  if (v === 16) return 6
+  if (v === 32) return 7
+  if (v === 64) return 8
+  if (v === 1) return 9
+  return 0
+}
+
+const altSpeedBeginTime = computed({
+  get: () => minutesToTime(settings.value['alt-speed-time-begin']),
+  set: (value: string) => {
+    settings.value['alt-speed-time-begin'] = timeToMinutes(value)
+  },
+})
+
+const altSpeedEndTime = computed({
+  get: () => minutesToTime(settings.value['alt-speed-time-end']),
+  set: (value: string) => {
+    settings.value['alt-speed-time-end'] = timeToMinutes(value)
+  },
+})
+
+const altSpeedScheduleDay = computed({
+  get: () => maskToQbDays(settings.value['alt-speed-time-day']),
+  set: (value: number) => {
+    settings.value['alt-speed-time-day'] = qbDaysToMask(value)
+  },
+})
 
 const loadSettings = async () => {
   loading.value = true
@@ -545,7 +671,6 @@ const loadSettings = async () => {
     const s = settings.value
     s['speed-limit-up-enabled'] = (!!s['speed-limit-up-enabled']) || ((s['speed-limit-up'] || 0) > 0)
     s['speed-limit-down-enabled'] = (!!s['speed-limit-down-enabled']) || ((s['speed-limit-down'] || 0) > 0)
-    s['alt-speed-enabled'] = (!!s['alt-speed-enabled']) || (((s['alt-speed-down'] || 0) > 0) || ((s['alt-speed-up'] || 0) > 0))
   } catch (error: any) {
     ElMessage.error(`加载设置失败: ${error.message}`)
   } finally {
@@ -565,10 +690,6 @@ const saveSettings = async () => {
     }
     if (s['speed-limit-down-enabled'] === false && (s['speed-limit-down'] || 0) > 0) {
       s['speed-limit-down'] = 0
-    }
-    if (s['alt-speed-enabled'] === false) {
-      if ((s['alt-speed-up'] || 0) > 0) s['alt-speed-up'] = 0
-      if ((s['alt-speed-down'] || 0) > 0) s['alt-speed-down'] = 0
     }
 
     // Save basic editable fields

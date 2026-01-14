@@ -421,9 +421,8 @@ interface QBPreferences {
   add_paused_enabled?: boolean
   dl_limit?: number
   up_limit?: number
-  use_alt_speed_limits?: boolean
-  alt_dl_speed_limit?: number
-  alt_up_speed_limit?: number
+  alt_dl_limit?: number
+  alt_up_limit?: number
   dl_limit_enabled?: boolean
   up_limit_enabled?: boolean
   max_connec?: number
@@ -446,6 +445,12 @@ interface QBPreferences {
   max_seeding_time?: number
   lsd_enabled?: boolean
   encryption?: number
+  scheduler_enabled?: boolean
+  schedule_from_hour?: number
+  schedule_from_min?: number
+  schedule_to_hour?: number
+  schedule_to_min?: number
+  scheduler_days?: number
   web_ui_username?: string
   web_ui_address?: string
   web_ui_port?: number
@@ -955,9 +960,10 @@ const qbittorrentService: TorrentService = {
 
   async getSession() {
     await qbEnsureAuth()
-    const [preferences, version] = await Promise.all([
+    const [preferences, version, speedModeRaw] = await Promise.all([
       qbittorrentClient.get<QBPreferences>('/app/preferences'),
       qbittorrentClient.get<string>('/app/version'),
+      qbittorrentClient.get<string>('/transfer/speedLimitsMode'),
     ])
     const toKB = (value?: number) => (value ? Math.round(value / QB_KB) : 0)
     const encToString = (value?: number): 'required' | 'preferred' | 'tolerated' => {
@@ -966,14 +972,32 @@ const qbittorrentService: TorrentService = {
       if (value === 2) return 'tolerated'
       return 'preferred'
     }
+    const qbDaysToMask = (days?: number) => {
+      switch (days) {
+        case 0: return 127
+        case 1: return 62
+        case 2: return 65
+        case 3: return 2
+        case 4: return 4
+        case 5: return 8
+        case 6: return 16
+        case 7: return 32
+        case 8: return 64
+        case 9: return 1
+        default: return 0
+      }
+    }
+    const scheduleBegin = ((preferences.schedule_from_hour || 0) * 60) + (preferences.schedule_from_min || 0)
+    const scheduleEnd = ((preferences.schedule_to_hour || 0) * 60) + (preferences.schedule_to_min || 0)
+    const speedMode = Number(speedModeRaw || '0')
     const config: SessionConfig = {
-      'alt-speed-down': toKB(preferences.alt_dl_speed_limit),
-      'alt-speed-enabled': !!preferences.use_alt_speed_limits,
-      'alt-speed-up': toKB(preferences.alt_up_speed_limit),
-      'alt-speed-time-begin': 0,
-      'alt-speed-time-enabled': false,
-      'alt-speed-time-end': 0,
-      'alt-speed-time-day': 0,
+      'alt-speed-down': toKB(preferences.alt_dl_limit),
+      'alt-speed-enabled': speedMode !== 0,
+      'alt-speed-up': toKB(preferences.alt_up_limit),
+      'alt-speed-time-begin': scheduleBegin,
+      'alt-speed-time-enabled': !!preferences.scheduler_enabled,
+      'alt-speed-time-end': scheduleEnd,
+      'alt-speed-time-day': qbDaysToMask(preferences.scheduler_days),
       'download-dir': preferences.save_path || '',
       'incomplete-dir': preferences.temp_path || '',
       'incomplete-dir-enabled': !!preferences.temp_path_enabled,
@@ -1034,6 +1058,32 @@ const qbittorrentService: TorrentService = {
   async setSession(params) {
     await qbEnsureAuth()
     const qbParams: Record<string, any> = {}
+    const setSpeedMode = async () => {
+      const body = qbittorrentClient.buildFormData({
+        mode: (params['alt-speed-enabled'] ? 1 : 0)
+      })
+      await qbittorrentClient.post('/transfer/setSpeedLimitsMode', body, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      })
+    }
+    const minutesToHourMin = (mins?: number) => {
+      const m = Math.max(0, Math.min(1439, mins || 0))
+      return { h: Math.floor(m / 60), mi: m % 60 }
+    }
+    const maskToQbDays = (mask?: number) => {
+      const v = mask || 0
+      if (v === 127) return 0
+      if (v === 62) return 1
+      if (v === 65) return 2
+      if (v === 2) return 3
+      if (v === 4) return 4
+      if (v === 8) return 5
+      if (v === 16) return 6
+      if (v === 32) return 7
+      if (v === 64) return 8
+      if (v === 1) return 9
+      return 0
+    }
 
     // 下载与文件设置
     if ('download-dir' in params) qbParams.save_path = params['download-dir']
@@ -1048,9 +1098,21 @@ const qbittorrentService: TorrentService = {
     if ('speed-limit-up-enabled' in params) qbParams.up_limit_enabled = !!params['speed-limit-up-enabled']
 
     // 备用速度限制
-    if ('alt-speed-enabled' in params) qbParams.use_alt_speed_limits = params['alt-speed-enabled']
-    if ('alt-speed-down' in params) qbParams.alt_dl_speed_limit = (params['alt-speed-down'] || 0) * QB_KB
-    if ('alt-speed-up' in params) qbParams.alt_up_speed_limit = (params['alt-speed-up'] || 0) * QB_KB
+    if ('alt-speed-enabled' in params) await setSpeedMode()
+    if ('alt-speed-down' in params) qbParams.alt_dl_limit = (params['alt-speed-down'] || 0) * QB_KB
+    if ('alt-speed-up' in params) qbParams.alt_up_limit = (params['alt-speed-up'] || 0) * QB_KB
+    if ('alt-speed-time-enabled' in params) qbParams.scheduler_enabled = !!params['alt-speed-time-enabled']
+    if ('alt-speed-time-begin' in params) {
+      const t = minutesToHourMin(params['alt-speed-time-begin'])
+      qbParams.schedule_from_hour = t.h
+      qbParams.schedule_from_min = t.mi
+    }
+    if ('alt-speed-time-end' in params) {
+      const t = minutesToHourMin(params['alt-speed-time-end'])
+      qbParams.schedule_to_hour = t.h
+      qbParams.schedule_to_min = t.mi
+    }
+    if ('alt-speed-time-day' in params) qbParams.scheduler_days = maskToQbDays(params['alt-speed-time-day'])
 
     // 分享率和做种设置
     if ('seedRatioLimit' in params) qbParams.max_ratio = params['seedRatioLimit']
