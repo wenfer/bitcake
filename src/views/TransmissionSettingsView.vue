@@ -51,7 +51,7 @@
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="8">
-                <el-form-item label="重命名部分文件">
+                <el-form-item label="在未完成的文件名后加上“.part”后缀">
                   <el-switch v-model="settings['rename-partial-files']" />
                 </el-form-item>
               </el-col>
@@ -765,10 +765,6 @@ onMounted(() => {
 
 .compact-form {
   max-width: 1200px;
-}
-
-.compact-form :deep(.el-form-item) {
-  margin-bottom: 16px;
 }
 
 .inline-row {

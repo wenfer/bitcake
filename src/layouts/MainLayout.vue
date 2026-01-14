@@ -159,7 +159,7 @@ import { useMediaQuery } from "@/utils/useMediaQuery";
 import { formatBytes } from "@/utils/format";
 import SidebarStatus from "./components/SidebarStatus.vue";
 import HeaderTips from "./components/HeaderTips.vue";
-import { torrentBackendName } from "@/config/torrentClient";
+import { torrentBackendName, isTransmission } from "@/config/torrentClient";
 import { TorrentStatusEnum } from "@/types/transmission";
 
 const router = useRouter();
@@ -252,17 +252,25 @@ const uploadLimitKBps = computed(() => {
   const c = sessionConfig.value;
   if (!c) return null;
   if (c['alt-speed-enabled']) return c['alt-speed-up'] ?? null;
-  const enabled = !!c['speed-limit-up-enabled'];
-  if (enabled) return c['speed-limit-up'] ?? null;
-  return null;
+  if (isTransmission) {
+    const enabled = !!c['speed-limit-up-enabled'];
+    return enabled ? (c['speed-limit-up'] ?? null) : null;
+  } else {
+    const up = c['speed-limit-up'] ?? 0;
+    return up > 0 ? up : null;
+  }
 });
 const downloadLimitKBps = computed(() => {
   const c = sessionConfig.value;
   if (!c) return null;
   if (c['alt-speed-enabled']) return c['alt-speed-down'] ?? null;
-  const enabled = !!c['speed-limit-down-enabled'];
-  if (enabled) return c['speed-limit-down'] ?? null;
-  return null;
+  if (isTransmission) {
+    const enabled = !!c['speed-limit-down-enabled'];
+    return enabled ? (c['speed-limit-down'] ?? null) : null;
+  } else {
+    const down = c['speed-limit-down'] ?? 0;
+    return down > 0 ? down : null;
+  }
 });
 const formatSpeedCompact = (bytesPerSecond: number): string => {
   if (!bytesPerSecond) return "0B/s";
@@ -270,7 +278,8 @@ const formatSpeedCompact = (bytesPerSecond: number): string => {
 };
 const formatLimitText = (kbps: number | null): string | null => {
   if (kbps == null || kbps === 0) return null;
-  return Math.floor(kbps).toString();
+  const bps = kbps * 1024;
+  return `${formatBytes(bps).replace(" ", "")}/s`;
 };
 const uploadSpeedText = computed(() => {
   const bps = sessionStats.value?.uploadSpeed || 0;
