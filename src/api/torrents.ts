@@ -418,6 +418,7 @@ interface QBPreferences {
   save_path?: string
   temp_path?: string
   temp_path_enabled?: boolean
+  incomplete_files_ext?: boolean
   add_paused_enabled?: boolean
   dl_limit?: number
   up_limit?: number
@@ -1001,7 +1002,7 @@ const qbittorrentService: TorrentService = {
       'download-dir': preferences.save_path || '',
       'incomplete-dir': preferences.temp_path || '',
       'incomplete-dir-enabled': !!preferences.temp_path_enabled,
-      'rename-partial-files': false,
+      'rename-partial-files': !!preferences.incomplete_files_ext,
       'start-added-torrents': !preferences.add_paused_enabled,
       'trash-original-torrent-files': false,
       'speed-limit-down': toKB(preferences.dl_limit),
@@ -1089,6 +1090,7 @@ const qbittorrentService: TorrentService = {
     if ('download-dir' in params) qbParams.save_path = params['download-dir']
     if ('incomplete-dir' in params) qbParams.temp_path = params['incomplete-dir']
     if ('incomplete-dir-enabled' in params) qbParams.temp_path_enabled = params['incomplete-dir-enabled']
+    if ('rename-partial-files' in params) qbParams.incomplete_files_ext = !!params['rename-partial-files']
     if ('start-added-torrents' in params) qbParams.add_paused_enabled = !params['start-added-torrents']
 
     // 速度限制

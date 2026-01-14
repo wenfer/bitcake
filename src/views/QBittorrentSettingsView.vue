@@ -50,6 +50,11 @@
                   <el-switch v-model="qbDontStartAuto" />
                 </el-form-item>
               </el-col>
+              <el-col :xs="24" :md="12">
+                <el-form-item label="为不完整的文件添加扩展名 .!qB">
+                  <el-switch v-model="settings['rename-partial-files']" />
+                </el-form-item>
+              </el-col>
             </el-row>
           </el-form>
         </el-tab-pane>
@@ -535,6 +540,7 @@ const editableFields: (keyof SessionConfig)[] = [
   'download-dir',
   'incomplete-dir',
   'incomplete-dir-enabled',
+  'rename-partial-files',
   'start-added-torrents',
   'speed-limit-down',
   'speed-limit-down-enabled',
