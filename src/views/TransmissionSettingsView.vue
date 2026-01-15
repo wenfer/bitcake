@@ -3,7 +3,7 @@
     <el-card v-if="isTransmissionClient">
       <template #header>
         <div class="card-header">
-          <span>Transmission 全局设置</span>
+          <span>全局设置</span>
           <div class="header-actions">
             <el-button type="primary" size="small" @click="saveSettings">保存设置</el-button>
             <el-button size="small" @click="loadSettings">重置</el-button>
@@ -24,6 +24,7 @@
             size="small"
             class="compact-form"
           >
+            <el-divider content-position="left">保存路径</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
                 <el-form-item label="默认保存目录">
@@ -44,6 +45,7 @@
                 </el-form-item>
               </el-col>
             </el-row>
+            <el-divider content-position="left">添加行为与扩展名</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="8">
                 <el-form-item label="自动开始新添加的种子">
@@ -69,6 +71,7 @@
             size="small"
             class="compact-form"
           >
+            <el-divider content-position="left">全局速度限制</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
                 <el-form-item label="启用最大下载速度限制 (KB/s)">
@@ -97,6 +100,7 @@
                 </el-form-item>
               </el-col>
             </el-row>
+            <el-divider content-position="left">备用速度限制</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
                 <el-form-item label="备用下载限速 (KB/s)">
@@ -109,6 +113,7 @@
                 </el-form-item>
               </el-col>
             </el-row>
+            <el-divider content-position="left">定时计划</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="8">
                 <el-form-item label="启用备用限速">
@@ -163,6 +168,7 @@
                 </el-form-item>
               </el-col>
             </el-row>
+            <el-divider content-position="left">分享率与做种限制</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
                 <el-form-item label="当种子的分享率达到这个数时，自动停止做种">
@@ -205,6 +211,7 @@
             size="small"
             class="compact-form"
           >
+            <el-divider content-position="left">端口与映射</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="8">
                 <el-form-item label="使用 Peer 固定端口">
@@ -241,6 +248,7 @@
                 </el-form-item>
               </el-col>
             </el-row>
+            <el-divider content-position="left">连接上限与加密</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
                 <el-form-item label="全局 Peer 链接数限制为">
@@ -280,6 +288,7 @@
             size="small"
             class="compact-form"
           >
+            <el-divider content-position="left">用户发现与交换</el-divider>
             <el-row :gutter="16">
               <el-col :xs="12" :md="6">
                 <el-form-item label="启用分布式哈希表 (DHT)">
@@ -315,6 +324,7 @@
             size="small"
             class="compact-form"
           >
+            <el-divider content-position="left">队列上限</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
                 <el-form-item label="启用下载队列，最大同时下载数">
@@ -343,6 +353,7 @@
                 </el-form-item>
               </el-col>
             </el-row>
+            <el-divider content-position="left">卡住任务判定</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
                 <el-form-item label="检测卡住任务（不计入队列）">
@@ -368,6 +379,7 @@
             size="small"
             class="compact-form"
           >
+            <el-divider content-position="left">认证</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
                 <el-form-item label="需要认证">
@@ -380,6 +392,7 @@
                 </el-form-item>
               </el-col>
             </el-row>
+            <el-divider content-position="left">白名单</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
                 <el-form-item label="启用白名单">
