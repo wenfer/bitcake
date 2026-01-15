@@ -317,7 +317,7 @@
           >
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="下载队列大小">
+                <el-form-item label="启用下载队列，最大同时下载数">
                   <div class="inline-row">
                     <el-switch v-model="settings['download-queue-enabled']" />
                     <el-input-number
@@ -330,7 +330,7 @@
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="做种队列大小">
+                <el-form-item label="启用上传队列，最大同时上传数">
                   <div class="inline-row">
                     <el-switch v-model="settings['seed-queue-enabled']" />
                     <el-input-number
@@ -345,12 +345,12 @@
             </el-row>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="检测卡住任务">
+                <el-form-item label="检测卡住任务（不计入队列）">
                   <el-switch v-model="settings['queue-stalled-enabled']" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="卡住最小分钟">
+                <el-form-item label="判定卡住的分钟数">
                   <el-input-number v-model="settings['queue-stalled-minutes']" :min="0" class="full-width" />
                 </el-form-item>
               </el-col>
