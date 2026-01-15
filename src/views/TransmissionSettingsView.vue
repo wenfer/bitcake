@@ -26,12 +26,12 @@
           >
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="下载目录">
+                <el-form-item label="默认保存目录">
                   <el-input v-model="settings['download-dir']" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="未完成目录">
+                <el-form-item label="启用临时目录">
                   <div class="inline-row">
                     <el-switch v-model="settings['incomplete-dir-enabled']" />
                     <el-input
@@ -71,7 +71,7 @@
           >
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="下载限速 (KB/s)">
+                <el-form-item label="启用最大下载速度限制 (KB/s)">
                   <div class="inline-row">
                     <el-switch v-model="settings['speed-limit-down-enabled']" />
                     <el-input-number
@@ -84,7 +84,7 @@
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="上传限速 (KB/s)">
+                <el-form-item label="启用最大上传速度限制 (KB/s)">
                   <div class="inline-row">
                     <el-switch v-model="settings['speed-limit-up-enabled']" />
                     <el-input-number
@@ -165,7 +165,7 @@
             </el-row>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="分享率限制">
+                <el-form-item label="当种子的分享率达到这个数时，自动停止做种">
                   <div class="inline-row">
                     <el-switch v-model="settings['seedRatioLimited']" />
                     <el-input-number
@@ -179,7 +179,7 @@
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="做种空闲限制 (分钟)">
+                <el-form-item label="当种子超过这个时间没有流量时，自动停止做种(分钟)">
                   <div class="inline-row">
                     <el-switch v-model="settings['seedIdleLimited']" />
                     <el-input-number
@@ -207,7 +207,7 @@
           >
             <el-row :gutter="16">
               <el-col :xs="24" :md="8">
-                <el-form-item label="Peer 端口">
+                <el-form-item label="使用 Peer 固定端口">
                   <el-input-number v-model="settings['peer-port']" :min="1" :max="65535" class="full-width" />
                 </el-form-item>
               </el-col>
@@ -224,12 +224,12 @@
             </el-row>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="全局 Peer 上限">
+                <el-form-item label="全局 Peer 链接数限制为">
                   <el-input-number v-model="settings['peer-limit-global']" :min="1" class="full-width" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="单种 Peer 上限">
+                <el-form-item label="单个种子 Peer 最大链接数">
                   <el-input-number v-model="settings['peer-limit-per-torrent']" :min="1" class="full-width" />
                 </el-form-item>
               </el-col>
@@ -280,22 +280,22 @@
           >
             <el-row :gutter="16">
               <el-col :xs="12" :md="6">
-                <el-form-item label="DHT">
+                <el-form-item label="启用分布式哈希表 (DHT)">
                   <el-switch v-model="settings['dht-enabled']" />
                 </el-form-item>
               </el-col>
               <el-col :xs="12" :md="6">
-                <el-form-item label="PEX">
+                <el-form-item label="启用用户交换 (PEX)">
                   <el-switch v-model="settings['pex-enabled']" />
                 </el-form-item>
               </el-col>
               <el-col :xs="12" :md="6">
-                <el-form-item label="LPD">
+                <el-form-item label="启用本地用户发现 (LPD)">
                   <el-switch v-model="settings['lpd-enabled']" />
                 </el-form-item>
               </el-col>
               <el-col :xs="12" :md="6">
-                <el-form-item label="uTP">
+                <el-form-item label="启用uTP">
                   <el-switch v-model="settings['utp-enabled']" />
                 </el-form-item>
               </el-col>
