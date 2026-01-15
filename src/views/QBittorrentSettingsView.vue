@@ -488,7 +488,7 @@ const encryptionOptions = [
 
 const isMobile = useMediaQuery('(max-width: 768px)')
 const formLabelPosition = computed(() => (isMobile.value ? 'top' : 'left'))
-const formLabelWidth = computed(() => (isMobile.value ? 'auto' : '120px'))
+const formLabelWidth = computed(() => (isMobile.value ? 'auto' : '220px'))
 const qbDontStartAuto = computed<boolean>({
   get: () => !(settings.value['start-added-torrents'] ?? true),
   set: (v) => {
@@ -854,6 +854,12 @@ onMounted(() => {
 
 .compact-form {
   max-width: 1200px;
+}
+
+.compact-form :deep(.el-col) {
+  flex: 0 0 100%;
+  max-width: 100%;
+  width: 100%;
 }
 
 .inline-row {
