@@ -3,19 +3,19 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>全局设置</span>
+          <span>{{ t('settings.qbittorrent.globalSettings') }}</span>
           <div class="header-actions">
-            <el-button type="primary" size="small" @click="saveSettings">保存设置</el-button>
-            <el-button size="small" @click="loadSettings">重置</el-button>
-            <el-button size="small" @click="exportSettings">导出配置</el-button>
-            <el-button size="small" @click="importSettings">导入配置</el-button>
+            <el-button type="primary" size="small" @click="saveSettings">{{ t('settings.qbittorrent.saveSettings') }}</el-button>
+            <el-button size="small" @click="loadSettings">{{ t('common.reset') }}</el-button>
+            <el-button size="small" @click="exportSettings">{{ t('settings.qbittorrent.exportConfig') }}</el-button>
+            <el-button size="small" @click="importSettings">{{ t('settings.qbittorrent.importConfig') }}</el-button>
           </div>
         </div>
       </template>
 
       <el-tabs v-model="activeTab" class="settings-tabs">
         <!-- 下载与文件 -->
-        <el-tab-pane label="下载与文件" name="download">
+        <el-tab-pane :label="t('settings.qbittorrent.downloadAndFiles')" name="download">
           <el-form
             v-loading="loading"
             :model="settings"
@@ -24,15 +24,15 @@
             size="small"
             class="compact-form"
           >
-            <el-divider content-position="left">保存路径</el-divider>
+            <el-divider content-position="left">{{ t('settings.qbittorrent.savePath') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="默认保存路径">
+                <el-form-item :label="t('settings.qbittorrent.defaultSaveDir')">
                   <el-input v-model="settings['download-dir']" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="保存未完成的文件到">
+                <el-form-item :label="t('settings.qbittorrent.saveIncompleteTo')">
                   <div class="inline-row">
                     <el-switch v-model="settings['incomplete-dir-enabled']" />
                     <el-input
@@ -45,15 +45,15 @@
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-divider content-position="left">添加行为与扩展名</el-divider>
+            <el-divider content-position="left">{{ t('settings.qbittorrent.addBehaviorAndExtension') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="添加种子时不自动开始下载">
+                <el-form-item :label="t('settings.qbittorrent.dontStartAuto')">
                   <el-switch v-model="qbDontStartAuto" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="为不完整的文件添加扩展名 .!qB">
+                <el-form-item :label="t('settings.qbittorrent.addExtensionQB')">
                   <el-switch v-model="settings['rename-partial-files']" />
                 </el-form-item>
               </el-col>
@@ -62,7 +62,7 @@
         </el-tab-pane>
 
         <!-- 速度限制 -->
-        <el-tab-pane label="速度限制" name="speed">
+        <el-tab-pane :label="t('settings.qbittorrent.speedLimit')" name="speed">
           <el-form
             v-loading="loading"
             :model="settings"
@@ -71,10 +71,10 @@
             size="small"
             class="compact-form"
           >
-            <el-divider content-position="left">全局速度限制</el-divider>
+            <el-divider content-position="left">{{ t('settings.qbittorrent.globalSpeedLimit') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="全局下载速度限制 (KB/s)">
+                <el-form-item :label="t('settings.qbittorrent.globalDownloadSpeedLimit')">
                   <div class="inline-row">
                     <el-switch v-model="settings['speed-limit-down-enabled']" />
                     <el-input-number
@@ -87,7 +87,7 @@
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="全局上传速度限制 (KB/s)">
+                <el-form-item :label="t('settings.qbittorrent.globalUploadSpeedLimit')">
                   <div class="inline-row">
                     <el-switch v-model="settings['speed-limit-up-enabled']" />
                     <el-input-number
@@ -100,35 +100,35 @@
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-divider content-position="left">备用速度限制</el-divider>
+            <el-divider content-position="left">{{ t('settings.qbittorrent.altSpeedLimit') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="开启备用速度限制">
+                <el-form-item :label="t('settings.qbittorrent.enableAltSpeed')">
                   <el-switch v-model="settings['alt-speed-enabled']" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="开启备用速度限制定时启用">
+                <el-form-item :label="t('settings.qbittorrent.enableAltSpeedSchedule')">
                   <el-switch v-model="settings['alt-speed-time-enabled']" />
                 </el-form-item>
               </el-col>
             </el-row>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="备用下载速度限制 (KB/s)">
+                <el-form-item :label="t('settings.qbittorrent.altDownloadSpeed')">
                   <el-input-number v-model="settings['alt-speed-down']" :min="0" class="full-width" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="备用上传速度限制 (KB/s)">
+                <el-form-item :label="t('settings.qbittorrent.altUploadSpeed')">
                   <el-input-number v-model="settings['alt-speed-up']" :min="0" class="full-width" />
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-divider v-if="settings['alt-speed-time-enabled']" content-position="left">定时计划</el-divider>
+            <el-divider v-if="settings['alt-speed-time-enabled']" content-position="left">{{ t('settings.qbittorrent.schedule') }}</el-divider>
             <el-row v-if="settings['alt-speed-time-enabled']" :gutter="16">
               <el-col :xs="24" :md="8">
-                <el-form-item label="开始时间">
+                <el-form-item :label="t('settings.qbittorrent.startTime')">
                   <el-time-select
                     v-model="altSpeedBeginTime"
                     start="00:00"
@@ -139,7 +139,7 @@
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="8">
-                <el-form-item label="结束时间">
+                <el-form-item :label="t('settings.qbittorrent.endTime')">
                   <el-time-select
                     v-model="altSpeedEndTime"
                     start="00:00"
@@ -150,7 +150,7 @@
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="8">
-                <el-form-item label="生效日期">
+                <el-form-item :label="t('settings.qbittorrent.effectiveDays')">
                   <el-select v-model="altSpeedScheduleDay" class="full-width">
                     <el-option
                       v-for="option in scheduleDayOptions"
@@ -162,10 +162,10 @@
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-divider content-position="left">分享率与做种限制</el-divider>
+            <el-divider content-position="left">{{ t('settings.qbittorrent.seedRatioAndLimit') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="分享率限制">
+                <el-form-item :label="t('settings.qbittorrent.seedRatioLimit')">
                   <div class="inline-row">
                     <el-switch v-model="settings['seedRatioLimited']" />
                     <el-input-number
@@ -179,7 +179,7 @@
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="做种时间限制 (分钟)">
+                <el-form-item :label="t('settings.qbittorrent.seedTimeLimit')">
                   <div class="inline-row">
                     <el-switch v-model="settings['seedIdleLimited']" />
                     <el-input-number
@@ -194,16 +194,16 @@
             </el-row>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="到达限制后的动作">
+                <el-form-item :label="t('settings.qbittorrent.actionOnLimit')">
                   <el-select
                     v-model="shareLimitAction"
                     :disabled="!(settings['seedRatioLimited'] || settings['seedIdleLimited'])"
                     class="full-width"
                   >
-                    <el-option :label="'停止种子'" :value="0" />
-                    <el-option :label="'移除种子'" :value="1" />
-                    <el-option :label="'移除种子及其文件'" :value="3" />
-                    <el-option :label="'启用超级做种'" :value="2" />
+                    <el-option :label="t('settings.qbittorrent.stopTorrent')" :value="0" />
+                    <el-option :label="t('settings.qbittorrent.removeTorrent')" :value="1" />
+                    <el-option :label="t('settings.qbittorrent.removeTorrentAndFiles')" :value="3" />
+                    <el-option :label="t('settings.qbittorrent.enableSuperSeeding')" :value="2" />
                   </el-select>
                 </el-form-item>
               </el-col>
@@ -212,7 +212,7 @@
         </el-tab-pane>
 
         <!-- 连接与端口 -->
-        <el-tab-pane label="连接与端口" name="connection">
+        <el-tab-pane :label="t('settings.qbittorrent.connectionAndPort')" name="connection">
           <el-form
             v-loading="loading"
             :model="settings"
@@ -221,51 +221,51 @@
             size="small"
             class="compact-form"
           >
-            <el-divider content-position="left">端口与映射</el-divider>
+            <el-divider content-position="left">{{ t('settings.qbittorrent.portAndMapping') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="8">
-                <el-form-item label="Peer 端口">
+                <el-form-item :label="t('settings.qbittorrent.peerPort')">
                   <div class="inline-row">
                     <el-input-number v-model="settings['peer-port']" :min="0" :max="65535" class="inline-input" />
-                    <el-button size="small" @click="generateRandomPeerPort">随机</el-button>
+                    <el-button size="small" @click="generateRandomPeerPort">{{ t('settings.qbittorrent.random') }}</el-button>
                   </div>
-                  <div class="readonly-value">设为 0 让系统选择未占用端口</div>
+                  <div class="readonly-value">{{ t('settings.qbittorrent.portZeroHint') }}</div>
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="8">
-                <el-form-item label="端口映射 (UPnP)">
+                <el-form-item :label="t('settings.qbittorrent.portMapping')">
                   <el-switch v-model="settings['port-forwarding-enabled']" />
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-divider content-position="left">连接上限与加密</el-divider>
+            <el-divider content-position="left">{{ t('settings.qbittorrent.connectionLimitAndEncryption') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="全局最大连接数">
+                <el-form-item :label="t('settings.qbittorrent.globalMaxConnections')">
                   <el-input-number v-model="maxConnec" :min="1" class="full-width" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="单种最大连接数">
+                <el-form-item :label="t('settings.qbittorrent.perTorrentMaxConnections')">
                   <el-input-number v-model="maxConnecPerTorrent" :min="1" class="full-width" />
                 </el-form-item>
               </el-col>
             </el-row>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="全局上传窗口数上限">
+                <el-form-item :label="t('settings.qbittorrent.globalMaxUploadSlots')">
                   <el-input-number v-model="maxUploads" :min="1" class="full-width" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="单种上传窗口数上限">
+                <el-form-item :label="t('settings.qbittorrent.perTorrentMaxUploadSlots')">
                   <el-input-number v-model="maxUploadsPerTorrent" :min="1" class="full-width" />
                 </el-form-item>
               </el-col>
             </el-row>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="加密策略">
+                <el-form-item :label="t('settings.qbittorrent.encryptionPolicy')">
                   <el-select v-model="settings.encryption" class="full-width">
                     <el-option
                       v-for="option in encryptionOptions"
@@ -281,7 +281,7 @@
         </el-tab-pane>
 
         <!-- 协议支持 -->
-        <el-tab-pane label="协议支持" name="protocol">
+        <el-tab-pane :label="t('settings.qbittorrent.protocolSupport')" name="protocol">
           <el-form
             v-loading="loading"
             :model="settings"
@@ -290,20 +290,20 @@
             size="small"
             class="compact-form"
           >
-            <el-divider content-position="left">用户发现与交换</el-divider>
+            <el-divider content-position="left">{{ t('settings.qbittorrent.peerDiscoveryAndExchange') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="12" :md="6">
-                <el-form-item label="启用 DHT (去中心化网络)找到更多用户">
+                <el-form-item :label="t('settings.qbittorrent.enableDHT')">
                   <el-switch v-model="settings['dht-enabled']" />
                 </el-form-item>
               </el-col>
               <el-col :xs="12" :md="6">
-                <el-form-item label="启用用户交换 PeX 找到更多用户">
+                <el-form-item :label="t('settings.qbittorrent.enablePEX')">
                   <el-switch v-model="settings['pex-enabled']" />
                 </el-form-item>
               </el-col>
               <el-col :xs="12" :md="6">
-                <el-form-item label="启用 LPD (本地发现)找到更多用户">
+                <el-form-item :label="t('settings.qbittorrent.enableLPD')">
                   <el-switch v-model="settings['lpd-enabled']" />
                 </el-form-item>
               </el-col>
@@ -312,7 +312,7 @@
         </el-tab-pane>
 
         <!-- 队列管理 -->
-        <el-tab-pane label="队列管理" name="queue">
+        <el-tab-pane :label="t('settings.qbittorrent.queueManagement')" name="queue">
           <el-form
             v-loading="loading"
             :model="settings"
@@ -321,15 +321,15 @@
             size="small"
             class="compact-form"
           >
-            <el-divider content-position="left">队列上限</el-divider>
+            <el-divider content-position="left">{{ t('settings.qbittorrent.queueLimit') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="8">
-                <el-form-item label="启用队列">
+                <el-form-item :label="t('settings.qbittorrent.enableQueue')">
                   <el-switch v-model="queueingEnabled" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="8">
-                <el-form-item label="最大活动的下载数">
+                <el-form-item :label="t('settings.qbittorrent.maxActiveDownloads')">
                   <el-input-number
                     v-model="maxActiveDownloads"
                     :disabled="!queueingEnabled"
@@ -339,7 +339,7 @@
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="8">
-                <el-form-item label="最大活动的上传数">
+                <el-form-item :label="t('settings.qbittorrent.maxActiveUploads')">
                   <el-input-number
                     v-model="maxActiveUploads"
                     :disabled="!queueingEnabled"
@@ -351,7 +351,7 @@
             </el-row>
             <el-row :gutter="16">
               <el-col :xs="24" :md="8">
-                <el-form-item label="最大活动的种子数">
+                <el-form-item :label="t('settings.qbittorrent.maxActiveTorrents')">
                   <el-input-number
                     v-model="maxActiveTorrents"
                     :disabled="!queueingEnabled"
@@ -361,15 +361,15 @@
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="8">
-                <el-form-item label="排除慢速种子(不计入队列)">
+                <el-form-item :label="t('settings.qbittorrent.excludeSlowTorrents')">
                   <el-switch v-model="dontCountSlowTorrents" :disabled="!queueingEnabled" />
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-divider content-position="left">慢速种子阈值</el-divider>
+            <el-divider content-position="left">{{ t('settings.qbittorrent.slowTorrentThreshold') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="8">
-                <el-form-item label="慢速下载阈值 (KiB/s)">
+                <el-form-item :label="t('settings.qbittorrent.slowDownloadThreshold')">
                   <el-input-number
                     v-model="dlRateThreshold"
                     :disabled="!queueingEnabled || !dontCountSlowTorrents"
@@ -379,7 +379,7 @@
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="8">
-                <el-form-item label="慢速上传阈值 (KiB/s)">
+                <el-form-item :label="t('settings.qbittorrent.slowUploadThreshold')">
                   <el-input-number
                     v-model="ulRateThreshold"
                     :disabled="!queueingEnabled || !dontCountSlowTorrents"
@@ -389,7 +389,7 @@
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="8">
-                <el-form-item label="慢速计时器 (秒)">
+                <el-form-item :label="t('settings.qbittorrent.slowTimer')">
                   <el-input-number
                     v-model="torrentInactiveTimer"
                     :disabled="!queueingEnabled || !dontCountSlowTorrents"
@@ -403,7 +403,7 @@
         </el-tab-pane>
 
         <!-- WebUI 配置 -->
-        <el-tab-pane label="WebUI 配置" name="webui">
+        <el-tab-pane :label="t('settings.qbittorrent.webuiConfig')" name="webui">
           <el-form
             v-loading="loading"
             :model="settings"
@@ -412,77 +412,77 @@
             size="small"
             class="compact-form"
           >
-            <el-divider content-position="left">认证</el-divider>
+            <el-divider content-position="left">{{ t('settings.qbittorrent.authentication') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="用户名">
+                <el-form-item :label="t('settings.qbittorrent.username')">
                   <el-input v-model="webUiUsername" placeholder="admin" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="密码">
+                <el-form-item :label="t('settings.qbittorrent.password')">
                   <el-input
                     v-model="webUiPassword"
                     type="password"
-                    placeholder="留空则不修改"
+                    :placeholder="t('settings.qbittorrent.passwordPlaceholder')"
                     show-password
                   />
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-divider content-position="left">监听与会话</el-divider>
+            <el-divider content-position="left">{{ t('settings.qbittorrent.listenAndSession') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="8">
-                <el-form-item label="监听地址">
+                <el-form-item :label="t('settings.qbittorrent.listenAddress')">
                   <el-input v-model="webUiAddress" placeholder="*" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="8">
-                <el-form-item label="监听端口">
+                <el-form-item :label="t('settings.qbittorrent.listenPort')">
                   <el-input-number v-model="webUiPort" :min="1" :max="65535" class="full-width" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="8">
-                <el-form-item label="会话超时(秒)">
+                <el-form-item :label="t('settings.qbittorrent.sessionTimeout')">
                   <el-input-number v-model="webUiSessionTimeout" :min="0" class="full-width" />
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-divider content-position="left">安全</el-divider>
+            <el-divider content-position="left">{{ t('settings.qbittorrent.security') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="12" :md="6">
-                <el-form-item label="本地跳过认证">
+                <el-form-item :label="t('settings.qbittorrent.bypassLocalAuth')">
                   <el-switch v-model="bypassLocalAuth" />
                 </el-form-item>
               </el-col>
               <el-col :xs="12" :md="6">
-                <el-form-item label="CSRF 保护">
+                <el-form-item :label="t('settings.qbittorrent.csrfProtection')">
                   <el-switch v-model="webUiCsrfProtection" />
                 </el-form-item>
               </el-col>
               <el-col :xs="12" :md="6">
-                <el-form-item label="安全 Cookie">
+                <el-form-item :label="t('settings.qbittorrent.secureCookie')">
                   <el-switch v-model="webUiSecureCookie" />
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-divider content-position="left">认证失败与封禁</el-divider>
+            <el-divider content-position="left">{{ t('settings.qbittorrent.authFailAndBan') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="最大失败次数">
+                <el-form-item :label="t('settings.qbittorrent.maxAuthFailCount')">
                   <el-input-number v-model="webUiMaxAuthFailCount" :min="0" class="full-width" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="封禁时长(秒)">
+                <el-form-item :label="t('settings.qbittorrent.banDuration')">
                   <el-input-number v-model="webUiBanDuration" :min="0" class="full-width" />
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-divider content-position="left">替代 WebUI</el-divider>
+            <el-divider content-position="left">{{ t('settings.qbittorrent.alternativeWebui') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24">
-                <el-form-item label="使用替代 WebUI">
+                <el-form-item :label="t('settings.qbittorrent.useAlternativeWebui')">
                   <div class="inline-row">
                     <el-switch v-model="alternativeWebuiEnabled" />
                     <el-input
@@ -499,7 +499,7 @@
         </el-tab-pane>
 
         <!-- 系统信息 -->
-        <el-tab-pane label="系统信息" name="system">
+        <el-tab-pane :label="t('settings.qbittorrent.systemInfo')" name="system">
           <el-form
             v-loading="loading"
             :model="settings"
@@ -510,13 +510,13 @@
           >
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="qBittorrent 版本">
-                  <span class="readonly-value">{{ settings.version || '未知' }}</span>
+                <el-form-item :label="t('settings.qbittorrent.qbittorrentVersion')">
+                  <span class="readonly-value">{{ settings.version || t('common.unknown') }}</span>
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="当前用户名">
-                  <span class="readonly-value">{{ settings['rpc-username'] || '未知' }}</span>
+                <el-form-item :label="t('settings.qbittorrent.currentUsername')">
+                  <span class="readonly-value">{{ settings['rpc-username'] || t('common.unknown') }}</span>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -530,19 +530,22 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import * as api from '@/api/torrents'
 import type { SessionConfig } from '@/types/transmission'
 import { useMediaQuery } from '@/utils/useMediaQuery'
 import { exportConfig, importConfig, filterConfig } from '@/utils/configExportImport'
 
+const { t } = useI18n()
+
 const loading = ref(false)
 const settings = ref<Partial<SessionConfig>>({})
 const activeTab = ref('download')
-const encryptionOptions = [
-  { label: '需要 (required)', value: 'required' },
-  { label: '优先 (preferred)', value: 'preferred' },
-  { label: '允许明文 (tolerated)', value: 'tolerated' },
-]
+const encryptionOptions = computed(() => [
+  { label: t('settings.qbittorrent.encryptionRequired'), value: 'required' },
+  { label: t('settings.qbittorrent.encryptionPreferred'), value: 'preferred' },
+  { label: t('settings.qbittorrent.encryptionTolerated'), value: 'tolerated' },
+])
 
 const isMobile = useMediaQuery('(max-width: 768px)')
 const formLabelPosition = computed(() => (isMobile.value ? 'top' : 'left'))
@@ -585,18 +588,18 @@ const webUiBanDuration = ref(3600)
 const alternativeWebuiEnabled = ref(false)
 const alternativeWebuiPath = ref('')
 
-const scheduleDayOptions = [
-  { label: '每天', value: 0 },
-  { label: '工作日', value: 1 },
-  { label: '周末', value: 2 },
-  { label: '周一', value: 3 },
-  { label: '周二', value: 4 },
-  { label: '周三', value: 5 },
-  { label: '周四', value: 6 },
-  { label: '周五', value: 7 },
-  { label: '周六', value: 8 },
-  { label: '周日', value: 9 },
-]
+const scheduleDayOptions = computed(() => [
+  { label: t('settings.qbittorrent.everyday'), value: 0 },
+  { label: t('settings.qbittorrent.weekdays'), value: 1 },
+  { label: t('settings.qbittorrent.weekends'), value: 2 },
+  { label: t('settings.qbittorrent.monday'), value: 3 },
+  { label: t('settings.qbittorrent.tuesday'), value: 4 },
+  { label: t('settings.qbittorrent.wednesday'), value: 5 },
+  { label: t('settings.qbittorrent.thursday'), value: 6 },
+  { label: t('settings.qbittorrent.friday'), value: 7 },
+  { label: t('settings.qbittorrent.saturday'), value: 8 },
+  { label: t('settings.qbittorrent.sunday'), value: 9 },
+])
 
 const editableFields: (keyof SessionConfig)[] = [
   'download-dir',
@@ -758,7 +761,7 @@ const loadSettings = async () => {
     s['speed-limit-up-enabled'] = (!!s['speed-limit-up-enabled']) || ((s['speed-limit-up'] || 0) > 0)
     s['speed-limit-down-enabled'] = (!!s['speed-limit-down-enabled']) || ((s['speed-limit-down'] || 0) > 0)
   } catch (error: any) {
-    ElMessage.error(`加载设置失败: ${error.message}`)
+    ElMessage.error(`${t('settings.qbittorrent.loadFailed')}: ${error.message}`)
   } finally {
     loading.value = false
   }
@@ -819,13 +822,13 @@ const saveSettings = async () => {
     updates['alternative-webui-path'] = alternativeWebuiPath.value
 
     await api.setSession(updates)
-    ElMessage.success('设置已保存')
+    ElMessage.success(t('settings.qbittorrent.saveSuccess'))
     await loadSettings()
     if (typeof savedStartAdded === 'boolean') {
       settings.value['start-added-torrents'] = savedStartAdded
     }
   } catch (error: any) {
-    ElMessage.error(`保存设置失败: ${error.message}`)
+    ElMessage.error(`${t('settings.qbittorrent.saveFailed')}: ${error.message}`)
   } finally {
     loading.value = false
   }
@@ -862,9 +865,9 @@ const exportSettings = () => {
     const filename = `qbittorrent-config-${dateStr}-${timeStr}`
 
     exportConfig(exportData, filename)
-    ElMessage.success('配置已导出')
+    ElMessage.success(t('settings.qbittorrent.configExported'))
   } catch (error: any) {
-    ElMessage.error(`导出失败: ${error.message || '未知错误'}`)
+    ElMessage.error(`${t('settings.qbittorrent.exportFailed')}: ${error.message || t('common.unknown')}`)
   }
 }
 
@@ -877,7 +880,7 @@ const importSettings = async () => {
 
     // 验证数据格式
     if (!data.config || typeof data.config !== 'object') {
-      ElMessage.error('配置文件格式无效')
+      ElMessage.error(t('settings.qbittorrent.invalidConfigFormat'))
       return
     }
 
@@ -886,11 +889,11 @@ const importSettings = async () => {
 
     // 确认导入
     await ElMessageBox.confirm(
-      `即将导入配置，这将覆盖当前设置。是否继续？`,
-      '确认导入',
+      t('settings.qbittorrent.importConfirm'),
+      t('settings.qbittorrent.confirmImportTitle'),
       {
-        confirmButtonText: '导入',
-        cancelButtonText: '取消',
+        confirmButtonText: t('settings.qbittorrent.import'),
+        cancelButtonText: t('common.cancel'),
         type: 'warning',
       }
     )
@@ -898,11 +901,11 @@ const importSettings = async () => {
     // 应用配置
     Object.assign(settings.value, importedConfig)
 
-    ElMessage.success('配置已导入，请点击"保存设置"以应用')
+    ElMessage.success(t('settings.qbittorrent.configImported'))
   } catch (error: any) {
     // 用户取消不显示错误
-    if (error.message && !error.message.includes('取消')) {
-      ElMessage.error(`导入失败: ${error.message || '未知错误'}`)
+    if (error.message && !error.message.includes('cancel')) {
+      ElMessage.error(`${t('settings.qbittorrent.importFailed')}: ${error.message || t('common.unknown')}`)
     }
   }
 }

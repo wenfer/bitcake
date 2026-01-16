@@ -2,18 +2,18 @@
   <div class="login-view">
     <el-card class="login-card">
       <template #header>
-        <h2><img :src="logoSrc" class="login-logo" /> {{ backendLabel }} 登录</h2>
+        <h2><img :src="logoSrc" class="login-logo" /> {{ backendLabel }} {{ t('login.title') }}</h2>
       </template>
       <el-form :model="form" :rules="rules" ref="formRef" label-width="80px" @submit.prevent="handleLogin">
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="form.username" placeholder="请输入用户名" />
+        <el-form-item :label="t('login.username')" prop="username">
+          <el-input v-model="form.username" :placeholder="t('login.usernamePlaceholder')" />
         </el-form-item>
-        <el-form-item label="密码" prop="password">
-          <el-input v-model="form.password" type="password" placeholder="请输入密码" @keyup.enter="handleLogin" />
+        <el-form-item :label="t('login.password')" prop="password">
+          <el-input v-model="form.password" type="password" :placeholder="t('login.passwordPlaceholder')" @keyup.enter="handleLogin" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" :loading="loading" @click="handleLogin" class="login-button">
-            登录
+            {{ t('login.loginButton') }}
           </el-button>
         </el-form-item>
       </el-form>
@@ -24,11 +24,13 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { useConnectionStore } from '@/stores/connection'
 import { configureConnection, testConnection } from '@/api/torrents'
 import { torrentBackendName, torrentApiBase, isTransmission } from '@/config/torrentClient'
 
+const { t } = useI18n()
 const router = useRouter()
 const connectionStore = useConnectionStore()
 const loading = ref(false)
@@ -46,14 +48,14 @@ const form = ref({
 })
 
 // 表单验证规则
-const rules: FormRules = {
+const rules = computed<FormRules>(() => ({
   username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' }
+    { required: true, message: t('login.usernameRequired'), trigger: 'blur' }
   ],
   password: [
-    { required: true, message: '请输入密码', trigger: 'blur' }
+    { required: true, message: t('login.passwordRequired'), trigger: 'blur' }
   ]
-}
+}))
 
 // 处理登录
 const handleLogin = async () => {
@@ -81,10 +83,10 @@ const handleLogin = async () => {
     connectionStore.saveConfig(config)
     connectionStore.setConnected(true)
 
-    ElMessage.success('登录成功')
+    ElMessage.success(t('login.loginSuccess'))
     router.push('/')
   } catch (error: any) {
-    ElMessage.error(`登录失败: ${error.message}`)
+    ElMessage.error(`${t('login.loginFailed')}: ${error.message}`)
     connectionStore.setConnected(false)
   } finally {
     loading.value = false

@@ -3,19 +3,19 @@
     <el-card v-if="isTransmissionClient">
       <template #header>
         <div class="card-header">
-          <span>全局设置</span>
+          <span>{{ t('settings.transmission.globalSettings') }}</span>
           <div class="header-actions">
-            <el-button type="primary" size="small" @click="saveSettings">保存设置</el-button>
-            <el-button size="small" @click="loadSettings">重置</el-button>
-            <el-button size="small" @click="exportSettings">导出配置</el-button>
-            <el-button size="small" @click="importSettings">导入配置</el-button>
+            <el-button type="primary" size="small" @click="saveSettings">{{ t('settings.transmission.saveSettings') }}</el-button>
+            <el-button size="small" @click="loadSettings">{{ t('common.reset') }}</el-button>
+            <el-button size="small" @click="exportSettings">{{ t('settings.transmission.exportConfig') }}</el-button>
+            <el-button size="small" @click="importSettings">{{ t('settings.transmission.importConfig') }}</el-button>
           </div>
         </div>
       </template>
 
       <el-tabs v-model="activeTab" class="settings-tabs">
         <!-- 下载与文件 -->
-        <el-tab-pane label="下载与文件" name="download">
+        <el-tab-pane :label="t('settings.transmission.downloadAndFiles')" name="download">
           <el-form
             v-loading="loading"
             :model="settings"
@@ -24,15 +24,15 @@
             size="small"
             class="compact-form"
           >
-            <el-divider content-position="left">保存路径</el-divider>
+            <el-divider content-position="left">{{ t('settings.transmission.savePath') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="默认保存目录">
+                <el-form-item :label="t('settings.transmission.defaultSaveDir')">
                   <el-input v-model="settings['download-dir']" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="启用临时目录">
+                <el-form-item :label="t('settings.transmission.enableIncompleteDir')">
                   <div class="inline-row">
                     <el-switch v-model="settings['incomplete-dir-enabled']" />
                     <el-input
@@ -45,15 +45,15 @@
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-divider content-position="left">添加行为与扩展名</el-divider>
+            <el-divider content-position="left">{{ t('settings.transmission.addBehaviorAndExtension') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="8">
-                <el-form-item label="自动开始新添加的种子">
+                <el-form-item :label="t('settings.transmission.autoStartNewTorrents')">
                   <el-switch v-model="settings['start-added-torrents']" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="8">
-                <el-form-item label="在未完成的文件名后加上“.part”后缀">
+                <el-form-item :label="t('settings.transmission.renamePartialFiles')">
                   <el-switch v-model="settings['rename-partial-files']" />
                 </el-form-item>
               </el-col>
@@ -62,7 +62,7 @@
         </el-tab-pane>
 
         <!-- 速度限制 -->
-        <el-tab-pane label="速度限制" name="speed">
+        <el-tab-pane :label="t('settings.transmission.speedLimit')" name="speed">
           <el-form
             v-loading="loading"
             :model="settings"
@@ -71,10 +71,10 @@
             size="small"
             class="compact-form"
           >
-            <el-divider content-position="left">全局速度限制</el-divider>
+            <el-divider content-position="left">{{ t('settings.transmission.globalSpeedLimit') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="启用最大下载速度限制 (KB/s)">
+                <el-form-item :label="t('settings.transmission.enableMaxDownloadSpeed')">
                   <div class="inline-row">
                     <el-switch v-model="settings['speed-limit-down-enabled']" />
                     <el-input-number
@@ -87,7 +87,7 @@
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="启用最大上传速度限制 (KB/s)">
+                <el-form-item :label="t('settings.transmission.enableMaxUploadSpeed')">
                   <div class="inline-row">
                     <el-switch v-model="settings['speed-limit-up-enabled']" />
                     <el-input-number
@@ -100,35 +100,35 @@
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-divider content-position="left">备用速度限制</el-divider>
+            <el-divider content-position="left">{{ t('settings.transmission.altSpeedLimit') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="备用下载限速 (KB/s)">
+                <el-form-item :label="t('settings.transmission.altDownloadSpeed')">
                   <el-input-number v-model="settings['alt-speed-down']" :min="0" class="full-width" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="备用上传限速 (KB/s)">
+                <el-form-item :label="t('settings.transmission.altUploadSpeed')">
                   <el-input-number v-model="settings['alt-speed-up']" :min="0" class="full-width" />
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-divider content-position="left">定时计划</el-divider>
+            <el-divider content-position="left">{{ t('settings.transmission.schedule') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="8">
-                <el-form-item label="启用备用限速">
+                <el-form-item :label="t('settings.transmission.enableAltSpeed')">
                   <el-switch v-model="settings['alt-speed-enabled']" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="8">
-                <el-form-item label="备用限速计划">
+                <el-form-item :label="t('settings.transmission.altSpeedSchedule')">
                   <el-switch v-model="settings['alt-speed-time-enabled']" />
                 </el-form-item>
               </el-col>
             </el-row>
             <el-row :gutter="16" v-if="settings['alt-speed-time-enabled']">
               <el-col :xs="24" :md="8">
-                <el-form-item label="开始时间">
+                <el-form-item :label="t('settings.transmission.startTime')">
                   <el-time-select
                     v-model="altSpeedBeginTime"
                     start="00:00"
@@ -139,7 +139,7 @@
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="8">
-                <el-form-item label="结束时间">
+                <el-form-item :label="t('settings.transmission.endTime')">
                   <el-time-select
                     v-model="altSpeedEndTime"
                     start="00:00"
@@ -150,12 +150,12 @@
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="8">
-                <el-form-item label="生效星期">
+                <el-form-item :label="t('settings.transmission.effectiveDays')">
                   <el-select
                     v-model="altSpeedDays"
                     multiple
                     collapse-tags
-                    placeholder="选择生效的天"
+                    :placeholder="t('settings.transmission.selectDays')"
                     class="full-width"
                   >
                     <el-option
@@ -168,10 +168,10 @@
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-divider content-position="left">分享率与做种限制</el-divider>
+            <el-divider content-position="left">{{ t('settings.transmission.seedRatioAndLimit') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="当种子的分享率达到这个数时，自动停止做种">
+                <el-form-item :label="t('settings.transmission.stopSeedingAtRatio')">
                   <div class="inline-row">
                     <el-switch v-model="settings['seedRatioLimited']" />
                     <el-input-number
@@ -185,7 +185,7 @@
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="当种子超过这个时间没有流量时，自动停止做种(分钟)">
+                <el-form-item :label="t('settings.transmission.stopSeedingWhenIdle')">
                   <div class="inline-row">
                     <el-switch v-model="settings['seedIdleLimited']" />
                     <el-input-number
@@ -202,7 +202,7 @@
         </el-tab-pane>
 
         <!-- 连接与端口 -->
-        <el-tab-pane label="连接与端口" name="connection">
+        <el-tab-pane :label="t('settings.transmission.connectionAndPort')" name="connection">
           <el-form
             v-loading="loading"
             :model="settings"
@@ -211,18 +211,18 @@
             size="small"
             class="compact-form"
           >
-            <el-divider content-position="left">端口与映射</el-divider>
+            <el-divider content-position="left">{{ t('settings.transmission.portAndMapping') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="8">
-                <el-form-item label="使用 Peer 固定端口">
+                <el-form-item :label="t('settings.transmission.peerFixedPort')">
                   <el-input-number v-model="settings['peer-port']" :min="1" :max="65535" class="full-width" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="8">
-                <el-form-item label="端口连通性">
+                <el-form-item :label="t('settings.transmission.portConnectivity')">
                   <div class="port-test">
                     <el-button size="small" :loading="testingPort" @click="handleTestPort">
-                      测试端口
+                      {{ t('settings.transmission.testPort') }}
                     </el-button>
                     <el-tag
                       v-if="portTestResult !== null"
@@ -230,40 +230,40 @@
                       effect="plain"
                       size="small"
                     >
-                      {{ portTestResult ? '端口开放' : '端口关闭' }}
+                      {{ portTestResult ? t('settings.transmission.portOpenStatus') : t('settings.transmission.portClosedStatus') }}
                     </el-tag>
                   </div>
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="8">
-                <el-form-item label="端口映射 (UPnP)">
+                <el-form-item :label="t('settings.transmission.portMapping')">
                   <el-switch v-model="settings['port-forwarding-enabled']" />
                 </el-form-item>
               </el-col>
             </el-row>
             <el-row :gutter="16">
               <el-col :xs="24" :md="8">
-                <el-form-item label="启动时随机端口">
+                <el-form-item :label="t('settings.transmission.randomPortOnStart')">
                   <el-switch v-model="settings['peer-port-random-on-start']" />
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-divider content-position="left">连接上限与加密</el-divider>
+            <el-divider content-position="left">{{ t('settings.transmission.connectionLimitAndEncryption') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="全局 Peer 链接数限制为">
+                <el-form-item :label="t('settings.transmission.globalPeerLimit')">
                   <el-input-number v-model="settings['peer-limit-global']" :min="1" class="full-width" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="单个种子 Peer 最大链接数">
+                <el-form-item :label="t('settings.transmission.perTorrentPeerLimit')">
                   <el-input-number v-model="settings['peer-limit-per-torrent']" :min="1" class="full-width" />
                 </el-form-item>
               </el-col>
             </el-row>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="加密策略">
+                <el-form-item :label="t('settings.transmission.encryptionPolicy')">
                   <el-select v-model="settings.encryption" class="full-width">
                     <el-option
                       v-for="option in encryptionOptions"
@@ -279,7 +279,7 @@
         </el-tab-pane>
 
         <!-- 协议支持 -->
-        <el-tab-pane label="协议支持" name="protocol">
+        <el-tab-pane :label="t('settings.transmission.protocolSupport')" name="protocol">
           <el-form
             v-loading="loading"
             :model="settings"
@@ -288,25 +288,25 @@
             size="small"
             class="compact-form"
           >
-            <el-divider content-position="left">用户发现与交换</el-divider>
+            <el-divider content-position="left">{{ t('settings.transmission.peerDiscoveryAndExchange') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="12" :md="6">
-                <el-form-item label="启用分布式哈希表 (DHT)">
+                <el-form-item :label="t('settings.transmission.enableDHT')">
                   <el-switch v-model="settings['dht-enabled']" />
                 </el-form-item>
               </el-col>
               <el-col :xs="12" :md="6">
-                <el-form-item label="启用用户交换 (PEX)">
+                <el-form-item :label="t('settings.transmission.enablePEX')">
                   <el-switch v-model="settings['pex-enabled']" />
                 </el-form-item>
               </el-col>
               <el-col :xs="12" :md="6">
-                <el-form-item label="启用本地用户发现 (LPD)">
+                <el-form-item :label="t('settings.transmission.enableLPD')">
                   <el-switch v-model="settings['lpd-enabled']" />
                 </el-form-item>
               </el-col>
               <el-col :xs="12" :md="6">
-                <el-form-item label="启用uTP">
+                <el-form-item :label="t('settings.transmission.enableUTP')">
                   <el-switch v-model="settings['utp-enabled']" />
                 </el-form-item>
               </el-col>
@@ -315,7 +315,7 @@
         </el-tab-pane>
 
         <!-- 队列管理 -->
-        <el-tab-pane label="队列管理" name="queue">
+        <el-tab-pane :label="t('settings.transmission.queueManagement')" name="queue">
           <el-form
             v-loading="loading"
             :model="settings"
@@ -324,10 +324,10 @@
             size="small"
             class="compact-form"
           >
-            <el-divider content-position="left">队列上限</el-divider>
+            <el-divider content-position="left">{{ t('settings.transmission.queueLimit') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="启用下载队列，最大同时下载数">
+                <el-form-item :label="t('settings.transmission.enableDownloadQueue')">
                   <div class="inline-row">
                     <el-switch v-model="settings['download-queue-enabled']" />
                     <el-input-number
@@ -340,7 +340,7 @@
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="启用上传队列，最大同时上传数">
+                <el-form-item :label="t('settings.transmission.enableSeedQueue')">
                   <div class="inline-row">
                     <el-switch v-model="settings['seed-queue-enabled']" />
                     <el-input-number
@@ -353,15 +353,15 @@
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-divider content-position="left">卡住任务判定</el-divider>
+            <el-divider content-position="left">{{ t('settings.transmission.stalledTaskDetection') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="检测卡住任务（不计入队列）">
+                <el-form-item :label="t('settings.transmission.detectStalledTasks')">
                   <el-switch v-model="settings['queue-stalled-enabled']" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="判定卡住的分钟数">
+                <el-form-item :label="t('settings.transmission.stalledMinutes')">
                   <el-input-number v-model="settings['queue-stalled-minutes']" :min="0" class="full-width" />
                 </el-form-item>
               </el-col>
@@ -370,7 +370,7 @@
         </el-tab-pane>
 
         <!-- RPC 与访问控制 -->
-        <el-tab-pane label="RPC 配置" name="rpc">
+        <el-tab-pane :label="t('settings.transmission.rpcConfig')" name="rpc">
           <el-form
             v-loading="loading"
             :model="settings"
@@ -379,30 +379,30 @@
             size="small"
             class="compact-form"
           >
-            <el-divider content-position="left">认证</el-divider>
+            <el-divider content-position="left">{{ t('settings.transmission.authentication') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="需要认证">
+                <el-form-item :label="t('settings.transmission.requireAuth')">
                   <el-switch v-model="settings['rpc-authentication-required']" />
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="12">
-                <el-form-item label="用户名">
+                <el-form-item :label="t('settings.transmission.username')">
                   <el-input v-model="settings['rpc-username']" />
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-divider content-position="left">白名单</el-divider>
+            <el-divider content-position="left">{{ t('settings.transmission.whitelist') }}</el-divider>
             <el-row :gutter="16">
               <el-col :xs="24" :md="12">
-                <el-form-item label="启用白名单">
+                <el-form-item :label="t('settings.transmission.enableWhitelist')">
                   <el-switch v-model="settings['rpc-whitelist-enabled']" />
                 </el-form-item>
               </el-col>
             </el-row>
             <el-row :gutter="16">
               <el-col :xs="24">
-                <el-form-item label="访问白名单（逗号分隔）">
+                <el-form-item :label="t('settings.transmission.whitelistAddresses')">
                   <el-input
                     v-model="settings['rpc-whitelist']"
                     type="textarea"
@@ -416,7 +416,7 @@
         </el-tab-pane>
 
         <!-- 系统信息 -->
-        <el-tab-pane label="系统信息" name="system">
+        <el-tab-pane :label="t('settings.transmission.systemInfo')" name="system">
           <el-form
             v-loading="loading"
             :model="settings"
@@ -427,18 +427,18 @@
           >
             <el-row :gutter="16">
               <el-col :xs="24" :md="8">
-                <el-form-item :label="`${backendLabel} 版本`">
-                  <span class="readonly-value">{{ settings.version || '未知' }}</span>
+                <el-form-item :label="t('settings.transmission.backendVersion', { backend: backendLabel })">
+                  <span class="readonly-value">{{ settings.version || t('common.unknown') }}</span>
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="8">
-                <el-form-item label="RPC 版本">
-                  <span class="readonly-value">{{ settings['rpc-version'] ?? '未知' }}</span>
+                <el-form-item :label="t('settings.transmission.rpcVersion')">
+                  <span class="readonly-value">{{ settings['rpc-version'] ?? t('common.unknown') }}</span>
                 </el-form-item>
               </el-col>
               <el-col :xs="24" :md="8">
-                <el-form-item label="RPC 最低版本">
-                  <span class="readonly-value">{{ settings['rpc-version-minimum'] ?? '未知' }}</span>
+                <el-form-item :label="t('settings.transmission.rpcMinVersion')">
+                  <span class="readonly-value">{{ settings['rpc-version-minimum'] ?? t('common.unknown') }}</span>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -449,12 +449,10 @@
 
     <el-card v-else>
       <template #header>
-        <span>{{ backendLabel }} 全局设置</span>
+        <span>{{ t('settings.transmission.backendGlobalSettings', { backend: backendLabel }) }}</span>
       </template>
       <p class="compat-hint">
-        {{ backendLabel }} 正在使用兼容模式，仅展示核心只读信息。如需调整参数，请直接在 {{
-          backendLabel
-        }} 原生设置界面中处理。
+        {{ t('settings.transmission.compatModeHint', { backend: backendLabel }) }}
       </p>
       <el-descriptions :column="1" border size="small">
         <el-descriptions-item
@@ -477,26 +475,29 @@ import { isTransmission, torrentBackendName } from '@/config/torrentClient'
 import type { SessionConfig } from '@/types/transmission'
 import { useMediaQuery } from '@/utils/useMediaQuery'
 import { exportConfig, importConfig, filterConfig } from '@/utils/configExportImport'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const settings = ref<Partial<SessionConfig>>({})
 const activeTab = ref('download')
 const isTransmissionClient = isTransmission
 const backendLabel = torrentBackendName
-const encryptionOptions = [
-  { label: '需要 (required)', value: 'required' },
-  { label: '优先 (preferred)', value: 'preferred' },
-  { label: '允许明文 (tolerated)', value: 'tolerated' },
-]
-const dayOptions = [
-  { label: '周一', value: 2 },
-  { label: '周二', value: 4 },
-  { label: '周三', value: 8 },
-  { label: '周四', value: 16 },
-  { label: '周五', value: 32 },
-  { label: '周六', value: 64 },
-  { label: '周日', value: 1 },
-]
+const encryptionOptions = computed(() => [
+  { label: t('settings.transmission.encryptionRequired'), value: 'required' },
+  { label: t('settings.transmission.encryptionPreferred'), value: 'preferred' },
+  { label: t('settings.transmission.encryptionTolerated'), value: 'tolerated' },
+])
+const dayOptions = computed(() => [
+  { label: t('settings.transmission.monday'), value: 2 },
+  { label: t('settings.transmission.tuesday'), value: 4 },
+  { label: t('settings.transmission.wednesday'), value: 8 },
+  { label: t('settings.transmission.thursday'), value: 16 },
+  { label: t('settings.transmission.friday'), value: 32 },
+  { label: t('settings.transmission.saturday'), value: 64 },
+  { label: t('settings.transmission.sunday'), value: 1 },
+])
 const testingPort = ref(false)
 const portTestResult = ref<boolean | null>(null)
 
@@ -580,7 +581,7 @@ const altSpeedEndTime = computed({
 const altSpeedDays = computed({
   get: () => {
     const dayMask = settings.value['alt-speed-time-day'] ?? 0
-    return dayOptions.filter((day) => (dayMask & day.value) !== 0).map((day) => day.value)
+    return dayOptions.value.filter((day) => (dayMask & day.value) !== 0).map((day) => day.value)
   },
   set: (values: number[]) => {
     settings.value['alt-speed-time-day'] = values.reduce((sum, val) => sum + val, 0)
@@ -593,7 +594,7 @@ const loadSettings = async () => {
     const result = await api.getSession()
     settings.value = result
   } catch (error: any) {
-    ElMessage.error(`加载失败: ${error.message}`)
+    ElMessage.error(`${t('settings.transmission.loadFailed')}: ${error.message}`)
   } finally {
     loading.value = false
   }
@@ -601,7 +602,7 @@ const loadSettings = async () => {
 
 const saveSettings = async () => {
   if (!isTransmissionClient) {
-    ElMessage.info(`${backendLabel} 设置请在服务器端或原生 Web UI 中修改`)
+    ElMessage.info(t('settings.transmission.modifyOnServer', { backend: backendLabel }))
     return
   }
   loading.value = true
@@ -614,39 +615,39 @@ const saveSettings = async () => {
       }
     })
     await api.setSession(payload)
-    ElMessage.success('保存成功')
+    ElMessage.success(t('settings.transmission.saveSuccess'))
     loadSettings()
   } catch (error: any) {
-    ElMessage.error(`保存失败: ${error.message}`)
+    ElMessage.error(`${t('settings.transmission.saveFailed')}: ${error.message}`)
   } finally {
     loading.value = false
   }
 }
 
 const formatLimitText = (enabled?: boolean, value?: number) => {
-  if (!enabled) return '未启用'
+  if (!enabled) return t('common.disabled')
   return `${value ?? 0} KB/s`
 }
 
 const readonlySettingItems = computed(() => [
-  { label: '下载目录', value: settings.value['download-dir'] || '—' },
-  { label: '未完成目录', value: settings.value['incomplete-dir'] || '—' },
+  { label: t('settings.transmission.downloadDir'), value: settings.value['download-dir'] || '—' },
+  { label: t('settings.transmission.incompleteDir'), value: settings.value['incomplete-dir'] || '—' },
   {
-    label: '下载限速',
+    label: t('settings.transmission.downloadLimit'),
     value: formatLimitText(
       settings.value['speed-limit-down-enabled'],
       settings.value['speed-limit-down']
     ),
   },
   {
-    label: '上传限速',
+    label: t('settings.transmission.uploadLimit'),
     value: formatLimitText(
       settings.value['speed-limit-up-enabled'],
       settings.value['speed-limit-up']
     ),
   },
-  { label: 'Peer 端口', value: settings.value['peer-port'] || '—' },
-  { label: '客户端版本', value: settings.value.version || backendLabel },
+  { label: t('settings.transmission.peerPort'), value: settings.value['peer-port'] || '—' },
+  { label: t('settings.transmission.clientVersion'), value: settings.value.version || backendLabel },
 ])
 
 const handleTestPort = async () => {
@@ -655,13 +656,13 @@ const handleTestPort = async () => {
     const result = await api.testPort()
     portTestResult.value = result['port-is-open']
     if (result['port-is-open']) {
-      ElMessage.success('端口开放，可以接受外部连接')
+      ElMessage.success(t('settings.transmission.portOpen'))
     } else {
-      ElMessage.warning('端口未开放，请检查路由或防火墙')
+      ElMessage.warning(t('settings.transmission.portClosed'))
     }
   } catch (error: any) {
     portTestResult.value = null
-    ElMessage.error(`测试失败: ${error.message || error}`)
+    ElMessage.error(`${t('settings.transmission.testFailed')}: ${error.message || error}`)
   } finally {
     testingPort.value = false
   }
@@ -698,9 +699,9 @@ const exportSettings = () => {
     const filename = `transmission-config-${dateStr}-${timeStr}`
 
     exportConfig(exportData, filename)
-    ElMessage.success('配置已导出')
+    ElMessage.success(t('settings.transmission.configExported'))
   } catch (error: any) {
-    ElMessage.error(`导出失败: ${error.message || '未知错误'}`)
+    ElMessage.error(`${t('settings.transmission.exportFailed')}: ${error.message || t('common.unknown')}`)
   }
 }
 
@@ -713,7 +714,7 @@ const importSettings = async () => {
 
     // 验证数据格式
     if (!data.config || typeof data.config !== 'object') {
-      ElMessage.error('配置文件格式无效')
+      ElMessage.error(t('settings.transmission.invalidConfigFormat'))
       return
     }
 
@@ -722,11 +723,11 @@ const importSettings = async () => {
 
     // 确认导入
     await ElMessageBox.confirm(
-      `即将导入配置，这将覆盖当前设置。是否继续？`,
-      '确认导入',
+      t('settings.transmission.importConfirm'),
+      t('settings.transmission.confirmImportTitle'),
       {
-        confirmButtonText: '导入',
-        cancelButtonText: '取消',
+        confirmButtonText: t('settings.transmission.import'),
+        cancelButtonText: t('common.cancel'),
         type: 'warning',
       }
     )
@@ -734,11 +735,11 @@ const importSettings = async () => {
     // 应用配置
     Object.assign(settings.value, importedConfig)
 
-    ElMessage.success('配置已导入，请点击"保存设置"以应用')
+    ElMessage.success(t('settings.transmission.configImported'))
   } catch (error: any) {
     // 用户取消不显示错误
     if (error.message && !error.message.includes('取消')) {
-      ElMessage.error(`导入失败: ${error.message || '未知错误'}`)
+      ElMessage.error(`${t('settings.transmission.importFailed')}: ${error.message || t('common.unknown')}`)
     }
   }
 }

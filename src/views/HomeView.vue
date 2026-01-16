@@ -3,23 +3,23 @@
     <div class="toolbar">
       <div class="actions-group">
         <el-button type="primary" :icon="Plus" @click="showAddDialog = true">
-          添加种子
+          {{ t('torrent.addTorrent') }}
         </el-button>
-        <el-button :icon="Refresh" @click="loadTorrents()">刷新</el-button>
+        <el-button :icon="Refresh" @click="loadTorrents()">{{ t('common.refresh') }}</el-button>
         <template v-if="!isMobile">
           <el-button
             :icon="VideoPlay"
             :disabled="!hasSelection"
             @click="startSelected"
           >
-            开始选中
+            {{ t('torrent.startSelected') }}
           </el-button>
           <el-button
             :icon="VideoPause"
             :disabled="!hasSelection"
             @click="stopSelected"
           >
-            暂停选中
+            {{ t('torrent.stopSelected') }}
           </el-button>
           <el-button
             type="danger"
@@ -27,44 +27,44 @@
             :disabled="!hasSelection"
             @click="removeSelected"
           >
-            删除选中
+            {{ t('torrent.deleteSelected') }}
           </el-button>
-          <el-button @click="openBatchLimitDialog"> 批量限速 </el-button>
+          <el-button @click="openBatchLimitDialog"> {{ t('torrent.batchLimit') }} </el-button>
           <el-button :disabled="!hasSelection" @click="openLabelsDialog">
-            批量标签
+            {{ t('torrent.batchLabels') }}
           </el-button>
           <el-button @click="openReplaceTrackerDialog">
-            批量替换Tracker
+            {{ t('torrent.batchReplaceTracker') }}
           </el-button>
-          <el-button @click="resetColumnWidths" title="重置所有列的宽度为默认值">
-            重置列宽
+          <el-button @click="resetColumnWidths" :title="t('torrent.resetColumnWidthTitle')">
+            {{ t('torrent.resetColumnWidth') }}
           </el-button>
         </template>
         <template v-else>
           <el-dropdown trigger="click" @command="handleActionCommand">
-            <el-button :icon="Operation">操作</el-button>
+            <el-button :icon="Operation">{{ t('common.operation') }}</el-button>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="start" :disabled="!hasSelection">
-                  开始选中
+                  {{ t('torrent.startSelected') }}
                 </el-dropdown-item>
                 <el-dropdown-item command="stop" :disabled="!hasSelection">
-                  暂停选中
+                  {{ t('torrent.stopSelected') }}
                 </el-dropdown-item>
                 <el-dropdown-item command="remove" :disabled="!hasSelection">
-                  删除选中
+                  {{ t('torrent.deleteSelected') }}
                 </el-dropdown-item>
                 <el-dropdown-item command="limit">
-                  批量限速
+                  {{ t('torrent.batchLimit') }}
                 </el-dropdown-item>
                 <el-dropdown-item command="labels" :disabled="!hasSelection">
-                  批量标签
+                  {{ t('torrent.batchLabels') }}
                 </el-dropdown-item>
                 <el-dropdown-item command="replaceTracker">
-                  批量替换Tracker
+                  {{ t('torrent.batchReplaceTracker') }}
                 </el-dropdown-item>
                 <el-dropdown-item command="resetWidth">
-                  重置列宽
+                  {{ t('torrent.resetColumnWidth') }}
                 </el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -78,7 +78,7 @@
         plain
         @click="toggleMobileFilters"
       >
-        {{ showMobileFilters ? "收起筛选" : "展开筛选" }}
+        {{ showMobileFilters ? t('torrent.collapseFilter') : t('torrent.expandFilter') }}
       </el-button>
     </div>
 
@@ -91,14 +91,14 @@
         <div class="submenu-section filter-controls">
           <el-select
             v-model="trackerFilter"
-            placeholder="选择 Tracker"
+            :placeholder="t('torrent.selectTracker')"
             clearable
             filterable
             :filter-method="filterTrackerOptions"
             class="filter-select"
             @clear="trackerFilter = ''"
           >
-            <el-option label="全部 Tracker" value="" />
+            <el-option :label="t('torrent.allTrackers')" value="" />
             <el-option
               v-for="tracker in filteredTrackerOptions"
               :key="tracker.value"
@@ -109,13 +109,13 @@
           <el-select
             v-if="categoryOptions.length > 0"
             v-model="categoryFilter"
-            placeholder="选择分类"
+            :placeholder="t('torrent.selectCategory')"
             clearable
             filterable
             class="filter-select"
             @clear="categoryFilter = ''"
           >
-            <el-option label="全部分类" value="" />
+            <el-option :label="t('torrent.allCategories')" value="" />
             <el-option
               v-for="category in categoryOptions"
               :key="category.value"
@@ -126,13 +126,13 @@
           <el-select
             v-if="downloadDirOptions.length > 0"
             v-model="downloadDirFilter"
-            placeholder="选择保存目录"
+            :placeholder="t('torrent.selectSaveDir')"
             clearable
             filterable
             class="filter-select"
             @clear="downloadDirFilter = ''"
           >
-            <el-option label="全部目录" value="" />
+            <el-option :label="t('torrent.allDirs')" value="" />
             <el-option
               v-for="option in downloadDirOptions"
               :key="option.value"
@@ -143,13 +143,13 @@
           <el-select
             v-if="errorTypeOptions.length > 0"
             v-model="errorTypeFilter"
-            placeholder="选择错误类型"
+            :placeholder="t('torrent.selectErrorType')"
             clearable
             filterable
             class="filter-select"
             @clear="errorTypeFilter = ''"
           >
-            <el-option label="全部错误" value="" />
+            <el-option :label="t('torrent.allErrors')" value="" />
             <el-option
               v-for="option in errorTypeOptions"
               :key="option.value"
@@ -159,14 +159,14 @@
           </el-select>
           <el-input
             v-model="searchKeyword"
-            placeholder="搜索种子..."
+            :placeholder="t('torrent.searchTorrent')"
             :prefix-icon="Search"
             clearable
             class="filter-input"
           />
         </div>
         <div class="submenu-section update-info" v-if="lastFetchedAt">
-          <span>数据更新时间：{{ lastFetchedAt }}</span>
+          <span>{{ t('torrent.dataUpdateTime') }}：{{ lastFetchedAt }}</span>
         </div>
       </div>
     </Transition>
@@ -211,66 +211,66 @@
       @click.stop
     >
       <div v-if="contextMenuTargets.length > 1" class="context-menu-header">
-        已选 {{ contextMenuTargets.length }} 个种子
+        {{ t('torrent.selectedCount', { count: contextMenuTargets.length }) }}
       </div>
       <button
         v-if="contextMenuHasStoppedTorrent"
         @click="handleContextAction('start')"
       >
-        开始{{ contextMenuTargets.length > 1 ? "选中" : "" }}
+        {{ t('torrent.startItem') }}{{ contextMenuTargets.length > 1 ? t('common.start') : '' }}
       </button>
       <button
         v-if="contextMenuHasRunningTorrent"
         @click="handleContextAction('stop')"
       >
-        暂停{{ contextMenuTargets.length > 1 ? "选中" : "" }}
+        {{ t('torrent.stopItem') }}{{ contextMenuTargets.length > 1 ? t('common.stop') : '' }}
       </button>
       <button @click="handleContextAction('verify')">
-        重新校验{{ contextMenuTargets.length > 1 ? "选中" : "" }}
+        {{ t('torrent.verify') }}{{ contextMenuTargets.length > 1 ? t('common.start') : '' }}
       </button>
       <button @click="handleContextAction('reannounce')">
-        重新汇报{{ contextMenuTargets.length > 1 ? "选中" : "" }}
+        {{ t('torrent.reannounce') }}{{ contextMenuTargets.length > 1 ? t('common.start') : '' }}
       </button>
-      <button @click="handleContextAction('location')">变更保存目录</button>
-      <button @click="handleContextAction('category')">设置分类</button>
-      <button @click="handleContextAction('labels')">修改标签</button>
+      <button @click="handleContextAction('location')">{{ t('torrent.changeLocation') }}</button>
+      <button @click="handleContextAction('category')">{{ t('torrent.setCategory') }}</button>
+      <button @click="handleContextAction('labels')">{{ t('torrent.modifyLabels') }}</button>
       <button
         v-if="contextMenuTargets.length === 1"
         @click="handleContextAction('detail')"
       >
-        查看详情
+        {{ t('torrent.viewDetail') }}
       </button>
-      <button @click="handleContextAction('limit')">限速设置</button>
+      <button @click="handleContextAction('limit')">{{ t('torrent.limitSettings') }}</button>
       <div class="context-menu-divider"></div>
-      <button @click="handleContextAction('copy')">复制文本</button>
+      <button @click="handleContextAction('copy')">{{ t('torrent.copyText') }}</button>
       <div class="context-menu-divider"></div>
       <button class="danger" @click="handleContextAction('delete')">
-        删除{{ contextMenuTargets.length > 1 ? "选中" : "" }}
+        {{ t('torrent.deleteItem') }}{{ contextMenuTargets.length > 1 ? t('common.start') : '' }}
       </button>
     </div>
 
     <!-- 添加种子对话框 -->
     <el-dialog
       v-model="showAddDialog"
-      title="添加种子（支持批量）"
+      :title="t('torrent.addTorrentBatch')"
       :width="defaultDialogWidth"
     >
       <el-form :model="addForm" label-width="100px">
-        <el-form-item label="种子来源">
+        <el-form-item :label="t('torrent.source')">
           <el-radio-group v-model="addForm.type">
-            <el-radio label="magnet">磁力链接</el-radio>
-            <el-radio label="file">种子文件</el-radio>
+            <el-radio label="magnet">{{ t('torrent.magnetLink') }}</el-radio>
+            <el-radio label="file">{{ t('torrent.torrentFile') }}</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item v-if="addForm.type === 'magnet'" label="磁力链接">
+        <el-form-item v-if="addForm.type === 'magnet'" :label="t('torrent.magnetLink')">
           <el-input
             v-model="addForm.magnet"
             type="textarea"
             :rows="6"
-            placeholder="支持批量添加，每行一个磁力链接&#10;magnet:?xt=urn:btih:...&#10;magnet:?xt=urn:btih:..."
+            :placeholder="t('torrent.magnetLinkPlaceholder') + '\nmagnet:?xt=urn:btih:...\nmagnet:?xt=urn:btih:...'"
           />
         </el-form-item>
-        <el-form-item v-else label="种子文件">
+        <el-form-item v-else :label="t('torrent.torrentFile')">
           <el-upload
             ref="uploadRef"
             class="torrent-file-upload"
@@ -281,20 +281,20 @@
             :file-list="fileList"
             multiple
           >
-            <el-button :icon="Upload">选择文件（支持多选）</el-button>
+            <el-button :icon="Upload">{{ t('torrent.selectFile') }}</el-button>
           </el-upload>
         </el-form-item>
-        <el-form-item label="下载目录">
+        <el-form-item :label="t('torrent.downloadDir')">
           <el-autocomplete
             v-model="addForm.downloadDir"
             :fetch-suggestions="searchDownloadDirs"
-            placeholder="留空使用默认目录"
+            :placeholder="t('torrent.downloadDirPlaceholder')"
             style="width: 100%"
             clearable
             trigger-on-focus
           />
         </el-form-item>
-        <el-form-item label="自动开始">
+        <el-form-item :label="t('torrent.autoStart')">
           <el-switch
             v-model="addForm.paused"
             :active-value="false"
@@ -303,18 +303,18 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showAddDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleAddTorrent">确定</el-button>
+        <el-button @click="showAddDialog = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" @click="handleAddTorrent">{{ t('common.confirm') }}</el-button>
       </template>
     </el-dialog>
 
     <el-dialog
       v-model="showLocationDialog"
-      title="变更保存目录"
+      :title="t('torrent.changeLocation')"
       :width="defaultDialogWidth"
     >
       <el-form :model="locationForm" label-width="120px">
-        <el-form-item label="新的保存目录">
+        <el-form-item :label="t('torrent.newSaveDir')">
           <el-autocomplete
             v-model="locationForm.path"
             :fetch-suggestions="searchDownloadDirs"
@@ -325,55 +325,55 @@
           />
         </el-form-item>
         <el-form-item label="">
-          <el-checkbox v-model="locationForm.move">同时移动文件</el-checkbox>
+          <el-checkbox v-model="locationForm.move">{{ t('torrent.moveFiles') }}</el-checkbox>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showLocationDialog = false">取消</el-button>
-        <el-button type="primary" @click="submitLocationChange">确定</el-button>
+        <el-button @click="showLocationDialog = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" @click="submitLocationChange">{{ t('common.confirm') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 设置分类对话框 -->
     <el-dialog
       v-model="showCategoryDialog"
-      title="设置分类"
+      :title="t('torrent.setCategory')"
       :width="defaultDialogWidth"
     >
       <el-form :model="categoryForm" label-width="80px">
-        <el-form-item label="分类">
+        <el-form-item :label="t('torrent.categoryName')">
           <el-autocomplete
             v-model="categoryForm.category"
             :fetch-suggestions="searchCategory"
-            placeholder="输入分类名称或从现有分类中选择"
+            :placeholder="t('torrent.categoryPlaceholder')"
             style="width: 100%"
             clearable
           />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showCategoryDialog = false">取消</el-button>
-        <el-button type="primary" @click="submitCategoryChange">确定</el-button>
+        <el-button @click="showCategoryDialog = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" @click="submitCategoryChange">{{ t('common.confirm') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 批量修改标签对话框 -->
     <el-dialog
       v-model="showLabelsDialog"
-      title="批量修改标签"
+      :title="t('torrent.modifyLabels')"
       :width="defaultDialogWidth"
     >
       <p class="dialog-subtitle">
-        {{ labelsDialogTargetTorrents.length }} 个种子
+        {{ labelsDialogTargetTorrents.length }} {{ t('torrent.torrentsCount') }}
       </p>
 
       <el-form :model="labelsForm" label-width="100px">
         <!-- 操作模式选择 -->
-        <el-form-item label="操作模式">
+        <el-form-item :label="t('torrent.operationMode')">
           <el-radio-group v-model="labelsForm.mode">
-            <el-radio label="add">添加标签</el-radio>
-            <el-radio label="replace">替换标签</el-radio>
-            <el-radio label="remove">移除标签</el-radio>
+            <el-radio label="add">{{ t('torrent.addLabels') }}</el-radio>
+            <el-radio label="replace">{{ t('torrent.replaceLabels') }}</el-radio>
+            <el-radio label="remove">{{ t('torrent.removeLabels') }}</el-radio>
           </el-radio-group>
           <div class="form-tip">
             {{ getLabelsModeDescription() }}
@@ -382,7 +382,7 @@
 
         <!-- 标签输入 -->
         <el-form-item
-          :label="labelsForm.mode === 'remove' ? '移除标签' : '标签'"
+          :label="labelsForm.mode === 'remove' ? t('torrent.removeLabel') : t('torrent.labels')"
         >
           <el-select
             v-model="labelsForm.selectedLabels"
@@ -408,7 +408,7 @@
         <!-- 当前标签预览（非移除模式下显示） -->
         <el-form-item
           v-if="labelsForm.mode !== 'remove' && currentLabelsPreview.length > 0"
-          label="当前标签"
+          :label="t('torrent.currentLabels')"
         >
           <div class="current-labels-preview">
             <el-tag
@@ -424,20 +424,20 @@
       </el-form>
 
       <template #footer>
-        <el-button @click="showLabelsDialog = false">取消</el-button>
+        <el-button @click="showLabelsDialog = false">{{ t('common.cancel') }}</el-button>
         <el-button
           type="primary"
           :disabled="!isLabelsFormValid"
           @click="submitLabelsChange"
         >
-          确定
+          {{ t('common.confirm') }}
         </el-button>
       </template>
     </el-dialog>
 
     <el-dialog
       v-model="showDetailDialog"
-      title="种子详情"
+      :title="t('torrent.torrentDetail')"
       :width="detailDialogWidth"
       class="detail-dialog"
     >
@@ -449,59 +449,59 @@
               class="detail-tabs"
               type="border-card"
             >
-              <el-tab-pane label="基础信息" name="basic">
+              <el-tab-pane :label="t('torrent.basicInfo')" name="basic">
                 <el-descriptions :column="2" size="small" border>
                   <el-descriptions-item
-                    label="名称"
+                    :label="t('torrent.name')"
                     :span="2"
                     class-name="torrent-name-item"
                   >
                     {{ detailTorrent.name }}
                   </el-descriptions-item>
-                  <el-descriptions-item label="状态">
+                  <el-descriptions-item :label="t('torrent.state')">
                     <el-tag size="small" :type="getStatusType(detailTorrent) as any">
                       {{ getStatusText(detailTorrent) }}
                     </el-tag>
                   </el-descriptions-item>
-                  <el-descriptions-item label="进度">
+                  <el-descriptions-item :label="t('torrent.progressLabel')">
                     {{ Math.round(getTorrentProgress(detailTorrent) * 100) }}%
                   </el-descriptions-item>
-                  <el-descriptions-item label="大小">
+                  <el-descriptions-item :label="t('torrent.sizeLabel')">
                     {{ formatBytes(detailTorrent.totalSize) }}
                   </el-descriptions-item>
-                  <el-descriptions-item label="分享率">
+                  <el-descriptions-item :label="t('torrent.ratioLabel')">
                     {{ formatRatio(detailTorrent.uploadRatio) }}
                   </el-descriptions-item>
-                  <el-descriptions-item label="下载量">
+                  <el-descriptions-item :label="t('torrent.downloadedLabel')">
                     {{ formatBytes(detailTorrent.downloadedEver || 0) }}
                   </el-descriptions-item>
-                  <el-descriptions-item label="上传量">
+                  <el-descriptions-item :label="t('torrent.uploadedLabel')">
                     {{ formatBytes(detailTorrent.uploadedEver || 0) }}
                   </el-descriptions-item>
-                  <el-descriptions-item label="添加时间">
+                  <el-descriptions-item :label="t('torrent.addedTime')">
                     {{ formatTorrentDate(detailTorrent.addedDate) }}
                   </el-descriptions-item>
-                  <el-descriptions-item label="最后活动">
+                  <el-descriptions-item :label="t('torrent.lastActivity')">
                     {{ formatLastActivity(detailTorrent.activityDate) }}
                   </el-descriptions-item>
-                  <el-descriptions-item label="保存目录" :span="2">
+                  <el-descriptions-item :label="t('torrent.savePath')" :span="2">
                     {{ detailTorrent.downloadDir }}
                   </el-descriptions-item>
-                  <el-descriptions-item label="哈希" :span="2">
+                  <el-descriptions-item :label="t('torrent.hash')" :span="2">
                     <span class="hash-value">{{
                       detailTorrent.hashString
                     }}</span>
                   </el-descriptions-item>
                   <el-descriptions-item
                     v-if="detailTorrent.category"
-                    label="分类"
+                    :label="t('torrent.categoryLabel')"
                     :span="2"
                   >
                     <el-tag size="small">{{ detailTorrent.category }}</el-tag>
                   </el-descriptions-item>
                   <el-descriptions-item
                     v-if="detailTorrent.comment"
-                    label="描述"
+                    :label="t('torrent.description')"
                     :span="2"
                   >
                     <span
@@ -510,7 +510,7 @@
                   </el-descriptions-item>
                   <el-descriptions-item
                     v-if="detailTorrent.errorString"
-                    label="错误信息"
+                    :label="t('torrent.errorInfo')"
                     :span="2"
                   >
                     <div>
@@ -521,7 +521,7 @@
                         style="margin-top: 8px; opacity: 0.7; font-size: 12px"
                       >
                         <el-text type="info"
-                          >原始错误: {{ detailTorrent.errorString }}</el-text
+                          >{{ t('torrent.originalError') }}: {{ detailTorrent.errorString }}</el-text
                         >
                       </div>
                     </div>
@@ -529,23 +529,23 @@
                 </el-descriptions>
               </el-tab-pane>
 
-              <el-tab-pane label="文件内容" name="content">
+              <el-tab-pane :label="t('torrent.fileContent')" name="content">
                 <div v-if="detailFiles.length" class="files-container">
                   <div class="files-actions">
                     <span class="files-count"
-                      >已选择 {{ detailSelectedFileCount }} /
+                      >{{ t('torrent.selected') }} {{ detailSelectedFileCount }} /
                       {{ detailTotalFileCount }}</span
                     >
                     <div class="files-actions-buttons">
                       <el-button
                         size="small"
                         @click="toggleAllDetailFiles(true)"
-                        >全选</el-button
+                        >{{ t('torrent.selectAll') }}</el-button
                       >
                       <el-button
                         size="small"
                         @click="toggleAllDetailFiles(false)"
-                        >全不选</el-button
+                        >{{ t('torrent.deselectAll') }}</el-button
                       >
                       <el-button
                         type="primary"
@@ -553,7 +553,7 @@
                         :loading="detailFilesSaving"
                         @click="saveDetailFileSelections"
                       >
-                        保存
+                        {{ t('common.save') }}
                       </el-button>
                     </div>
                   </div>
@@ -588,10 +588,10 @@
                     </template>
                   </el-tree>
                 </div>
-                <el-empty v-else description="无文件信息" :image-size="80" />
+                <el-empty v-else :description="t('torrent.noFileInfo')" :image-size="80" />
               </el-tab-pane>
 
-              <el-tab-pane label="Tracker" name="tracker">
+              <el-tab-pane :label="t('torrent.trackerLabel')" name="tracker">
                 <div v-if="detailTrackerRows.length">
                   <el-table
                     :data="detailTrackerRows"
@@ -611,7 +611,7 @@
                       min-width="200"
                       show-overflow-tooltip
                     />
-                    <el-table-column label="状态" width="100" align="center">
+                    <el-table-column :label="t('torrent.state')" width="100" align="center">
                       <template #default="{ row }">
                         <el-tag size="small" :type="row.statusType">{{
                           row.statusText
@@ -620,19 +620,19 @@
                     </el-table-column>
                     <el-table-column
                       prop="lastAnnounce"
-                      label="上次汇报"
+                      :label="t('torrent.lastAnnounce')"
                       width="140"
                     />
                   </el-table>
                 </div>
                 <el-empty
                   v-else
-                  description="未配置 Tracker"
+                  :description="t('torrent.noTracker')"
                   :image-size="80"
                 />
               </el-tab-pane>
 
-              <el-tab-pane label="Peers" name="peers">
+              <el-tab-pane :label="t('torrent.peersLabel')" name="peers">
                 <div v-if="detailPeers.length">
                   <el-table
                     :data="detailPeers"
@@ -641,7 +641,7 @@
                     max-height="400"
                   >
                     <el-table-column
-                      label="国家/地区"
+                      :label="t('torrent.countryRegion')"
                       width="100"
                       align="center"
                     >
@@ -654,27 +654,27 @@
                     </el-table-column>
                     <el-table-column
                       prop="address"
-                      label="IP 地址"
+                      :label="t('torrent.ipAddress')"
                       width="130"
                     />
                     <el-table-column
                       prop="port"
-                      label="端口"
+                      :label="t('torrent.port')"
                       width="70"
                       align="center"
                     />
                     <el-table-column
                       prop="client"
-                      label="客户端"
+                      :label="t('torrent.client')"
                       min-width="100"
                       show-overflow-tooltip
                     />
-                    <el-table-column label="进度" width="80" align="center">
+                    <el-table-column :label="t('torrent.progressLabel')" width="80" align="center">
                       <template #default="{ row }">
                         {{ Math.round(row.progress * 100) }}%
                       </template>
                     </el-table-column>
-                    <el-table-column label="下载速度" width="100" align="right">
+                    <el-table-column :label="t('torrent.downloadSpeedCol')" width="100" align="right">
                       <template #default="{ row }">
                         {{
                           row.rateToClient > 0
@@ -683,7 +683,7 @@
                         }}
                       </template>
                     </el-table-column>
-                    <el-table-column label="上传速度" width="100" align="right">
+                    <el-table-column :label="t('torrent.uploadSpeedCol')" width="100" align="right">
                       <template #default="{ row }">
                         {{
                           row.rateToPeer > 0
@@ -694,7 +694,7 @@
                     </el-table-column>
                     <el-table-column
                       prop="flagStr"
-                      label="标志"
+                      :label="t('torrent.flags')"
                       width="80"
                       align="center"
                     />
@@ -702,17 +702,17 @@
                 </div>
                 <el-empty
                   v-else
-                  description="当前没有连接的 Peers"
+                  :description="t('torrent.noPeers')"
                   :image-size="80"
                 />
               </el-tab-pane>
             </el-tabs>
           </template>
-          <el-empty v-else description="未找到种子详情" :image-size="100" />
+          <el-empty v-else :description="t('torrent.notFound')" :image-size="100" />
         </template>
       </el-skeleton>
       <template #footer>
-        <el-button @click="showDetailDialog = false">关闭</el-button>
+        <el-button @click="showDetailDialog = false">{{ t('common.close') }}</el-button>
       </template>
     </el-dialog>
 
@@ -723,7 +723,7 @@
       class="limit-dialog"
     >
       <p class="dialog-subtitle" v-if="limitDialogMode === 'batch'">
-        全部种子：{{ limitDialogTargetTorrents.length }} 个
+        {{ t('torrent.allTorrents') }}：{{ limitDialogTargetTorrents.length }} {{ t('torrent.torrentsCount') }}
       </p>
       <p class="dialog-subtitle" v-else>
         {{ limitDialogTargetName }}
@@ -735,14 +735,14 @@
         class="limit-form"
       >
         <!-- 批量模式：显示tracker筛选 -->
-        <el-form-item v-if="limitDialogMode === 'batch'" label="筛选站点">
+        <el-form-item v-if="limitDialogMode === 'batch'" :label="t('torrent.filterSite')">
           <el-select
             v-model="limitDialogForm.selectedTrackers"
             multiple
             filterable
             allow-create
             default-first-option
-            placeholder="留空则应用于全部种子"
+            :placeholder="t('torrent.filterSitePlaceholder')"
             style="width: 100%"
           >
             <el-option
@@ -756,7 +756,7 @@
             {{ limitDialogFilteredCount }}
           </div>
         </el-form-item>
-        <el-form-item label="下载限速">
+        <el-form-item :label="t('torrent.downloadLimitLabel')">
           <div class="limit-row">
             <el-switch
               v-model="limitDialogForm.downloadLimited"
@@ -780,7 +780,7 @@
             </el-select>
           </div>
         </el-form-item>
-        <el-form-item label="上传限速">
+        <el-form-item :label="t('torrent.uploadLimitLabel')">
           <div class="limit-row">
             <el-switch
               v-model="limitDialogForm.uploadLimited"
@@ -804,38 +804,38 @@
             </el-select>
           </div>
         </el-form-item>
-        <el-form-item v-if="limitDialogMode === 'batch'" label="添加标签">
+        <el-form-item v-if="limitDialogMode === 'batch'" :label="t('torrent.addLimitLabel')">
           <div class="limit-row">
             <el-switch
               v-model="limitDialogForm.addLabel"
               class="limit-switch"
             />
             <span class="form-tip-inline" v-if="limitDialogForm.addLabel">
-              如：limit:↓100KB/s↑50KB/s
+              {{ t('torrent.addLimitLabelTip') }}
             </span>
           </div>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="limitDialogVisible = false">取消</el-button>
+        <el-button @click="limitDialogVisible = false">{{ t('common.cancel') }}</el-button>
         <el-button
           type="primary"
           :loading="limitDialogSaving"
           @click="submitLimitSettings"
         >
-          保存
+          {{ t('common.save') }}
         </el-button>
       </template>
     </el-dialog>
 
     <el-dialog
       v-model="replaceTrackerDialogVisible"
-      title="批量替换 Tracker"
+      :title="t('torrent.batchReplaceTrackerTitle')"
       :width="isMobile ? '95%' : '500px'"
       class="replace-tracker-dialog"
     >
       <p class="dialog-subtitle">
-        将对全部 {{ torrents.length }} 个种子进行操作
+        {{ t('torrent.replaceTrackerWarning', { count: torrents.length }) }}
       </p>
       <el-form
         :model="replaceTrackerForm"
@@ -843,53 +843,53 @@
         v-loading="replaceTrackerLoading"
         class="replace-tracker-form"
       >
-        <el-form-item label="原域名/URL" required>
+        <el-form-item :label="t('torrent.oldDomain')" required>
           <el-input
             v-model="replaceTrackerForm.oldUrl"
-            placeholder="例如：old-tracker.com 或完整URL"
+            :placeholder="t('torrent.oldDomainPlaceholder')"
             clearable
           />
-          <div class="form-tip">将匹配包含此字符串的 tracker 地址</div>
+          <div class="form-tip">{{ t('torrent.oldDomainTip') }}</div>
         </el-form-item>
-        <el-form-item label="新域名/URL" required>
+        <el-form-item :label="t('torrent.newDomain')" required>
           <el-input
             v-model="replaceTrackerForm.newUrl"
-            placeholder="例如：new-tracker.com 或完整URL"
+            :placeholder="t('torrent.newDomainPlaceholder')"
             clearable
           />
-          <div class="form-tip">使用字符串替换，保留参数等其他部分</div>
+          <div class="form-tip">{{ t('torrent.newDomainTip') }}</div>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="replaceTrackerDialogVisible = false">取消</el-button>
+        <el-button @click="replaceTrackerDialogVisible = false">{{ t('common.cancel') }}</el-button>
         <el-button
           type="primary"
           :loading="replaceTrackerLoading"
           :disabled="!replaceTrackerForm.oldUrl || !replaceTrackerForm.newUrl"
           @click="submitReplaceTracker"
         >
-          替换
+          {{ t('torrent.replaceButton') }}
         </el-button>
       </template>
     </el-dialog>
 
     <el-dialog
       v-model="removeDialog.visible"
-      title="删除种子"
+      :title="t('torrent.deleteItem')"
       :width="removeDialogWidth"
     >
       <p class="delete-message">
         {{
           removeDialog.message ||
-          `确定删除选中的 ${removeDialog.ids.length} 个种子？`
+          t('torrent.deleteConfirm', { count: removeDialog.ids.length })
         }}
       </p>
       <el-checkbox v-model="removeDialog.withData"
-        >同时删除本地文件</el-checkbox
+        >{{ t('torrent.deleteWithFiles') }}</el-checkbox
       >
       <template #footer>
-        <el-button @click="removeDialog.visible = false">取消</el-button>
-        <el-button type="danger" @click="confirmRemoveDialog">删除</el-button>
+        <el-button @click="removeDialog.visible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="danger" @click="confirmRemoveDialog">{{ t('common.delete') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -948,6 +948,7 @@ import { useSystemStatusStore } from "@/stores/systemStatus";
 import { storeToRefs } from "pinia";
 import { isTransmission } from "@/config/torrentClient";
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 
 const REFRESH_INTERVAL = 3000;
 const COLUMN_WIDTH_STORAGE_KEY = "tv_table_column_widths";
@@ -981,6 +982,7 @@ const DETAIL_FIELDS = [
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 const filterStore = useFilterStore();
 const systemStatusStore = useSystemStatusStore();
 const {
@@ -1066,13 +1068,13 @@ const createEmptyLimitForm = (): LimitFormState => ({
 });
 
 const statusTextMap: Record<TorrentStatus, string> = {
-  [TorrentStatusEnum.STOPPED]: "已停止",
-  [TorrentStatusEnum.CHECK_WAIT]: "等待校验",
-  [TorrentStatusEnum.CHECK]: "校验中",
-  [TorrentStatusEnum.DOWNLOAD_WAIT]: "等待下载",
-  [TorrentStatusEnum.DOWNLOAD]: "下载中",
-  [TorrentStatusEnum.SEED_WAIT]: "等待做种",
-  [TorrentStatusEnum.SEED]: "做种中",
+  [TorrentStatusEnum.STOPPED]: t('status.stopped'),
+  [TorrentStatusEnum.CHECK_WAIT]: t('status.waitCheck'),
+  [TorrentStatusEnum.CHECK]: t('status.checking'),
+  [TorrentStatusEnum.DOWNLOAD_WAIT]: t('status.waitDownload'),
+  [TorrentStatusEnum.DOWNLOAD]: t('status.downloading'),
+  [TorrentStatusEnum.SEED_WAIT]: t('status.waitSeed'),
+  [TorrentStatusEnum.SEED]: t('status.seeding'),
 };
 
 // 错误消息映射配置
@@ -1090,74 +1092,74 @@ const errorMappings: ErrorMapping[] = [
       "Ensure your drives are connected",
       "Set Location",
     ],
-    type: "文件不存在",
-    message: "文件不存在",
+    type: t('torrent.errorType.fileNotExist'),
+    message: t('torrent.errorType.fileNotExist'),
   },
   {
     keywords: ["more than", "上传同一个种子", "other location"],
-    type: "重复汇报",
-    message: "重复汇报，通常可忽略",
+    type: t('torrent.errorType.duplicateAnnounce'),
+    message: t('torrent.errorType.duplicateAnnounce'),
   },
   {
     keywords: ["Request too frequent"],
-    type: "频繁汇报",
-    message: "频繁汇报，通常可忽略",
+    type: t('torrent.errorType.frequentAnnounce'),
+    message: t('torrent.errorType.frequentAnnounce'),
   },
   {
     keywords: ["You already are downloading"],
-    type: "重复汇报",
-    message: "重复下载，通常可忽略",
+    type: t('torrent.errorType.duplicateAnnounce'),
+    message: t('torrent.errorType.duplicateAnnounce'),
   },
   {
     keywords: ["missingFiles"],
-    type: "文件不存在",
-    message: "文件不存在",
+    type: t('torrent.errorType.fileNotExist'),
+    message: t('torrent.errorType.fileNotExist'),
   },
   {
     keywords: ["Permission denied", "permission"],
-    type: "权限错误",
-    message: "权限错误",
+    type: t('torrent.errorType.permissionError'),
+    message: t('torrent.errorType.permissionError'),
   },
   {
     keywords: ["No space left", "disk full", "Disk full"],
-    type: "磁盘空间不足",
-    message: "磁盘空间不足",
+    type: t('torrent.errorType.diskSpaceError'),
+    message: t('torrent.errorType.diskSpaceError'),
   },
   {
     keywords: ["Tracker gave HTTP response code 404", "Tracker not found"],
-    type: "Tracker错误",
-    message: "Tracker未找到",
+    type: t('torrent.errorType.trackerError'),
+    message: t('torrent.errorType.trackerNotFound'),
   },
   {
     keywords: ["Tracker gave HTTP response code 403", "Forbidden"],
-    type: "Tracker错误",
-    message: "Tracker拒绝访问",
+    type: t('torrent.errorType.trackerError'),
+    message: t('torrent.errorType.trackerDenied'),
   },
   {
     keywords: ["Tracker gave a warning", "Unregistered torrent"],
-    type: "Tracker错误",
-    message: "种子未注册",
+    type: t('torrent.errorType.trackerError'),
+    message: t('torrent.errorType.torrentNotRegistered'),
   },
   {
     keywords: ["Tracker gave HTTP response code 5", "502"],
-    type: "Tracker错误",
-    message: "Tracker服务器错误",
+    type: t('torrent.errorType.trackerError'),
+    message: t('torrent.errorType.trackerServerError'),
   },
   {
     keywords: ["Connection refused", "Could not connect", "timeout"],
-    type: "网络错误",
-    message: "网络连接失败",
+    type: t('torrent.errorType.networkError'),
+    message: t('torrent.errorType.networkFailed'),
   },
   {
     keywords: ["Piece #", "corrupt", "checksum"],
-    type: "数据校验错误",
-    message: "数据校验失败",
+    type: t('torrent.errorType.verifyError'),
+    message: t('torrent.errorType.verifyFailed'),
   },
 ];
 
 // 获取友好的错误提示
 const getFriendlyErrorMessage = (errorString?: string): string => {
-  if (!errorString) return "未知错误";
+  if (!errorString) return t('torrent.unknownError');
 
   const lowerError = errorString.toLowerCase();
 
@@ -1179,7 +1181,7 @@ const getFriendlyErrorMessage = (errorString?: string): string => {
 
 // 获取错误类型（用于筛选）
 const getErrorType = (errorString?: string): string => {
-  if (!errorString) return "其他错误";
+  if (!errorString) return t('torrent.otherError');
 
   const lowerError = errorString.toLowerCase();
 
@@ -1194,7 +1196,7 @@ const getErrorType = (errorString?: string): string => {
     }
   }
 
-  return "其他错误";
+  return t('torrent.otherError');
 };
 
 const defaultColumnWidths: Record<string, number> = {
@@ -1230,7 +1232,7 @@ interface ColumnConfig {
 const tableColumns: ColumnConfig[] = [
   {
     key: "name",
-    label: "名称",
+    label: t('torrent.col.name'),
     prop: "name",
     sortable: true,
     minWidth: 260,
@@ -1239,14 +1241,14 @@ const tableColumns: ColumnConfig[] = [
   },
   {
     key: "status",
-    label: "状态",
+    label: t('torrent.col.status'),
     minWidth: 100,
     defaultWidth: 120,
     showInCompact: true,
   },
   {
     key: "percentDone",
-    label: "进度",
+    label: t('torrent.col.progress'),
     prop: "percentDone",
     sortable: true,
     minWidth: 120,
@@ -1255,7 +1257,7 @@ const tableColumns: ColumnConfig[] = [
   },
   {
     key: "totalSize",
-    label: "大小",
+    label: t('torrent.col.size'),
     prop: "totalSize",
     sortable: true,
     minWidth: 120,
@@ -1264,7 +1266,7 @@ const tableColumns: ColumnConfig[] = [
   },
   {
     key: "uploadRatio",
-    label: "分享率",
+    label: t('torrent.col.ratio'),
     prop: "uploadRatio",
     sortable: true,
     minWidth: 70,
@@ -1273,7 +1275,7 @@ const tableColumns: ColumnConfig[] = [
   },
   {
     key: "rateDownload",
-    label: "下载速度",
+    label: t('torrent.col.downloadSpeed'),
     prop: "rateDownload",
     sortable: true,
     minWidth: 120,
@@ -1282,7 +1284,7 @@ const tableColumns: ColumnConfig[] = [
   },
   {
     key: "rateUpload",
-    label: "上传速度",
+    label: t('torrent.col.uploadSpeed'),
     prop: "rateUpload",
     sortable: true,
     minWidth: 120,
@@ -1291,7 +1293,7 @@ const tableColumns: ColumnConfig[] = [
   },
   {
     key: "defaultTracker",
-    label: "服务器",
+    label: t('torrent.col.server'),
     prop: "defaultTracker",
     sortable: true,
     minWidth: 160,
@@ -1300,7 +1302,7 @@ const tableColumns: ColumnConfig[] = [
   },
   {
     key: "peersDownloading",
-    label: "种子",
+    label: t('torrent.col.seedsCol'),
     prop: "peersDownloading",
     sortable: true,
     minWidth: 110,
@@ -1309,7 +1311,7 @@ const tableColumns: ColumnConfig[] = [
   },
   {
     key: "peersUploading",
-    label: "用户",
+    label: t('torrent.col.peersCol'),
     prop: "peersUploading",
     sortable: true,
     minWidth: 110,
@@ -1318,7 +1320,7 @@ const tableColumns: ColumnConfig[] = [
   },
   {
     key: "uploadedEver",
-    label: "已上传",
+    label: t('torrent.col.uploaded'),
     prop: "uploadedEver",
     sortable: true,
     minWidth: 130,
@@ -1327,7 +1329,7 @@ const tableColumns: ColumnConfig[] = [
   },
   {
     key: "downloadDir",
-    label: "保存目录",
+    label: t('torrent.col.downloadDir'),
     prop: "downloadDir",
     sortable: true,
     minWidth: 160,
@@ -1336,7 +1338,7 @@ const tableColumns: ColumnConfig[] = [
   },
   {
     key: "addedDate",
-    label: "添加时间",
+    label: t('torrent.col.addedOn'),
     prop: "addedDate",
     sortable: true,
     minWidth: 150,
@@ -1345,7 +1347,7 @@ const tableColumns: ColumnConfig[] = [
   },
   {
     key: "activityDate",
-    label: "最后活动",
+    label: t('torrent.col.lastActivityCol'),
     prop: "activityDate",
     sortable: true,
     minWidth: 150,
@@ -1354,7 +1356,7 @@ const tableColumns: ColumnConfig[] = [
   },
   {
     key: "labels",
-    label: "标签",
+    label: t('torrent.col.labels'),
     minWidth: 150,
     defaultWidth: 200,
     showInCompact: false,
@@ -1455,7 +1457,7 @@ const limitDialogMode = ref<"batch" | "single">("batch");
 const limitDialogTargetName = ref("");
 const limitDialogLoading = ref(false);
 const limitDialogTitle = computed(() =>
-  limitDialogMode.value === "single" ? "限速设置" : "批量限速"
+  limitDialogMode.value === "single" ? t('torrent.limitSettings') : t('torrent.batchLimit')
 );
 
 // 批量替换tracker对话框相关
@@ -1499,9 +1501,9 @@ const limitDialogFilteredCount = computed(() => {
   const filteredCount = limitDialogFilteredTorrents.value.length;
   const totalCount = limitDialogTargetTorrents.value.length;
   if (!selectedTrackers.length) {
-    return `将应用于所有 ${totalCount} 个种子`;
+    return t('torrent.applyToAll', { count: totalCount });
   }
-  return `将应用于 ${filteredCount} / ${totalCount} 个种子`;
+  return t('torrent.applyToFiltered', { count: filteredCount, total: totalCount });
 });
 
 const isMobile = useMediaQuery("(max-width: 768px)");
@@ -1766,7 +1768,7 @@ const getProgressTooltip = (torrent: Torrent): string => {
   }
 
   // 构建提示内容：进度 + 剩余时间
-  const parts: string[] = [`进度: ${progressPercent}%`];
+  const parts: string[] = [`${t('torrent.progressTip')}: ${progressPercent}%`];
 
   // 添加剩余时间（仅对未完成的任务）
   const eta = torrent.eta;
@@ -1778,15 +1780,15 @@ const getProgressTooltip = (torrent: Torrent): string => {
       torrent.status !== TorrentStatusEnum.STOPPED
     ) {
       const etaText = formatETA(eta, torrent.status);
-      if (etaText && etaText !== "—" && etaText !== "未知") {
-        parts.push(`剩余时间: ${etaText}`);
+      if (etaText && etaText !== "—" && etaText !== t('torrent.unknownEta')) {
+        parts.push(`${t('torrent.remainingTime')}: ${etaText}`);
       }
     }
   }
 
   // 如果有下载速度，也显示
   if (torrent.rateDownload > 0) {
-    parts.push(`下载速度: ${formatSpeed(torrent.rateDownload)}`);
+    parts.push(`${t('torrent.downloadSpeedCol')}: ${formatSpeed(torrent.rateDownload)}`);
   }
 
   return parts.join("\n");
@@ -1831,7 +1833,7 @@ const filteredTorrents = computed(() => {
       );
     const matchesCategory =
       !categoryFilter.value ||
-      (categoryFilter.value === "无分类"
+      (categoryFilter.value === t('torrent.noCategory')
         ? !torrent.category
         : torrent.category === categoryFilter.value);
     const matchesDownloadDir =
@@ -1979,7 +1981,7 @@ const categoryOptions = computed(() => {
   // 检查是否有无分类的种子
   const hasUncategorized = torrents.value.some((t) => !t.category);
   if (hasUncategorized) {
-    result.unshift("无分类");
+    result.unshift(t('torrent.noCategory'));
   }
   return result.map((cat) => ({ label: cat, value: cat }));
 });
@@ -2052,7 +2054,7 @@ const detailTrackerRows = computed(() => {
     const lastAnnounce = stat?.lastAnnounceTime
       ? formatLastActivity(stat.lastAnnounceTime)
       : "—";
-    const statusText = success ? "汇报成功" : stat ? "等待汇报/失败" : "未知";
+    const statusText = success ? t('torrent.announceSuccess') : stat ? t('torrent.announceWaitOrFail') : t('common.unknown');
     return {
       tier: tracker.tier ?? index,
       announce: tracker.announce,
@@ -2451,7 +2453,7 @@ const resetColumnWidths = () => {
   nextTick(() => {
     tableRef.value?.doLayout?.();
   });
-  ElMessage.success("列宽和列顺序已重置为默认值");
+  ElMessage.success(t('torrent.message.columnWidthReset'));
 };
 
 // 加载种子列表
@@ -2508,7 +2510,7 @@ const loadTorrents = async (options: { silent?: boolean } = {}) => {
     syncContextMenuTorrent();
     lastFetchedAt.value = dayjs().format("YYYY-MM-DD HH:mm:ss");
   } catch (error: any) {
-    ElMessage.error(`加载失败: ${error.message}`);
+    ElMessage.error(`${t('torrent.message.loadFailed')}: ${error.message}`);
   } finally {
     if (!options.silent) {
       loading.value = false;
@@ -2572,7 +2574,7 @@ const confirmRemoveDialog = async () => {
   const deleteData = removeDialog.value.withData;
   try {
     await api.removeTorrents(ids, deleteData);
-    ElMessage.success("已删除");
+    ElMessage.success(t('torrent.message.deleted'));
     removeDialog.value.visible = false;
     removeDialog.value.ids = [];
     selectedIdsState.value = selectedIdsState.value.filter(
@@ -2583,7 +2585,7 @@ const confirmRemoveDialog = async () => {
     );
     loadTorrents();
   } catch (error: any) {
-    ElMessage.error(`删除失败: ${error.message}`);
+    ElMessage.error(`${t('torrent.message.deleteFailed')}: ${error.message}`);
   }
 };
 
@@ -2608,10 +2610,10 @@ const startSelected = async () => {
   if (!selectedIds.value.length) return;
   try {
     await api.startTorrents(selectedIds.value);
-    ElMessage.success("已开始选中种子");
+    ElMessage.success(t('torrent.message.startedSelected'));
     loadTorrents();
   } catch (error: any) {
-    ElMessage.error(`操作失败: ${error.message}`);
+    ElMessage.error(`${t('torrent.message.operationFailed')}: ${error.message}`);
   }
 };
 
@@ -2619,10 +2621,10 @@ const stopSelected = async () => {
   if (!selectedIds.value.length) return;
   try {
     await api.stopTorrents(selectedIds.value);
-    ElMessage.success("已暂停选中种子");
+    ElMessage.success(t('torrent.message.stoppedSelected'));
     loadTorrents();
   } catch (error: any) {
-    ElMessage.error(`操作失败: ${error.message}`);
+    ElMessage.error(`${t('torrent.message.operationFailed')}: ${error.message}`);
   }
 };
 
@@ -2630,7 +2632,7 @@ const removeSelected = () => {
   if (!selectedIds.value.length) return;
   openRemoveDialog(
     [...selectedIds.value],
-    `确定删除选中的 ${selectedIds.value.length} 个种子？`
+    t('torrent.deleteConfirm', { count: selectedIds.value.length })
   );
 };
 
@@ -2707,10 +2709,10 @@ const handleContextAction = (
     if (isBatch) {
       openRemoveDialog(
         targetIds,
-        `确定删除选中的 ${targetIds.length} 个种子？`
+        t('torrent.deleteConfirm', { count: targetIds.length })
       );
     } else {
-      openRemoveDialog(targetIds, "确定删除该种子？");
+      openRemoveDialog(targetIds, t('torrent.deleteSingleConfirm'));
     }
     return;
   }
@@ -2753,9 +2755,9 @@ const handleContextAction = (
     const selectedText = window.getSelection()?.toString() || "";
     if (selectedText) {
       navigator.clipboard.writeText(selectedText).then(() => {
-        ElMessage.success("已复制到剪贴板");
+        ElMessage.success(t('torrent.message.copiedToClipboard'));
       }).catch(() => {
-        ElMessage.error("复制失败");
+        ElMessage.error(t('torrent.message.copyFailed'));
       });
     }
   }
@@ -2766,11 +2768,11 @@ const startTorrentsById = async (ids: number[]) => {
   try {
     await api.startTorrents(ids);
     ElMessage.success(
-      ids.length > 1 ? `已开始 ${ids.length} 个种子` : "已开始"
+      ids.length > 1 ? t('torrent.message.startedMultiple', { count: ids.length }) : t('torrent.message.started')
     );
     loadTorrents();
   } catch (error: any) {
-    ElMessage.error(`操作失败: ${error.message}`);
+    ElMessage.error(`${t('torrent.message.operationFailed')}: ${error.message}`);
   }
 };
 
@@ -2779,11 +2781,11 @@ const stopTorrentsById = async (ids: number[]) => {
   try {
     await api.stopTorrents(ids);
     ElMessage.success(
-      ids.length > 1 ? `已暂停 ${ids.length} 个种子` : "已暂停"
+      ids.length > 1 ? t('torrent.message.stoppedMultiple', { count: ids.length }) : t('torrent.message.stopped')
     );
     loadTorrents();
   } catch (error: any) {
-    ElMessage.error(`操作失败: ${error.message}`);
+    ElMessage.error(`${t('torrent.message.operationFailed')}: ${error.message}`);
   }
 };
 
@@ -2792,10 +2794,10 @@ const verifyTorrentsById = async (ids: number[]) => {
   try {
     await api.verifyTorrents(ids);
     ElMessage.success(
-      ids.length > 1 ? `已开始重新校验 ${ids.length} 个种子` : "已开始重新校验"
+      ids.length > 1 ? t('torrent.message.verifyStartedMultiple', { count: ids.length }) : t('torrent.message.verifyStarted')
     );
   } catch (error: any) {
-    ElMessage.error(`重新校验失败: ${error.message}`);
+    ElMessage.error(`${t('torrent.message.verifyFailed')}: ${error.message}`);
   }
 };
 
@@ -2805,11 +2807,11 @@ const reannounceTorrentsById = async (ids: number[]) => {
     await api.reannounceTorrents(ids);
     ElMessage.success(
       ids.length > 1
-        ? `已通知 Tracker（${ids.length} 个种子）`
-        : "已通知 Tracker"
+        ? t('torrent.message.reannouncedMultiple', { count: ids.length })
+        : t('torrent.message.reannounced')
     );
   } catch (error: any) {
-    ElMessage.error(`重新汇报失败: ${error.message}`);
+    ElMessage.error(`${t('torrent.message.reannounceFailed')}: ${error.message}`);
   }
 };
 
@@ -2828,7 +2830,7 @@ const submitLocationChange = async () => {
   }
   const path = locationForm.value.path.trim();
   if (!path) {
-    ElMessage.warning("请输入新的保存目录");
+    ElMessage.warning(t('torrent.message.enterNewPath'));
     return;
   }
   try {
@@ -2839,13 +2841,13 @@ const submitLocationChange = async () => {
     );
     ElMessage.success(
       locationTargetIds.value.length > 1
-        ? `已更新 ${locationTargetIds.value.length} 个种子的保存目录`
-        : "保存目录已更新"
+        ? t('torrent.message.locationUpdatedMultiple', { count: locationTargetIds.value.length })
+        : t('torrent.message.locationUpdated')
     );
     showLocationDialog.value = false;
     loadTorrents();
   } catch (error: any) {
-    ElMessage.error(`变更失败: ${error.message}`);
+    ElMessage.error(`${t('torrent.message.locationChangeFailed')}: ${error.message}`);
   }
 };
 
@@ -2875,16 +2877,16 @@ const submitCategoryChange = async () => {
       await api.setTorrentCategory(categoryTargetIds.value, category);
       ElMessage.success(
         categoryTargetIds.value.length > 1
-          ? `已更新 ${categoryTargetIds.value.length} 个种子的分类`
-          : "分类已更新"
+          ? t('torrent.message.categoryUpdatedMultiple', { count: categoryTargetIds.value.length })
+          : t('torrent.message.categoryUpdated')
       );
       showCategoryDialog.value = false;
       loadTorrents();
     } else {
-      ElMessage.warning("当前客户端不支持设置分类");
+      ElMessage.warning(t('torrent.message.categoryNotSupported'));
     }
   } catch (error: any) {
-    ElMessage.error(`设置分类失败: ${error.message}`);
+    ElMessage.error(`${t('torrent.message.setCategoryFailed')}: ${error.message}`);
   }
 };
 
@@ -2901,7 +2903,7 @@ const searchCategory = (queryString: string, cb: (results: any[]) => void) => {
 // 批量修改标签相关函数
 const openLabelsDialog = () => {
   if (!selectedTorrents.value.length) {
-    ElMessage.warning("请先选择种子");
+    ElMessage.warning(t('torrent.message.selectTorrentsFirst'));
     return;
   }
   labelsDialogTargetTorrents.value = [...selectedTorrents.value];
@@ -2925,11 +2927,11 @@ const openLabelsDialogWithTargets = (targets: Torrent[]) => {
 const getLabelsModeDescription = () => {
   switch (labelsForm.value.mode) {
     case "add":
-      return "在现有标签基础上添加新标签";
+      return t('torrent.labelModeAdd');
     case "replace":
-      return "清空现有标签，重新设置（分类和限速标签不受影响）";
+      return t('torrent.labelModeReplace');
     case "remove":
-      return "删除指定的标签";
+      return t('torrent.labelModeRemove');
     default:
       return "";
   }
@@ -2938,11 +2940,11 @@ const getLabelsModeDescription = () => {
 const getLabelsPlaceholder = () => {
   switch (labelsForm.value.mode) {
     case "add":
-      return "输入新标签或从现有标签中选择";
+      return t('torrent.labelPlaceholderAdd');
     case "replace":
-      return "输入标签或从现有标签中选择";
+      return t('torrent.labelPlaceholderReplace');
     case "remove":
-      return "选择要移除的标签";
+      return t('torrent.labelPlaceholderRemove');
     default:
       return "";
   }
@@ -2950,16 +2952,16 @@ const getLabelsPlaceholder = () => {
 
 const getLabelsFormTip = () => {
   const count = labelsForm.value.selectedLabels.length;
-  if (count === 0) return "请选择或输入标签";
+  if (count === 0) return t('torrent.labelTipSelect');
 
   const torrentCount = labelsDialogTargetTorrents.value.length;
   switch (labelsForm.value.mode) {
     case "add":
-      return `将为 ${torrentCount} 个种子添加 ${count} 个标签`;
+      return t('torrent.labelTipAdd', { torrentCount, count });
     case "replace":
-      return `将为 ${torrentCount} 个种子替换为 ${count} 个标签`;
+      return t('torrent.labelTipReplace', { torrentCount, count });
     case "remove":
-      return `将从 ${torrentCount} 个种子中移除 ${count} 个标签`;
+      return t('torrent.labelTipRemove', { torrentCount, count });
     default:
       return "";
   }
@@ -2967,7 +2969,7 @@ const getLabelsFormTip = () => {
 
 const submitLabelsChange = async () => {
   if (!isLabelsFormValid.value) {
-    ElMessage.warning("请选择或输入标签");
+    ElMessage.warning(t('torrent.message.selectOrEnterLabels'));
     return;
   }
 
@@ -2978,7 +2980,7 @@ const submitLabelsChange = async () => {
   const mode = labelsForm.value.mode;
 
   const loadingInstance = ElLoading.service({
-    text: `正在更新标签 (0/${targetTorrents.length})`,
+    text: `${t('torrent.message.labelsUpdated', { count: 0 })} (0/${targetTorrents.length})`,
   });
 
   try {
@@ -3035,15 +3037,15 @@ const submitLabelsChange = async () => {
       await api.setTorrents([torrent.id], { labels: finalLabels });
 
       loadingInstance.setText(
-        `正在更新标签 (${i + 1}/${targetTorrents.length})`
+        `${t('torrent.message.labelsUpdated', { count: i + 1 })} (${i + 1}/${targetTorrents.length})`
       );
     }
 
-    ElMessage.success(`已更新 ${targetTorrents.length} 个种子的标签`);
+    ElMessage.success(t('torrent.message.labelsUpdated', { count: targetTorrents.length }));
     showLabelsDialog.value = false;
     loadTorrents();
   } catch (error: any) {
-    ElMessage.error(`修改标签失败: ${error.message}`);
+    ElMessage.error(`${t('torrent.message.modifyLabelsFailed')}: ${error.message}`);
   } finally {
     loadingInstance.close();
   }
@@ -3063,7 +3065,7 @@ const applyDetailData = async (torrent: Torrent) => {
     detailPeers.value = torrent.peers.map((peer) => ({
       address: peer.address,
       port: peer.port,
-      client: peer.clientName || "未知",
+      client: peer.clientName || t('torrent.unknownClient'),
       progress: peer.progress,
       rateToClient: peer.rateToClient,
       rateToPeer: peer.rateToPeer,
@@ -3103,7 +3105,7 @@ const openDetailDialog = async (torrent: Torrent) => {
     const detail = await fetchTorrentDetail(torrent.id);
     applyDetailData(detail || torrent);
   } catch (error: any) {
-    ElMessage.error(`加载详情失败: ${error.message}`);
+    ElMessage.error(`${t('torrent.message.loadFailed')}: ${error.message}`);
     applyDetailData(torrent);
   } finally {
     detailLoading.value = false;
@@ -3143,7 +3145,7 @@ const toggleAllDetailFiles = (wanted: boolean) => {
 const saveDetailFileSelections = async () => {
   if (!detailTorrent.value) return;
   if (!detailFiles.value.length) {
-    ElMessage.warning("暂无文件可更新");
+    ElMessage.warning(t('torrent.message.noFilesToUpdate'));
     return;
   }
   const wanted: number[] = [];
@@ -3160,7 +3162,7 @@ const saveDetailFileSelections = async () => {
     }
   });
   if (!wanted.length && !unwanted.length) {
-    ElMessage.info("未改变文件选择");
+    ElMessage.info(t('torrent.message.fileSelectionUnchanged'));
     return;
   }
   const payload: Record<string, any> = {};
@@ -3169,10 +3171,10 @@ const saveDetailFileSelections = async () => {
   detailFilesSaving.value = true;
   try {
     await api.setTorrents([detailTorrent.value.id], payload);
-    ElMessage.success("文件选择已更新");
+    ElMessage.success(t('torrent.message.fileSelectionUpdated'));
     await refreshDetailData();
   } catch (error: any) {
-    ElMessage.error(`更新失败: ${error.message}`);
+    ElMessage.error(`${t('torrent.message.updateFailed')}: ${error.message}`);
   } finally {
     detailFilesSaving.value = false;
   }
@@ -3217,7 +3219,7 @@ const buildLimitLabel = (form: LimitFormState): string => {
 
 const openBatchLimitDialog = () => {
   if (!torrents.value.length) {
-    ElMessage.warning("暂无种子");
+    ElMessage.warning(t('torrent.message.noTorrents'));
     return;
   }
   limitDialogMode.value = "batch";
@@ -3265,7 +3267,7 @@ const applyLimitFormFromTorrent = (torrent?: Torrent | null) => {
 
 const openSingleLimitDialog = async (torrent: Torrent) => {
   limitDialogMode.value = "single";
-  limitDialogTargetName.value = `当前种子：${torrent.name}`;
+  limitDialogTargetName.value = `${t('torrent.currentTorrent')}：${torrent.name}`;
   limitDialogIds.value = [torrent.id];
   limitDialogTargetTorrents.value = [torrent];
   resetLimitDialogForm();
@@ -3294,7 +3296,7 @@ const submitLimitSettings = async () => {
       : limitDialogTargetTorrents.value;
 
   if (!targetTorrents.length) {
-    ElMessage.warning("没有匹配的种子");
+    ElMessage.warning(t('torrent.message.noMatchingTorrents'));
     return;
   }
 
@@ -3324,13 +3326,13 @@ const submitLimitSettings = async () => {
 
     ElMessage.success(
       targetIds.length > 1
-        ? `已对 ${targetIds.length} 个种子应用限速设置`
-        : "限速设置已应用"
+        ? t('torrent.message.limitAppliedMultiple', { count: targetIds.length })
+        : t('torrent.message.limitApplied')
     );
     limitDialogVisible.value = false;
     loadTorrents();
   } catch (error: any) {
-    ElMessage.error(`保存失败: ${error.message}`);
+    ElMessage.error(`${t('torrent.message.saveFailed')}: ${error.message}`);
   } finally {
     limitDialogSaving.value = false;
   }
@@ -3339,7 +3341,7 @@ const submitLimitSettings = async () => {
 // 批量替换tracker相关方法
 const openReplaceTrackerDialog = () => {
   if (!torrents.value.length) {
-    ElMessage.warning("暂无种子");
+    ElMessage.warning(t('torrent.message.noTorrents'));
     return;
   }
   replaceTrackerForm.value = {
@@ -3353,12 +3355,12 @@ const submitReplaceTracker = async () => {
   const { oldUrl, newUrl } = replaceTrackerForm.value;
 
   if (!oldUrl || !newUrl) {
-    ElMessage.warning("请填写原域名和新域名");
+    ElMessage.warning(t('torrent.message.enterOldAndNew'));
     return;
   }
 
   if (oldUrl === newUrl) {
-    ElMessage.warning("原域名和新域名不能相同");
+    ElMessage.warning(t('torrent.message.oldAndNewSame'));
     return;
   }
 
@@ -3368,12 +3370,12 @@ const submitReplaceTracker = async () => {
     // 使用所有种子的ID
     const allIds = torrents.value.map((t) => t.id);
     await api.replaceTrackers(allIds, oldUrl, newUrl);
-    ElMessage.success(`已对 ${allIds.length} 个种子替换 tracker`);
+    ElMessage.success(t('torrent.message.trackerReplaced', { count: allIds.length }));
     replaceTrackerDialogVisible.value = false;
     // 刷新种子列表
     await loadTorrents();
   } catch (error: any) {
-    ElMessage.error(`替换失败: ${error.message || error}`);
+    ElMessage.error(`${t('torrent.message.replaceFailed')}: ${error.message || error}`);
   } finally {
     replaceTrackerLoading.value = false;
   }
@@ -3416,7 +3418,7 @@ const handleAddTorrent = async () => {
     if (addForm.value.type === "magnet") {
       // 批量处理磁力链接
       if (!addForm.value.magnet.trim()) {
-        ElMessage.warning("请输入磁力链接");
+        ElMessage.warning(t('torrent.message.enterMagnetLink'));
         return;
       }
 
@@ -3427,14 +3429,14 @@ const handleAddTorrent = async () => {
         .filter((line) => line.length > 0);
 
       if (magnetLinks.length === 0) {
-        ElMessage.warning("请输入至少一个磁力链接");
+        ElMessage.warning(t('torrent.message.enterAtLeastOneMagnet'));
         return;
       }
 
       // 显示全屏遮罩
       loadingInstance = ElLoading.service({
         lock: true,
-        text: `正在添加第 1/${magnetLinks.length} 个种子...`,
+        text: t('torrent.message.addingTorrent', { current: 1, total: magnetLinks.length }),
         background: "rgba(0, 0, 0, 0.7)",
       });
 
@@ -3445,7 +3447,7 @@ const handleAddTorrent = async () => {
         // 更新进度
         if (loadingInstance) {
           loadingInstance.setText(
-            `正在添加第 ${i + 1}/${magnetLinks.length} 个种子...`
+            t('torrent.message.addingTorrent', { current: i + 1, total: magnetLinks.length })
           );
         }
 
@@ -3463,7 +3465,7 @@ const handleAddTorrent = async () => {
     } else {
       // 批量处理种子文件
       if (addForm.value.files.length === 0) {
-        ElMessage.warning("请选择至少一个种子文件");
+        ElMessage.warning(t('torrent.message.selectAtLeastOneFile'));
         return;
       }
 
@@ -3472,7 +3474,7 @@ const handleAddTorrent = async () => {
       // 显示全屏遮罩
       loadingInstance = ElLoading.service({
         lock: true,
-        text: `正在添加第 1/${fileCount} 个种子文件...`,
+        text: t('torrent.message.addingTorrentFile', { current: 1, total: fileCount }),
         background: "rgba(0, 0, 0, 0.7)",
       });
 
@@ -3483,7 +3485,7 @@ const handleAddTorrent = async () => {
         // 更新进度
         if (loadingInstance) {
           loadingInstance.setText(
-            `正在添加第 ${i + 1}/${fileCount} 个种子文件...`
+            t('torrent.message.addingTorrentFile', { current: i + 1, total: fileCount })
           );
         }
 
@@ -3508,11 +3510,11 @@ const handleAddTorrent = async () => {
 
     // 显示结果
     if (failCount === 0) {
-      ElMessage.success(`成功添加 ${successCount} 个种子`);
+      ElMessage.success(t('torrent.message.addedSuccess', { count: successCount }));
     } else if (successCount === 0) {
-      ElMessage.error(`添加失败: ${errors.join("; ")}`);
+      ElMessage.error(`${t('torrent.message.addedFailed')}: ${errors.join("; ")}`);
     } else {
-      ElMessage.warning(`成功 ${successCount} 个，失败 ${failCount} 个`);
+      ElMessage.warning(t('torrent.message.addedPartial', { success: successCount, fail: failCount }));
       if (errors.length > 0) {
         console.error("添加失败的种子:", errors);
       }
@@ -3542,7 +3544,7 @@ const handleAddTorrent = async () => {
     if (loadingInstance) {
       loadingInstance.close();
     }
-    ElMessage.error(`添加失败: ${error.message}`);
+    ElMessage.error(`${t('torrent.message.addedFailed')}: ${error.message}`);
   }
 };
 
@@ -3561,7 +3563,7 @@ const getStatusText = (torrent: Torrent): string => {
     return getErrorType(torrent.errorString);
   }
 
-  return statusTextMap[torrent.status] || "未知";
+  return statusTextMap[torrent.status] || t('torrent.unknownClient');
 };
 
 // 获取状态类型
@@ -3614,14 +3616,14 @@ const formatETA = (eta?: number, status?: TorrentStatus): string => {
   // 如果 eta 非常大（例如超过一年），显示"未知"
   const oneYear = 365 * 24 * 60 * 60;
   if (eta > oneYear) {
-    return "未知";
+    return t('torrent.unknownEta');
   }
 
   const seconds = Math.floor(eta);
 
   // 小于1分钟
   if (seconds < 60) {
-    return `${seconds}秒`;
+    return `${seconds}${t('torrent.timeUnit.seconds')}`;
   }
 
   const minutes = Math.floor(seconds / 60);
@@ -3632,22 +3634,22 @@ const formatETA = (eta?: number, status?: TorrentStatus): string => {
   if (days > 0) {
     const remainingHours = hours % 24;
     if (remainingHours > 0) {
-      return `${days}天${remainingHours}小时`;
+      return `${days}${t('torrent.timeUnit.days')}${remainingHours}${t('torrent.timeUnit.hours')}`;
     }
-    return `${days}天`;
+    return `${days}${t('torrent.timeUnit.days')}`;
   }
 
   // 超过1小时
   if (hours > 0) {
     const remainingMinutes = minutes % 60;
     if (remainingMinutes > 0) {
-      return `${hours}小时${remainingMinutes}分钟`;
+      return `${hours}${t('torrent.timeUnit.hours')}${remainingMinutes}${t('torrent.timeUnit.minutes')}`;
     }
-    return `${hours}小时`;
+    return `${hours}${t('torrent.timeUnit.hours')}`;
   }
 
   // 只有分钟
-  return `${minutes}分钟`;
+  return `${minutes}${t('torrent.timeUnit.minutes')}`;
 };
 
 // 格式化描述字段,将URL转换为超链接
@@ -3955,7 +3957,7 @@ const tableV2Columns = computed<Column<Torrent>[]>(() => {
         if (isError) {
           return h(
             ElTooltip,
-            { content: rowData.errorString || "未知错误", placement: "top" },
+            { content: rowData.errorString || t('torrent.unknownError'), placement: "top" },
             () => tag
           );
         }

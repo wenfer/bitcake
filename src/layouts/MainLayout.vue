@@ -8,34 +8,50 @@
           :icon="Menu"
           circle
           plain
-          aria-label="展开导航菜单"
+          :aria-label="t('header.expandMenu')"
           @click="isMenuOpen = true"
         />
         <h1 class="title">{{ backendLabel }} {{ versionText }}</h1>
       </div>
-      <HeaderTips />
       <div class="header-right">
         <el-dropdown @command="handleThemeChange" trigger="click">
-          <el-button :icon="Sunny" circle plain title="切换主题" />
+          <el-button :icon="Sunny" circle plain :title="t('header.switchTheme')" />
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item
                 command="green"
                 :disabled="currentTheme === 'green'"
               >
-                <span>清新绿</span>
+                <span>{{ t('theme.green') }}</span>
               </el-dropdown-item>
               <el-dropdown-item
                 command="blue"
                 :disabled="currentTheme === 'blue'"
               >
-                <span>简约蓝</span>
+                <span>{{ t('theme.blue') }}</span>
               </el-dropdown-item>
               <el-dropdown-item
                 command="pink"
                 :disabled="currentTheme === 'pink'"
               >
-                <span>可爱粉</span>
+                <span>{{ t('theme.pink') }}</span>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        <el-dropdown @command="localeStore.switchLocale" trigger="click">
+          <el-button circle plain :title="t('header.switchLanguage')">
+            <img src="/icons/earth.svg" style="width: 1em; height: 1em; vertical-align: -0.15em;" />
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item
+                v-for="option in localeStore.localeOptions"
+                :key="option.value"
+                :command="option.value"
+                :disabled="localeStore.currentLocale === option.value"
+              >
+                {{ option.label }}
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -45,7 +61,7 @@
           circle
           plain
           @click="handleLogout"
-          title="退出登录"
+          :title="t('header.logout')"
         />
       </div>
     </el-header>
@@ -57,7 +73,7 @@
             <el-sub-menu index="torrents">
               <template #title>
                 <el-icon><List /></el-icon>
-                <span>种子列表</span>
+                <span>{{ t('nav.torrentList') }}</span>
               </template>
               <el-menu-item
                 v-for="status in statusOptions"
@@ -98,7 +114,7 @@
       class="mobile-drawer"
     >
       <div class="mobile-drawer-header">
-        <h3>导航菜单</h3>
+        <h3>{{ t('nav.navigationMenu') }}</h3>
         <span class="drawer-version">v{{ frontendVersion }}</span>
       </div>
       <div class="drawer-body">
@@ -106,7 +122,7 @@
           <el-sub-menu index="torrents">
             <template #title>
               <el-icon><List /></el-icon>
-              <span>种子列表</span>
+              <span>{{ t('nav.torrentList') }}</span>
             </template>
             <el-menu-item
               v-for="status in statusOptions"
@@ -140,6 +156,7 @@
 import { computed, ref, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { storeToRefs } from "pinia";
+import { useI18n } from "vue-i18n";
 import {
   Setting,
   List,
@@ -155,12 +172,15 @@ import { useSystemStatusStore } from "@/stores/systemStatus";
 import { useConnectionStore } from "@/stores/connection";
 import { useFilterStore, type StatusFilter, statusToUrl } from "@/stores/filter";
 import { useThemeStore, type ThemeType } from "@/stores/theme";
+import { useLocaleStore } from "@/stores/locale";
 import { useMediaQuery } from "@/utils/useMediaQuery";
 import { formatBytes } from "@/utils/format";
 import SidebarStatus from "./components/SidebarStatus.vue";
-import HeaderTips from "./components/HeaderTips.vue";
 import { torrentBackendName, isTransmission } from "@/config/torrentClient";
 import { TorrentStatusEnum } from "@/types/transmission";
+
+const { t } = useI18n();
+const localeStore = useLocaleStore();
 
 const router = useRouter();
 const route = useRoute();
@@ -178,15 +198,15 @@ const isMobile = useMediaQuery("(max-width: 768px)");
 const isMenuOpen = ref(false);
 const activeMenuItem = ref("/");
 
-const statusTextMap = {
-  [TorrentStatusEnum.STOPPED]: "已停止",
-  [TorrentStatusEnum.CHECK_WAIT]: "等待校验",
-  [TorrentStatusEnum.CHECK]: "校验中",
-  [TorrentStatusEnum.DOWNLOAD_WAIT]: "等待下载",
-  [TorrentStatusEnum.DOWNLOAD]: "下载中",
-  [TorrentStatusEnum.SEED_WAIT]: "等待做种",
-  [TorrentStatusEnum.SEED]: "做种中",
-};
+const statusTextMap = computed(() => ({
+  [TorrentStatusEnum.STOPPED]: t('status.stopped'),
+  [TorrentStatusEnum.CHECK_WAIT]: t('status.waitCheck'),
+  [TorrentStatusEnum.CHECK]: t('status.checking'),
+  [TorrentStatusEnum.DOWNLOAD_WAIT]: t('status.waitDownload'),
+  [TorrentStatusEnum.DOWNLOAD]: t('status.downloading'),
+  [TorrentStatusEnum.SEED_WAIT]: t('status.waitSeed'),
+  [TorrentStatusEnum.SEED]: t('status.seeding'),
+}));
 
 // interface StatusOption {
 //   label: string
@@ -194,25 +214,25 @@ const statusTextMap = {
 //   showCount?: boolean
 // }
 
-const statusOptions = [
-  { label: "全部", value: "all" as StatusFilter },
+const statusOptions = computed(() => [
+  { label: t('status.all'), value: "all" as StatusFilter },
   {
-    label: statusTextMap[TorrentStatusEnum.DOWNLOAD],
+    label: statusTextMap.value[TorrentStatusEnum.DOWNLOAD],
     value: TorrentStatusEnum.DOWNLOAD as StatusFilter,
   },
   {
-    label: statusTextMap[TorrentStatusEnum.STOPPED],
+    label: statusTextMap.value[TorrentStatusEnum.STOPPED],
     value: TorrentStatusEnum.STOPPED as StatusFilter,
   },
-  { label: "队列中", value: "queued" as StatusFilter },
+  { label: t('status.queued'), value: "queued" as StatusFilter },
   {
-    label: statusTextMap[TorrentStatusEnum.CHECK],
+    label: statusTextMap.value[TorrentStatusEnum.CHECK],
     value: TorrentStatusEnum.CHECK as StatusFilter,
   },
-  { label: "做种中", value: TorrentStatusEnum.SEED as StatusFilter },
-  { label: "活动中", value: "active" as StatusFilter },
-  { label: "错误", value: "error" as StatusFilter },
-];
+  { label: t('status.seeding'), value: TorrentStatusEnum.SEED as StatusFilter },
+  { label: t('status.active'), value: "active" as StatusFilter },
+  { label: t('status.error'), value: "error" as StatusFilter },
+]);
 
 const getTorrentCount = (statusValue: StatusFilter): number | string => {
   // Direct mapping from status values to count keys
@@ -236,12 +256,12 @@ const getTorrentCount = (statusValue: StatusFilter): number | string => {
   return countKey ? torrentCounts.value[countKey] || 0 : 0;
 };
 
-const navigationItems = [
-  { index: "/reseed", label: "辅种管理", icon: Connection },
-  { index: "/speed-strategy", label: "限速策略", icon: Timer },
-  { index: "/settings", label: "设置", icon: Setting },
-  { index: "/stats", label: "数据统计", icon: TrendCharts },
-];
+const navigationItems = computed(() => [
+  { index: "/reseed", label: t('nav.reseed'), icon: Connection },
+  { index: "/speed-strategy", label: t('nav.speedStrategy'), icon: Timer },
+  { index: "/settings", label: t('nav.settings'), icon: Setting },
+  { index: "/stats", label: t('nav.stats'), icon: TrendCharts },
+]);
 
 // const themeOptions = Object.entries(themeStore.themes).map(([key, theme]) => ({
 //   label: theme.name,
@@ -284,25 +304,25 @@ const formatLimitText = (kbps: number | null): string | null => {
 const uploadSpeedText = computed(() => {
   const bps = sessionStats.value?.uploadSpeed || 0;
   const limitText = formatLimitText(uploadLimitKBps.value);
-  return limitText ? `${formatSpeedCompact(bps)} [限${limitText}]` : `${formatSpeedCompact(bps)}`;
+  return limitText ? `${formatSpeedCompact(bps)} [${t('sidebar.limit')}${limitText}]` : `${formatSpeedCompact(bps)}`;
 });
 const downloadSpeedText = computed(() => {
   const bps = sessionStats.value?.downloadSpeed || 0;
   const limitText = formatLimitText(downloadLimitKBps.value);
-  return limitText ? `${formatSpeedCompact(bps)} [限${limitText}]` : `${formatSpeedCompact(bps)}`;
+  return limitText ? `${formatSpeedCompact(bps)} [${t('sidebar.limit')}${limitText}]` : `${formatSpeedCompact(bps)}`;
 });
 const freeSpaceText = computed(() =>
-  freeSpaceBytes.value !== null ? formatBytes(freeSpaceBytes.value) : "未知"
+  freeSpaceBytes.value !== null ? formatBytes(freeSpaceBytes.value) : t('common.unknown')
 );
 const versionText = computed(() => sessionConfig.value?.version || "");
 const lastUpdatedText = computed(() => lastUpdated.value || "—");
 const frontendVersion = __APP_VERSION__ || "dev";
 const statusMetrics = computed(() => [
-  { label: "上传", value: uploadSpeedText.value },
-  { label: "下载", value: downloadSpeedText.value },
-  { label: "空间", value: freeSpaceText.value },
-  { label: "更新", value: lastUpdatedText.value },
-  { label: "版本", value: `v${frontendVersion}` },
+  { label: t('sidebar.upload'), value: uploadSpeedText.value },
+  { label: t('sidebar.download'), value: downloadSpeedText.value },
+  { label: t('sidebar.freeSpace'), value: freeSpaceText.value },
+  { label: t('sidebar.lastUpdate'), value: lastUpdatedText.value },
+  { label: t('sidebar.version'), value: `v${frontendVersion}` },
 ]);
 
 // 根据当前路由和过滤器状态计算当前活动的菜单项
@@ -364,9 +384,9 @@ const handleThemeChange = (theme: string) => {
 
 const handleLogout = async () => {
   try {
-    await ElMessageBox.confirm("确定要退出登录吗？", "提示", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
+    await ElMessageBox.confirm(t('header.logoutConfirm'), t('common.tip'), {
+      confirmButtonText: t('common.confirm'),
+      cancelButtonText: t('common.cancel'),
       type: "warning",
     });
 
@@ -398,10 +418,6 @@ const handleLogout = async () => {
   color: white;
   padding: 12px 20px;
   gap: 16px;
-}
- 
-.header :deep(.header-tips) {
-  justify-self: center;
 }
 
 .header-left {

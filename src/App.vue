@@ -5,13 +5,10 @@
 <script setup lang="ts">
 import { onMounted } from "vue";
 import { useConnectionStore } from "@/stores/connection";
-import { useTipsStore } from "@/stores/tips";
 import { configureConnection } from "@/api/torrents";
-import { checkForUpdate } from "@/utils/version";
 // 移除了主题相关的导入和初始化
 
 const connectionStore = useConnectionStore();
-const tipsStore = useTipsStore();
 
 onMounted(async () => {
   // 加载已保存的配置和连接状态
@@ -20,16 +17,6 @@ onMounted(async () => {
   // 如果有保存的配置，恢复连接配置（但不重新登录）
   if (connectionStore.serverConfig.username) {
     configureConnection(connectionStore.serverConfig);
-  }
-
-  // 检查版本更新
-  try {
-    const updateInfo = await checkForUpdate();
-    if (updateInfo.hasUpdate && updateInfo.latestVersion) {
-      tipsStore.addVersionUpdateTip(updateInfo.latestVersion, updateInfo.currentVersion);
-    }
-  } catch (error) {
-    console.warn('检查版本更新失败:', error);
   }
 });
 </script>

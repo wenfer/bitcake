@@ -2,14 +2,14 @@
   <div class="reseed-view">
     <div class="toolbar">
       <div class="actions-group">
-        <el-button :icon="Refresh" @click="loadReseedData()">刷新</el-button>
+        <el-button :icon="Refresh" @click="loadReseedData()">{{ t('common.refresh') }}</el-button>
         <el-radio-group v-model="filterMode" size="default">
-          <el-radio-button value="all">全部种子</el-radio-button>
-          <el-radio-button value="reseed">仅辅种</el-radio-button>
+          <el-radio-button value="all">{{ t('reseed.filterMode.all') }}</el-radio-button>
+          <el-radio-button value="reseed">{{ t('reseed.filterMode.reseedOnly') }}</el-radio-button>
         </el-radio-group>
         <el-input
           v-model="searchKeyword"
-          placeholder="搜索种子文件名..."
+          :placeholder="t('reseed.searchPlaceholder')"
           :prefix-icon="Search"
           clearable
           class="search-input"
@@ -29,7 +29,7 @@
     >
       <el-table-column
         prop="fileName"
-        label="种子文件名"
+        :label="t('reseed.col.fileName')"
         min-width="350"
         sortable="custom"
         show-overflow-tooltip
@@ -41,7 +41,7 @@
 
       <el-table-column
         prop="totalSize"
-        label="文件大小"
+        :label="t('reseed.col.fileSize')"
         width="130"
         sortable="custom"
       >
@@ -52,14 +52,14 @@
 
       <el-table-column
         prop="trackerCount"
-        label="辅种数量"
+        :label="t('reseed.col.reseedCount')"
         width="110"
         sortable="custom"
         align="center"
       />
 
       <el-table-column
-        label="Tracker 列表"
+        :label="t('reseed.col.trackerList')"
         min-width="350"
       >
         <template #default="{ row }">
@@ -107,7 +107,7 @@
 
       <el-table-column
         prop="totalUploadRatio"
-        label="总分享率"
+        :label="t('reseed.col.totalRatio')"
         width="110"
         sortable="custom"
         align="center"
@@ -121,7 +121,7 @@
 
       <el-table-column
         prop="totalUploaded"
-        label="总上传量"
+        :label="t('reseed.col.totalUploaded')"
         width="130"
         sortable="custom"
       >
@@ -131,7 +131,7 @@
       </el-table-column>
 
       <el-table-column
-        label="操作"
+        :label="t('reseed.col.actions')"
         width="150"
         fixed="right"
       >
@@ -142,7 +142,7 @@
             link
             @click="showReseedDetails(row)"
           >
-            详情
+            {{ t('reseed.actions.details') }}
           </el-button>
           <el-button
             type="danger"
@@ -150,7 +150,7 @@
             link
             @click="showDeleteConfirm(row)"
           >
-            删除
+            {{ t('common.delete') }}
           </el-button>
         </template>
       </el-table-column>
@@ -171,31 +171,31 @@
     <!-- 详情对话框 -->
     <el-dialog
       v-model="detailDialogVisible"
-      :title="`辅种详情: ${selectedReseed?.fileName}`"
+      :title="t('reseed.dialog.detailTitle', { fileName: selectedReseed?.fileName })"
       width="80%"
       :close-on-click-modal="false"
     >
       <div v-if="selectedReseed" class="reseed-details">
         <el-descriptions :column="2" border>
-          <el-descriptions-item label="文件名">
+          <el-descriptions-item :label="t('reseed.detail.fileName')">
             {{ selectedReseed.fileName }}
           </el-descriptions-item>
-          <el-descriptions-item label="Hash">
+          <el-descriptions-item :label="t('reseed.detail.hash')">
             {{ selectedReseed.hashString }}
           </el-descriptions-item>
-          <el-descriptions-item label="文件大小">
+          <el-descriptions-item :label="t('reseed.detail.fileSize')">
             {{ formatSize(selectedReseed.totalSize) }}
           </el-descriptions-item>
-          <el-descriptions-item label="做种数量">
-            {{ selectedReseed.trackerCount }} 个 Tracker
+          <el-descriptions-item :label="t('reseed.detail.seedCount')">
+            {{ t('reseed.detail.trackerCount', { count: selectedReseed.trackerCount }) }}
           </el-descriptions-item>
-          <el-descriptions-item label="总上传量">
+          <el-descriptions-item :label="t('reseed.detail.totalUploaded')">
             {{ formatSize(selectedReseed.totalUploaded) }}
           </el-descriptions-item>
-          <el-descriptions-item label="总下载量">
+          <el-descriptions-item :label="t('reseed.detail.totalDownloaded')">
             {{ formatSize(selectedReseed.totalDownloaded) }}
           </el-descriptions-item>
-          <el-descriptions-item label="总分享率">
+          <el-descriptions-item :label="t('reseed.detail.totalRatio')">
             <span :class="getRatioClass(selectedReseed.totalUploadRatio)">
               {{ selectedReseed.totalUploadRatio.toFixed(2) }}
             </span>
@@ -203,16 +203,16 @@
         </el-descriptions>
 
         <div class="torrents-list">
-          <h3>各 Tracker 详情</h3>
+          <h3>{{ t('reseed.detail.trackerDetails') }}</h3>
           <el-table :data="selectedReseed.torrents" border stripe>
             <el-table-column
               prop="trackerName"
-              label="Tracker"
+              :label="t('reseed.detail.tracker')"
               min-width="150"
             />
             <el-table-column
               prop="status"
-              label="状态"
+              :label="t('reseed.detail.status')"
               width="100"
             >
               <template #default="{ row }">
@@ -222,12 +222,12 @@
               </template>
             </el-table-column>
             <el-table-column
-              label="错误信息"
+              :label="t('reseed.detail.errorInfo')"
               width="150"
             >
               <template #default="{ row }">
                 <template v-if="row.errorType">
-                  <el-tooltip :content="row.errorString || '未知错误'" placement="top">
+                  <el-tooltip :content="row.errorString || t('reseed.detail.unknownError')" placement="top">
                     <el-tag type="danger" size="small">
                       {{ row.errorType }}
                     </el-tag>
@@ -238,7 +238,7 @@
             </el-table-column>
             <el-table-column
               prop="percentDone"
-              label="进度"
+              :label="t('reseed.detail.progress')"
               width="100"
             >
               <template #default="{ row }">
@@ -247,7 +247,7 @@
             </el-table-column>
             <el-table-column
               prop="uploadRatio"
-              label="分享率"
+              :label="t('reseed.detail.ratio')"
               width="100"
             >
               <template #default="{ row }">
@@ -258,7 +258,7 @@
             </el-table-column>
             <el-table-column
               prop="uploadedEver"
-              label="上传量"
+              :label="t('reseed.detail.uploaded')"
               width="120"
             >
               <template #default="{ row }">
@@ -267,7 +267,7 @@
             </el-table-column>
             <el-table-column
               prop="rateUpload"
-              label="上传速度"
+              :label="t('reseed.detail.uploadSpeed')"
               width="120"
             >
               <template #default="{ row }">
@@ -276,13 +276,13 @@
             </el-table-column>
             <el-table-column
               prop="category"
-              label="分类"
+              :label="t('reseed.detail.category')"
               width="100"
               show-overflow-tooltip
             />
             <el-table-column
               prop="downloadDir"
-              label="保存位置"
+              :label="t('reseed.detail.savePath')"
               min-width="200"
               show-overflow-tooltip
             />
@@ -294,7 +294,7 @@
     <!-- 删除确认对话框 -->
     <el-dialog
       v-model="deleteDialogVisible"
-      title="确认删除"
+      :title="t('reseed.dialog.deleteConfirm')"
       width="500px"
       :close-on-click-modal="false"
     >
@@ -305,19 +305,19 @@
           show-icon
         >
           <template #title>
-            <div style="font-weight: 600;">此操作将删除以下资源在所有 Tracker 上的种子</div>
+            <div style="font-weight: 600;">{{ t('reseed.delete.warning') }}</div>
           </template>
         </el-alert>
 
         <div class="delete-info">
-          <p><strong>文件名：</strong>{{ deleteTarget.fileName }}</p>
-          <p><strong>文件大小：</strong>{{ formatSize(deleteTarget.totalSize) }}</p>
-          <p><strong>涉及 Tracker 数量：</strong>{{ deleteTarget.trackerCount }} 个</p>
-          <p><strong>涉及种子数量：</strong>{{ deleteTarget.torrents.length }} 个</p>
+          <p><strong>{{ t('reseed.delete.fileName') }}</strong>{{ deleteTarget.fileName }}</p>
+          <p><strong>{{ t('reseed.delete.fileSize') }}</strong>{{ formatSize(deleteTarget.totalSize) }}</p>
+          <p><strong>{{ t('reseed.delete.trackerCount') }}</strong>{{ t('reseed.delete.trackerCountValue', { count: deleteTarget.trackerCount }) }}</p>
+          <p><strong>{{ t('reseed.delete.torrentCount') }}</strong>{{ t('reseed.delete.torrentCountValue', { count: deleteTarget.torrents.length }) }}</p>
         </div>
 
         <div class="tracker-list">
-          <p><strong>将删除以下 Tracker 的种子：</strong></p>
+          <p><strong>{{ t('reseed.delete.trackerList') }}</strong></p>
           <div class="tracker-tags">
             <el-tag
               v-for="tracker in deleteTarget.trackers"
@@ -331,18 +331,18 @@
         </div>
 
         <el-checkbox v-model="deleteWithFiles" style="margin-top: 16px;">
-          同时删除本地文件
+          {{ t('reseed.delete.deleteWithFiles') }}
         </el-checkbox>
       </div>
 
       <template #footer>
-        <el-button @click="deleteDialogVisible = false">取消</el-button>
+        <el-button @click="deleteDialogVisible = false">{{ t('common.cancel') }}</el-button>
         <el-button
           type="danger"
           :loading="deleteLoading"
           @click="confirmDelete"
         >
-          确认删除
+          {{ t('reseed.delete.confirmDelete') }}
         </el-button>
       </template>
     </el-dialog>
@@ -353,12 +353,15 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { Refresh, Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { useSystemStatusStore } from '@/stores/systemStatus'
 import { getTrackerDisplayName } from '@/utils/torrent'
 import { formatBytes, formatSpeed } from '@/utils/format'
 import * as api from '@/api/torrents'
 import type { Torrent, TorrentStatus } from '@/types/torrent'
 import { TorrentStatusEnum } from '@/types/torrent'
+
+const { t } = useI18n()
 
 // 防抖函数
 function debounce<T extends (...args: any[]) => any>(fn: T, delay: number) {
@@ -419,69 +422,69 @@ const errorMappings: ErrorMapping[] = [
       'Ensure your drives are connected',
       'Set Location',
     ],
-    type: '文件不存在',
-    message: '文件不存在',
+    type: t('reseed.errorType.fileNotExist'),
+    message: t('reseed.errorType.fileNotExist'),
   },
   {
     keywords: ['more than', '上传同一个种子', 'other location'],
-    type: '重复汇报',
-    message: '重复汇报，通常可忽略',
+    type: t('reseed.errorType.duplicateAnnounce'),
+    message: t('reseed.errorType.duplicateAnnounceMsg'),
   },
   {
     keywords: ['You already are downloading'],
-    type: '重复汇报',
-    message: '重复下载，通常可忽略',
+    type: t('reseed.errorType.duplicateAnnounce'),
+    message: t('reseed.errorType.duplicateDownloadMsg'),
   },
   {
     keywords: ['missingFiles'],
-    type: '文件不存在',
-    message: '文件不存在',
+    type: t('reseed.errorType.fileNotExist'),
+    message: t('reseed.errorType.fileNotExist'),
   },
   {
     keywords: ['Permission denied', 'permission'],
-    type: '权限错误',
-    message: '权限错误',
+    type: t('reseed.errorType.permissionError'),
+    message: t('reseed.errorType.permissionError'),
   },
   {
     keywords: ['No space left', 'disk full', 'Disk full'],
-    type: '磁盘空间不足',
-    message: '磁盘空间不足',
+    type: t('reseed.errorType.diskSpaceError'),
+    message: t('reseed.errorType.diskSpaceError'),
   },
   {
     keywords: ['Tracker gave HTTP response code 404', 'Tracker not found'],
-    type: 'Tracker错误',
-    message: 'Tracker未找到',
+    type: t('reseed.errorType.trackerError'),
+    message: t('reseed.errorType.trackerNotFound'),
   },
   {
     keywords: ['Tracker gave HTTP response code 403', 'Forbidden'],
-    type: 'Tracker错误',
-    message: 'Tracker拒绝访问',
+    type: t('reseed.errorType.trackerError'),
+    message: t('reseed.errorType.trackerDenied'),
   },
   {
     keywords: ['Tracker gave a warning', 'Unregistered torrent'],
-    type: 'Tracker错误',
-    message: '种子未注册',
+    type: t('reseed.errorType.trackerError'),
+    message: t('reseed.errorType.torrentNotRegistered'),
   },
   {
     keywords: ['Tracker gave HTTP response code 5'],
-    type: 'Tracker错误',
-    message: 'Tracker服务器错误',
+    type: t('reseed.errorType.trackerError'),
+    message: t('reseed.errorType.trackerServerError'),
   },
   {
     keywords: ['Connection refused', 'Could not connect', 'timeout'],
-    type: '网络错误',
-    message: '网络连接失败',
+    type: t('reseed.errorType.networkError'),
+    message: t('reseed.errorType.networkFailed'),
   },
   {
     keywords: ['Piece #', 'corrupt', 'checksum'],
-    type: '数据校验错误',
-    message: '数据校验失败',
+    type: t('reseed.errorType.verifyError'),
+    message: t('reseed.errorType.verifyFailed'),
   },
 ]
 
 // 获取错误类型（用于筛选）
 const getErrorType = (errorString?: string): string => {
-  if (!errorString) return '其他错误'
+  if (!errorString) return t('reseed.errorType.otherError')
 
   const lowerError = errorString.toLowerCase()
 
@@ -496,7 +499,7 @@ const getErrorType = (errorString?: string): string => {
     }
   }
 
-  return '其他错误'
+  return t('reseed.errorType.otherError')
 }
 
 const systemStatusStore = useSystemStatusStore()
@@ -593,7 +596,7 @@ const loadReseedData = () => {
           trackerMap.set(announce, {
             announce,
             displayName: getTrackerDisplayName(announce),
-            statusText: hasError ? '异常' : '正常',
+            statusText: hasError ? t('reseed.trackerStatus.abnormal') : t('reseed.trackerStatus.normal'),
             lastAnnounceSucceeded: !hasError,
             errorDetail
           })
@@ -615,20 +618,20 @@ const loadReseedData = () => {
       totalUploadRatio,
       totalUploaded,
       totalDownloaded,
-      torrents: torrents.map(t => ({
-        id: t.id,
-        trackerName: t.trackerStats && t.trackerStats.length > 0 && t.trackerStats[0]
-          ? getTrackerDisplayName(t.trackerStats[0].announce)
-          : '未知',
-        status: t.status,
-        percentDone: t.percentDone,
-        uploadRatio: t.uploadRatio,
-        uploadedEver: t.uploadedEver || 0,
-        rateUpload: t.rateUpload,
-        category: t.category,
-        downloadDir: t.downloadDir,
-        errorString: t.errorString,
-        errorType: t.errorString ? getErrorType(t.errorString) : undefined
+      torrents: torrents.map(torrent => ({
+        id: torrent.id,
+        trackerName: torrent.trackerStats && torrent.trackerStats.length > 0 && torrent.trackerStats[0]
+          ? getTrackerDisplayName(torrent.trackerStats[0].announce)
+          : t('reseed.unknownTracker'),
+        status: torrent.status,
+        percentDone: torrent.percentDone,
+        uploadRatio: torrent.uploadRatio,
+        uploadedEver: torrent.uploadedEver || 0,
+        rateUpload: torrent.rateUpload,
+        category: torrent.category,
+        downloadDir: torrent.downloadDir,
+        errorString: torrent.errorString,
+        errorType: torrent.errorString ? getErrorType(torrent.errorString) : undefined
       }))
     }
   })
@@ -697,15 +700,15 @@ const getTrackerTagType = (tracker: ReseedTracker): string => {
 // 获取状态文本
 const getStatusText = (status: TorrentStatus): string => {
   const statusMap = {
-    [TorrentStatusEnum.STOPPED]: '已停止',
-    [TorrentStatusEnum.CHECK_WAIT]: '等待校验',
-    [TorrentStatusEnum.CHECK]: '校验中',
-    [TorrentStatusEnum.DOWNLOAD_WAIT]: '等待下载',
-    [TorrentStatusEnum.DOWNLOAD]: '下载中',
-    [TorrentStatusEnum.SEED_WAIT]: '等待做种',
-    [TorrentStatusEnum.SEED]: '做种中'
+    [TorrentStatusEnum.STOPPED]: t('reseed.status.stopped'),
+    [TorrentStatusEnum.CHECK_WAIT]: t('reseed.status.checkWait'),
+    [TorrentStatusEnum.CHECK]: t('reseed.status.checking'),
+    [TorrentStatusEnum.DOWNLOAD_WAIT]: t('reseed.status.downloadWait'),
+    [TorrentStatusEnum.DOWNLOAD]: t('reseed.status.downloading'),
+    [TorrentStatusEnum.SEED_WAIT]: t('reseed.status.seedWait'),
+    [TorrentStatusEnum.SEED]: t('reseed.status.seeding')
   }
-  return statusMap[status] || '未知'
+  return statusMap[status] || t('common.unknown')
 }
 
 // 获取状态标签类型
@@ -761,7 +764,7 @@ const confirmDelete = async () => {
     // 调用删除 API
     await api.removeTorrents(torrentIds, deleteWithFiles.value)
 
-    ElMessage.success(`已删除 ${torrentIds.length} 个种子`)
+    ElMessage.success(t('reseed.message.deletedTorrents', { count: torrentIds.length }))
 
     // 关闭对话框
     deleteDialogVisible.value = false
@@ -773,10 +776,10 @@ const confirmDelete = async () => {
       systemStatusStore.setTorrents(result.torrents)
       loadReseedData()
     } catch (error) {
-      console.error('重新加载种子数据失败:', error)
+      console.error(t('reseed.message.reloadFailed'), error)
     }
   } catch (error: any) {
-    ElMessage.error(`删除失败: ${error.message || error}`)
+    ElMessage.error(t('reseed.message.deleteFailed', { message: error.message || error }))
   } finally {
     deleteLoading.value = false
   }
@@ -802,7 +805,7 @@ onMounted(async () => {
       const result = await api.getTorrents()
       systemStatusStore.setTorrents(result.torrents)
     } catch (error) {
-      console.error('加载种子数据失败:', error)
+      console.error(t('reseed.message.loadFailed'), error)
     }
   }
 

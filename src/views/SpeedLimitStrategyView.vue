@@ -3,11 +3,11 @@
     <div class="toolbar">
       <div class="actions-group">
         <el-button type="primary" :icon="Plus" @click="showCreateDialog">
-          创建策略
+          {{ t('speedStrategy.createStrategy') }}
         </el-button>
-        <el-button :icon="Refresh" @click="loadStrategies">刷新</el-button>
-        <el-button :icon="Download" @click="handleExport">导出策略</el-button>
-        <el-button :icon="Upload" @click="showImportDialog = true">导入策略</el-button>
+        <el-button :icon="Refresh" @click="loadStrategies">{{ t('speedStrategy.refresh') }}</el-button>
+        <el-button :icon="Download" @click="handleExport">{{ t('speedStrategy.exportStrategy') }}</el-button>
+        <el-button :icon="Upload" @click="showImportDialog = true">{{ t('speedStrategy.importStrategy') }}</el-button>
       </div>
     </div>
 
@@ -19,36 +19,36 @@
         border
         style="width: 100%"
       >
-        <el-table-column prop="name" label="策略名称" min-width="150" />
-        <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-        <el-table-column label="下载限速" min-width="120">
+        <el-table-column prop="name" :label="t('speedStrategy.strategyName')" min-width="150" />
+        <el-table-column prop="description" :label="t('speedStrategy.description')" min-width="200" show-overflow-tooltip />
+        <el-table-column :label="t('speedStrategy.downloadLimit')" min-width="120">
           <template #default="{ row }">
             <span v-if="row.downloadLimited">
               {{ row.downloadLimit }} {{ row.downloadUnit }}/s
             </span>
-            <span v-else class="text-muted">不限速</span>
+            <span v-else class="text-muted">{{ t('speedStrategy.noLimit') }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="上传限速" min-width="120">
+        <el-table-column :label="t('speedStrategy.uploadLimit')" min-width="120">
           <template #default="{ row }">
             <span v-if="row.uploadLimited">
               {{ row.uploadLimit }} {{ row.uploadUnit }}/s
             </span>
-            <span v-else class="text-muted">不限速</span>
+            <span v-else class="text-muted">{{ t('speedStrategy.noLimit') }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="应用范围" min-width="150">
+        <el-table-column :label="t('speedStrategy.applyScope')" min-width="150">
           <template #default="{ row }">
-            <span v-if="row.trackers.length === 0">全部种子</span>
-            <el-tag v-else size="small">{{ row.trackers.length }} 个Tracker</el-tag>
+            <span v-if="row.trackers.length === 0">{{ t('speedStrategy.allTorrents') }}</span>
+            <el-tag v-else size="small">{{ t('speedStrategy.trackerCount', { count: row.trackers.length }) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" width="180">
+        <el-table-column :label="t('speedStrategy.createdAt')" width="180">
           <template #default="{ row }">
             {{ formatDate(row.createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column :label="t('speedStrategy.operation')" width="220" fixed="right">
           <template #default="{ row }">
             <el-button
               type="primary"
@@ -56,43 +56,43 @@
               :loading="applyingStrategy === row.id"
               @click="handleApply(row)"
             >
-              应用
+              {{ t('speedStrategy.apply') }}
             </el-button>
-            <el-button size="small" @click="handleEdit(row)">编辑</el-button>
+            <el-button size="small" @click="handleEdit(row)">{{ t('speedStrategy.edit') }}</el-button>
             <el-button
               type="danger"
               size="small"
               @click="handleDelete(row)"
             >
-              删除
+              {{ t('speedStrategy.delete') }}
             </el-button>
           </template>
         </el-table-column>
       </el-table>
 
-      <el-empty v-if="strategies.length === 0 && !loading" description="暂无策略，点击上方按钮创建" />
+      <el-empty v-if="strategies.length === 0 && !loading" :description="t('speedStrategy.noStrategy')" />
     </div>
 
     <!-- 创建/编辑策略对话框 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="dialogMode === 'create' ? '创建策略' : '编辑策略'"
+      :title="dialogMode === 'create' ? t('speedStrategy.createStrategy') : t('speedStrategy.editStrategy')"
       :width="dialogWidth"
       @close="handleDialogClose"
     >
       <el-form :model="form" :rules="formRules" ref="formRef" label-width="100px">
-        <el-form-item label="策略名称" prop="name" required>
-          <el-input v-model="form.name" placeholder="请输入策略名称" />
+        <el-form-item :label="t('speedStrategy.strategyName')" prop="name" required>
+          <el-input v-model="form.name" :placeholder="t('speedStrategy.strategyNamePlaceholder')" />
         </el-form-item>
-        <el-form-item label="描述">
+        <el-form-item :label="t('speedStrategy.description')">
           <el-input
             v-model="form.description"
             type="textarea"
             :rows="2"
-            placeholder="可选，描述该策略的用途"
+            :placeholder="t('speedStrategy.descriptionPlaceholder')"
           />
         </el-form-item>
-        <el-form-item label="下载限速">
+        <el-form-item :label="t('speedStrategy.downloadLimit')">
           <div class="limit-row">
             <el-switch v-model="form.downloadLimited" class="limit-switch" />
             <el-input-number
@@ -113,7 +113,7 @@
             </el-select>
           </div>
         </el-form-item>
-        <el-form-item label="上传限速">
+        <el-form-item :label="t('speedStrategy.uploadLimit')">
           <div class="limit-row">
             <el-switch v-model="form.uploadLimited" class="limit-switch" />
             <el-input-number
@@ -134,14 +134,14 @@
             </el-select>
           </div>
         </el-form-item>
-        <el-form-item label="应用范围">
+        <el-form-item :label="t('speedStrategy.applyScope')">
           <el-select
             v-model="form.trackers"
             multiple
             filterable
             allow-create
             default-first-option
-            placeholder="留空则应用于全部种子"
+            :placeholder="t('speedStrategy.applyScopePlaceholder')"
             style="width: 100%"
           >
             <el-option
@@ -152,14 +152,14 @@
             />
           </el-select>
           <div class="form-tip">
-            选择要应用此策略的 Tracker，留空表示应用到所有种子
+            {{ t('speedStrategy.applyScopeTip') }}
           </div>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button @click="dialogVisible = false">{{ t('common.cancel') }}</el-button>
         <el-button type="primary" :loading="saving" @click="handleSubmit">
-          {{ dialogMode === 'create' ? '创建' : '保存' }}
+          {{ dialogMode === 'create' ? t('speedStrategy.create') : t('common.save') }}
         </el-button>
       </template>
     </el-dialog>
@@ -167,18 +167,18 @@
     <!-- 导入策略对话框 -->
     <el-dialog
       v-model="showImportDialog"
-      title="导入策略"
+      :title="t('speedStrategy.importStrategyTitle')"
       :width="dialogWidth"
     >
       <el-input
         v-model="importData"
         type="textarea"
         :rows="10"
-        placeholder="粘贴策略JSON数据"
+        :placeholder="t('speedStrategy.importDataPlaceholder')"
       />
       <template #footer>
-        <el-button @click="showImportDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleImport">导入</el-button>
+        <el-button @click="showImportDialog = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" @click="handleImport">{{ t('speedStrategy.import') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -190,11 +190,14 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Plus, Refresh, Download, Upload } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
+import { useI18n } from 'vue-i18n'
 import * as strategyService from '@/services/speedLimitStrategyService'
 import type { SpeedLimitStrategy } from '@/types/speedLimitStrategy'
 import * as api from '@/api/torrents'
 import { getTrackerDisplayName } from '@/utils/torrent'
 import { useMediaQuery } from '@/utils/useMediaQuery'
+
+const { t } = useI18n()
 
 const isMobile = useMediaQuery('(max-width: 768px)')
 const dialogWidth = computed(() => (isMobile.value ? '95%' : '600px'))
@@ -236,8 +239,8 @@ const form = ref<StrategyForm>({
 
 const formRules: FormRules = {
   name: [
-    { required: true, message: '请输入策略名称', trigger: 'blur' },
-    { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' },
+    { required: true, message: t('speedStrategy.strategyNameRequired'), trigger: 'blur' },
+    { min: 2, max: 50, message: t('speedStrategy.strategyNameLength'), trigger: 'blur' },
   ],
 }
 
@@ -258,7 +261,7 @@ const loadTrackerOptions = async () => {
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([displayName]) => ({ label: displayName, value: displayName }))
   } catch (error: any) {
-    console.error('加载 Tracker 选项失败:', error)
+    console.error(t('speedStrategy.loadTrackerFailed'), error)
   }
 }
 
@@ -319,15 +322,15 @@ const handleSubmit = async () => {
     try {
       if (dialogMode.value === 'create') {
         strategyService.createStrategy(form.value)
-        ElMessage.success('策略创建成功')
+        ElMessage.success(t('speedStrategy.strategyCreated'))
       } else {
         strategyService.updateStrategy(currentEditId.value, form.value)
-        ElMessage.success('策略更新成功')
+        ElMessage.success(t('speedStrategy.strategyUpdated'))
       }
       dialogVisible.value = false
       loadStrategies()
     } catch (error: any) {
-      ElMessage.error(`操作失败: ${error.message}`)
+      ElMessage.error(t('speedStrategy.operationFailed', { message: error.message }))
     } finally {
       saving.value = false
     }
@@ -337,21 +340,21 @@ const handleSubmit = async () => {
 const handleDelete = async (strategy: SpeedLimitStrategy) => {
   try {
     await ElMessageBox.confirm(
-      `确定删除策略 "${strategy.name}" 吗？`,
-      '提示',
+      t('speedStrategy.deleteConfirm', { name: strategy.name }),
+      t('common.tip'),
       {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+        confirmButtonText: t('common.confirm'),
+        cancelButtonText: t('common.cancel'),
         type: 'warning',
       }
     )
 
     const success = strategyService.deleteStrategy(strategy.id)
     if (success) {
-      ElMessage.success('删除成功')
+      ElMessage.success(t('speedStrategy.deleteSuccess'))
       loadStrategies()
     } else {
-      ElMessage.error('删除失败')
+      ElMessage.error(t('speedStrategy.deleteFailed'))
     }
   } catch (error) {
     // 用户取消
@@ -376,7 +379,7 @@ const handleApply = async (strategy: SpeedLimitStrategy) => {
     }
 
     if (targetTorrents.length === 0) {
-      ElMessage.warning('没有匹配的种子')
+      ElMessage.warning(t('speedStrategy.noMatchingTorrents'))
       return
     }
 
@@ -407,10 +410,10 @@ const handleApply = async (strategy: SpeedLimitStrategy) => {
     await api.setTorrents(targetIds, payload)
 
     ElMessage.success(
-      `策略 "${strategy.name}" 已应用到 ${targetIds.length} 个种子`
+      t('speedStrategy.strategyApplied', { name: strategy.name, count: targetIds.length })
     )
   } catch (error: any) {
-    ElMessage.error(`应用策略失败: ${error.message}`)
+    ElMessage.error(t('speedStrategy.applyFailed', { message: error.message }))
   } finally {
     applyingStrategy.value = null
   }
@@ -426,30 +429,30 @@ const handleExport = () => {
     link.download = `speed_limit_strategies_${dayjs().format('YYYYMMDD_HHmmss')}.json`
     link.click()
     URL.revokeObjectURL(url)
-    ElMessage.success('导出成功')
+    ElMessage.success(t('speedStrategy.exportSuccess'))
   } catch (error: any) {
-    ElMessage.error(`导出失败: ${error.message}`)
+    ElMessage.error(t('speedStrategy.exportFailed', { message: error.message }))
   }
 }
 
 const handleImport = () => {
   if (!importData.value.trim()) {
-    ElMessage.warning('请粘贴策略数据')
+    ElMessage.warning(t('speedStrategy.importDataRequired'))
     return
   }
 
   try {
     const success = strategyService.importStrategies(importData.value)
     if (success) {
-      ElMessage.success('导入成功')
+      ElMessage.success(t('speedStrategy.importSuccess'))
       showImportDialog.value = false
       importData.value = ''
       loadStrategies()
     } else {
-      ElMessage.error('导入失败：数据格式无效')
+      ElMessage.error(t('speedStrategy.importInvalidData'))
     }
   } catch (error: any) {
-    ElMessage.error(`导入失败: ${error.message}`)
+    ElMessage.error(t('speedStrategy.importFailed', { message: error.message }))
   }
 }
 

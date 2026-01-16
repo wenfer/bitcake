@@ -42,8 +42,8 @@ export default defineConfig(({ mode }) => {
         name: 'bitcake-favicon',
         enforce: 'pre',
         transformIndexHtml(html: string) {
-          const iconPath = isQbittorrent ? 'icons/qbittorrent.svg' : 'icons/Transmission.png'
-          const typeAttr = isQbittorrent ? 'image/svg+xml' : 'image/png'
+          const iconPath = isQbittorrent ? 'icons/qbittorrent32.png' : 'icons/transmission.ico'
+          const typeAttr = isQbittorrent ? 'image/png' : 'image/x-icon'
           const linkTag = `<link rel="icon" type="${typeAttr}" href="${iconPath}" />`
           const hasFavicon = /<link\s+rel=["']icon["'][^>]*>/i.test(html)
           if (hasFavicon) {

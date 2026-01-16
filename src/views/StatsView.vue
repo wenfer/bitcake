@@ -1,15 +1,15 @@
 <template>
   <div class="stats-view">
     <div class="stats-header">
-      <h2>数据统计</h2>
+      <h2>{{ t('stats.title') }}</h2>
       <div class="header-actions">
-        <span v-if="lastUpdated">最近更新：{{ lastUpdated }}</span>
+        <span v-if="lastUpdated">{{ t('stats.lastUpdate') }}：{{ lastUpdated }}</span>
         <el-button
           size="small"
           :loading="loading || systemStatusStore.loading"
           @click="loadData()"
         >
-          刷新数据
+          {{ t('stats.refreshData') }}
         </el-button>
       </div>
     </div>
@@ -17,30 +17,30 @@
     <el-row :gutter="16" class="summary-row">
       <el-col :xs="24" :sm="12" :lg="6">
         <el-card class="summary-card">
-          <div class="summary-title">历史总上传量</div>
+          <div class="summary-title">{{ t('stats.totalUploaded') }}</div>
           <div class="summary-value">{{ formatBytes(totalUploaded) }}</div>
-          <div class="summary-subtitle">{{ backendLabel }} 返回的累计值</div>
+          <div class="summary-subtitle">{{ backendLabel }} {{ t('stats.cumulativeValue') }}</div>
         </el-card>
       </el-col>
       <el-col :xs="24" :sm="12" :lg="6">
         <el-card class="summary-card">
-          <div class="summary-title">历史总下载量</div>
+          <div class="summary-title">{{ t('stats.totalDownloaded') }}</div>
           <div class="summary-value">{{ formatBytes(totalDownloaded) }}</div>
-          <div class="summary-subtitle">{{ backendLabel }} 返回的累计值</div>
+          <div class="summary-subtitle">{{ backendLabel }} {{ t('stats.cumulativeValue') }}</div>
         </el-card>
       </el-col>
       <el-col :xs="24" :sm="12" :lg="6">
         <el-card class="summary-card">
-          <div class="summary-title">下载限速</div>
+          <div class="summary-title">{{ t('stats.downloadLimit') }}</div>
           <div class="summary-value">{{ downloadLimitText }}</div>
-          <div class="summary-subtitle">Session 设置 (KB/s)</div>
+          <div class="summary-subtitle">{{ t('stats.sessionSetting') }}</div>
         </el-card>
       </el-col>
       <el-col :xs="24" :sm="12" :lg="6">
         <el-card class="summary-card">
-          <div class="summary-title">上传限速</div>
+          <div class="summary-title">{{ t('stats.uploadLimit') }}</div>
           <div class="summary-value">{{ uploadLimitText }}</div>
-          <div class="summary-subtitle">Session 设置 (KB/s)</div>
+          <div class="summary-subtitle">{{ t('stats.sessionSetting') }}</div>
         </el-card>
       </el-col>
     </el-row>
@@ -48,20 +48,20 @@
     <el-row :gutter="16" class="summary-row secondary">
       <el-col :xs="24" :sm="12" :lg="12">
         <el-card class="summary-card summary-text-card">
-          <div class="summary-title">会话概况</div>
+          <div class="summary-title">{{ t('stats.sessionOverview') }}</div>
           <div class="summary-value summary-text">
             {{ torrentSummaryText }}
           </div>
-          <div class="summary-subtitle">来自 session-stats</div>
+          <div class="summary-subtitle">{{ t('stats.fromSessionStats') }}</div>
         </el-card>
       </el-col>
       <el-col :xs="24" :sm="12" :lg="12">
         <el-card class="summary-card summary-text-card">
-          <div class="summary-title">磁盘剩余空间</div>
+          <div class="summary-title">{{ t('stats.diskFreeSpace') }}</div>
           <div class="summary-value">
             {{ freeSpaceText }}
           </div>
-          <div class="summary-subtitle">根据下载目录计算</div>
+          <div class="summary-subtitle">{{ t('stats.basedOnDownloadDir') }}</div>
         </el-card>
       </el-col>
     </el-row>
@@ -69,20 +69,20 @@
     <el-row :gutter="16" class="summary-row secondary">
       <el-col :xs="24" :sm="12" :lg="12">
         <el-card class="summary-card summary-text-card">
-          <div class="summary-title">当前下载速度</div>
+          <div class="summary-title">{{ t('stats.currentDownloadSpeed') }}</div>
           <div class="summary-value">
             {{ formatSpeed(sessionStats?.downloadSpeed || 0) }}
           </div>
-          <div class="summary-subtitle">实时速率</div>
+          <div class="summary-subtitle">{{ t('stats.realTimeRate') }}</div>
         </el-card>
       </el-col>
       <el-col :xs="24" :sm="12" :lg="12">
         <el-card class="summary-card summary-text-card">
-          <div class="summary-title">当前上传速度</div>
+          <div class="summary-title">{{ t('stats.currentUploadSpeed') }}</div>
           <div class="summary-value">
             {{ formatSpeed(sessionStats?.uploadSpeed || 0) }}
           </div>
-          <div class="summary-subtitle">实时速率</div>
+          <div class="summary-subtitle">{{ t('stats.realTimeRate') }}</div>
         </el-card>
       </el-col>
     </el-row>
@@ -92,8 +92,8 @@
         <el-card class="stats-card chart-card">
           <template #header>
             <div class="card-header">
-              <span>实时上传/下载趋势</span>
-              <small>最近 {{ speedHistory.length }} 次刷新</small>
+              <span>{{ t('stats.speedTrend') }}</span>
+              <small>{{ t('stats.lastRefreshes', { count: speedHistory.length }) }}</small>
             </div>
           </template>
           <VChart class="chart" :option="speedChartOptions" autoresize />
@@ -106,8 +106,8 @@
         <el-card class="stats-card chart-card">
           <template #header>
             <div class="card-header">
-              <span>热门种子上传/下载对比</span>
-              <small>按累计下载排序前 8 个</small>
+              <span>{{ t('stats.topTorrents') }}</span>
+              <small>{{ t('stats.topTorrentsByDownload', { count: 8 }) }}</small>
             </div>
           </template>
           <VChart class="chart" :option="topTorrentChartOptions" autoresize />
@@ -117,8 +117,8 @@
         <el-card class="stats-card chart-card">
           <template #header>
             <div class="card-header">
-              <span>Tracker 上传占比</span>
-              <small>基于服务器 汇总</small>
+              <span>{{ t('stats.trackerUploadShare') }}</span>
+              <small>{{ t('stats.basedOnServer') }}</small>
             </div>
           </template>
           <VChart class="chart" :option="trackerShareChartOptions" autoresize />
@@ -129,38 +129,38 @@
     <el-card class="stats-card">
       <template #header>
         <div class="card-header">
-          <span>Tracker 全量统计</span>
-          <small>按服务器 汇总上传/下载</small>
+          <span>{{ t('stats.trackerStats') }}</span>
+          <small>{{ t('stats.trackerStatsSummary') }}</small>
         </div>
       </template>
       <el-table
         v-loading="loading"
         :data="trackerStats"
         size="small"
-        empty-text="暂无种子数据"
+        :empty-text="t('stats.noTorrentData')"
       >
         <el-table-column prop="tracker" label="Tracker" min-width="180" />
-        <el-table-column label="下载">
+        <el-table-column :label="t('stats.cumulativeDownload')">
           <template #default="{ row }">
             {{ formatBytes(row.downloaded) }}
           </template>
         </el-table-column>
-        <el-table-column label="上传">
+        <el-table-column :label="t('stats.cumulativeUpload')">
           <template #default="{ row }">
             {{ formatBytes(row.uploaded) }}
           </template>
         </el-table-column>
-        <el-table-column label="分享率">
+        <el-table-column :label="t('stats.shareRatio')">
           <template #default="{ row }">
             {{ (row.ratio || 0).toFixed(2) }}
           </template>
         </el-table-column>
-        <el-table-column label="保种量">
+        <el-table-column :label="t('stats.seedingCount')">
           <template #default="{ row }">
             {{ row.seedingCount }}
           </template>
         </el-table-column>
-        <el-table-column label="保种体积">
+        <el-table-column :label="t('stats.seedingSize')">
           <template #default="{ row }">
             {{ formatBytes(row.seedingSize) }}
           </template>
@@ -173,6 +173,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import dayjs from 'dayjs'
 import VChart from 'vue-echarts'
@@ -189,6 +190,8 @@ import { getTrackerDisplayName } from '@/utils/torrent'
 import { formatBytes, formatSpeed } from '@/utils/format'
 
 use([CanvasRenderer, LineChart, BarChart, PieChart, GridComponent, LegendComponent, TooltipComponent, TitleComponent])
+
+const { t } = useI18n()
 
 interface SpeedPoint {
   time: string
@@ -215,31 +218,31 @@ const totalDownloaded = computed(
 
 const downloadLimitText = computed(() => {
   const config = sessionConfig.value
-  if (!config) return '未知'
-  if (!config['speed-limit-down-enabled']) return '未启用'
+  if (!config) return t('common.unknown')
+  if (!config['speed-limit-down-enabled']) return t('common.disabled')
   return `${config['speed-limit-down']} KB/s`
 })
 
 const uploadLimitText = computed(() => {
   const config = sessionConfig.value
-  if (!config) return '未知'
-  if (!config['speed-limit-up-enabled']) return '未启用'
+  if (!config) return t('common.unknown')
+  if (!config['speed-limit-up-enabled']) return t('common.disabled')
   return `${config['speed-limit-up']} KB/s`
 })
 
 const torrentSummaryText = computed(() => {
   const stats = sessionStats.value
-  if (!stats) return '暂无数据'
+  if (!stats) return t('stats.noData')
   const parts = [
-    `总数 ${stats.torrentCount}`,
-    `活跃 ${stats.activeTorrentCount}`,
-    `暂停 ${stats.pausedTorrentCount}`,
+    `${t('stats.total')} ${stats.torrentCount}`,
+    `${t('stats.active')} ${stats.activeTorrentCount}`,
+    `${t('stats.paused')} ${stats.pausedTorrentCount}`,
   ]
   return parts.join(' / ')
 })
 
 const freeSpaceText = computed(() => {
-  if (freeSpaceBytes.value == null) return '未知'
+  if (freeSpaceBytes.value == null) return t('common.unknown')
   return formatBytes(freeSpaceBytes.value)
 })
 
@@ -316,7 +319,7 @@ const speedChartOptions = computed(() => ({
     },
   },
   legend: {
-    data: ['下载速度', '上传速度'],
+    data: [t('stats.downloadSpeed'), t('stats.uploadSpeed')],
   },
   grid: {
     left: 30,
@@ -337,14 +340,14 @@ const speedChartOptions = computed(() => ({
   },
   series: [
     {
-      name: '下载速度',
+      name: t('stats.downloadSpeed'),
       type: 'line',
       smooth: true,
       areaStyle: { opacity: 0.15 },
       data: speedHistory.value.map((point) => point.download),
     },
     {
-      name: '上传速度',
+      name: t('stats.uploadSpeed'),
       type: 'line',
       smooth: true,
       areaStyle: { opacity: 0.1 },
@@ -368,7 +371,7 @@ const topTorrentChartOptions = computed(() => ({
       return `${name}<br/>${lines}`
     },
   },
-  legend: { data: ['累计下载', '累计上传'] },
+  legend: { data: [t('stats.cumulativeDownload'), t('stats.cumulativeUpload')] },
   grid: {
     left: 0,
     right: 20,
@@ -390,7 +393,7 @@ const topTorrentChartOptions = computed(() => ({
   },
   series: [
     {
-      name: '累计下载',
+      name: t('stats.cumulativeDownload'),
       type: 'bar',
       stack: 'total',
       emphasis: {
@@ -399,7 +402,7 @@ const topTorrentChartOptions = computed(() => ({
       data: topTorrents.value.map((item) => item.downloaded),
     },
     {
-      name: '累计上传',
+      name: t('stats.cumulativeUpload'),
       type: 'bar',
       stack: 'total',
       emphasis: {
@@ -414,14 +417,14 @@ const trackerShareChartOptions = computed(() => ({
   tooltip: {
     trigger: 'item',
     formatter: ({ name, value, percent }: any) =>
-      `${name}<br/>上传：${formatBytes(value || 0)}<br/>占比：${percent}%`,
+      `${name}<br/>${t('stats.cumulativeUpload')}：${formatBytes(value || 0)}<br/>占比：${percent}%`,
   },
   legend: {
     show: false,
   },
   series: [
     {
-      name: 'Tracker 上传占比',
+      name: t('stats.trackerUploadShare'),
       type: 'pie',
       radius: ['40%', '70%'],
       data: trackerShareData.value,
@@ -462,7 +465,7 @@ const loadData = async () => {
   try {
     await Promise.all([systemStatusStore.load(), loadTorrents()])
   } catch (error: any) {
-    ElMessage.error(`加载失败: ${error.message || error}`)
+    ElMessage.error(`${t('stats.loadFailed')}: ${error.message || error}`)
   } finally {
     loading.value = false
   }
@@ -473,7 +476,7 @@ onMounted(async () => {
   try {
     await loadData()
   } catch (error: any) {
-    ElMessage.error(`加载数据失败: ${error.message || error}`)
+    ElMessage.error(`${t('stats.loadDataFailed')}: ${error.message || error}`)
   }
 })
 </script>

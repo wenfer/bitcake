@@ -1,3 +1,5 @@
+import { i18n } from '@/i18n'
+
 interface TrackerSite {
   name: string
   trackers: string[]
@@ -74,12 +76,21 @@ const findSiteNameByAnnounce = (announce: string): string | null => {
 
 /**
  * 获取 tracker 的显示名称
- * 如果配置中有站点映射则返回站点名称，否则返回 tracker host
+ * 如果配置中有站点映射则返回站点名称（支持国际化），否则返回 tracker host
  */
 export const getTrackerDisplayName = (announce: string): string => {
   const host = getTrackerHost(announce)
   const siteName = findSiteNameByAnnounce(announce)
-  return siteName || host
+
+  if (siteName) {
+    // 尝试从 i18n 获取翻译
+    const translationKey = `trackerSites.${siteName}`
+    const translated = i18n.global.t(translationKey)
+    // 如果翻译键不存在，t() 会返回键本身，所以检查是否等于键
+    return translated !== translationKey ? translated : siteName
+  }
+
+  return host
 }
 
 /**
