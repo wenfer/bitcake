@@ -166,6 +166,7 @@ import {
   Sunny,
   Connection,
   Timer,
+  ChatDotRound,
 } from "@element-plus/icons-vue";
 import { ElMessageBox } from "element-plus";
 import { useSystemStatusStore } from "@/stores/systemStatus";
@@ -257,6 +258,7 @@ const getTorrentCount = (statusValue: StatusFilter): number | string => {
 };
 
 const navigationItems = computed(() => [
+  { index: "/agent", label: t('nav.agent'), icon: ChatDotRound },
   { index: "/reseed", label: t('nav.reseed'), icon: Connection },
   { index: "/speed-strategy", label: t('nav.speedStrategy'), icon: Timer },
   { index: "/settings", label: t('nav.settings'), icon: Setting },

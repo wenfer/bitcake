@@ -30,6 +30,7 @@ export default {
     reseed: '辅种管理',
     speedStrategy: '限速策略',
     settings: '设置',
+    agent: 'AI 助手',
     navigationMenu: '导航菜单',
   },
   header: {
@@ -863,5 +864,72 @@ export default {
     '学校': '学校',
     'PT空间': 'PT空间',
     '雨': '雨',
+  },
+  agent: {
+    title: 'AI 助手',
+    settings: '设置',
+    clearChat: '清空对话',
+    welcomeMessage: '你好！我是 AI 助手，可以帮你管理种子。试试下面的示例：',
+    example1: '显示所有正在下载的种子',
+    example2: '暂停所有做种中的种子',
+    example3: '查看系统统计信息',
+    you: '你',
+    assistant: '助手',
+    skillCall: '调用功能',
+    inputPlaceholder: '输入消息... (Ctrl+Enter 发送)',
+    send: '发送',
+    configTitle: 'AI 配置',
+    endpoint: 'API 端点',
+    endpointPlaceholder: '例如：https://api.openai.com/v1',
+    apiKey: 'API 密钥',
+    apiKeyPlaceholder: '输入你的 API 密钥',
+    model: '模型',
+    modelPlaceholder: '例如：gpt-3.5-turbo',
+    configSaved: '配置已保存',
+    notConfigured: '请先配置 AI 设置',
+    error: '错误',
+    chatCleared: '对话已清空',
+    testConnection: '测试连接',
+    connectionSuccess: '连接成功',
+    connectionFailed: '连接失败',
+    fetchModels: '获取模型列表',
+    modelsLoaded: '已加载 {count} 个模型',
+    noModelsFound: '未找到可用模型',
+    fetchModelsFailed: '获取模型列表失败',
+    requestFailed: '请求失败',
+    retry: '重试',
+    thinking: '正在思考...',
+    systemPrompt: `你是一个专业的 BitTorrent 种子管理助手。你的任务是帮助用户管理他们的种子文件。
+
+重要概念：
+1. **辅种（Reseed）**：当用户有多个相同文件内容的种子时，这些重复的种子被称为"辅种"。辅种通常用于在不同的 PT 站点上传相同的文件，以提高分享率和保种。
+   - 辅种判定规则：文件名相同 + 文件大小相同 = 辅种
+   - 辅种的好处：同一个文件在多个站点保种，提高总上传量和分享率
+   - 使用 get_reseed_info 可以查看哪些文件有辅种
+
+2. **标签管理**：用户可以为种子添加标签来分类和管理。常见的标签包括："辅种"、"高清"、"电影"、"剧集"等。
+   - 建议为辅种添加"辅种"标签，便于管理
+   - 可以使用 add_labels 为种子添加标签
+   - 可以使用 get_torrents_by_label 查询特定标签的种子
+
+3. **PT 站点**：Private Tracker 站点，用户需要维护良好的分享率。
+
+工作原则：
+- 当用户询问"重复的种子"、"相同的种子"或"辅种"时，使用 get_reseed_info 查询
+- 主动建议用户为辅种添加"辅种"标签，便于管理
+- 在查询种子时，优先使用过滤和限制参数，避免返回过多数据
+- 对于复杂任务，分步骤执行并向用户说明每一步
+- 始终以友好、专业的态度回答用户问题
+
+可用功能：
+- 查询种子列表（支持过滤、排序、限制数量）
+- 查询辅种信息（get_reseed_info）- 查看哪些文件有辅种，在哪些站点
+- 添加/删除/启动/暂停种子
+- 管理种子标签（添加、移除、替换、按标签查询）
+- 设置速度限制
+- 校验种子完整性
+- 查看系统统计信息
+
+请根据用户的需求，选择合适的功能来完成任务。`
   },
 }

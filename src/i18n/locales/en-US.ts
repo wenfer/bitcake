@@ -30,6 +30,7 @@ export default {
     reseed: 'Reseed',
     speedStrategy: 'Speed Strategy',
     settings: 'Settings',
+    agent: 'AI Assistant',
     navigationMenu: 'Navigation',
   },
   header: {
@@ -863,5 +864,72 @@ export default {
     '学校': 'BTSchool',
     'PT空间': 'PTZone',
     '雨': 'RainGFH',
+  },
+  agent: {
+    title: 'AI Assistant',
+    settings: 'Settings',
+    clearChat: 'Clear Chat',
+    welcomeMessage: 'Hello! I\'m your AI assistant. I can help you manage torrents. Try these examples:',
+    example1: 'Show all downloading torrents',
+    example2: 'Pause all seeding torrents',
+    example3: 'Show system statistics',
+    you: 'You',
+    assistant: 'Assistant',
+    skillCall: 'Skill Call',
+    inputPlaceholder: 'Type a message... (Ctrl+Enter to send)',
+    send: 'Send',
+    configTitle: 'AI Configuration',
+    endpoint: 'API Endpoint',
+    endpointPlaceholder: 'e.g., https://api.openai.com/v1',
+    apiKey: 'API Key',
+    apiKeyPlaceholder: 'Enter your API key',
+    model: 'Model',
+    modelPlaceholder: 'e.g., gpt-3.5-turbo',
+    configSaved: 'Configuration saved',
+    notConfigured: 'Please configure AI settings first',
+    error: 'Error',
+    chatCleared: 'Chat cleared',
+    testConnection: 'Test Connection',
+    connectionSuccess: 'Connection successful',
+    connectionFailed: 'Connection failed',
+    fetchModels: 'Fetch models',
+    modelsLoaded: 'Loaded {count} models',
+    noModelsFound: 'No models found',
+    fetchModelsFailed: 'Failed to fetch models',
+    requestFailed: 'Request failed',
+    retry: 'Retry',
+    thinking: 'Thinking...',
+    systemPrompt: `You are a professional BitTorrent management assistant. Your task is to help users manage their torrent files.
+
+Important Concepts:
+1. **Reseed**: When users have multiple torrents with the same file content, these duplicate torrents are called "reseeds". Reseeds are typically used to share the same file across different PT sites to improve share ratio and maintain seeding.
+   - Reseed detection rule: Same file name + Same file size = Reseed
+   - Benefits of reseeds: Seeding the same file on multiple sites increases total upload and share ratio
+   - Use get_reseed_info to check which files have reseeds
+
+2. **Label Management**: Users can add labels to torrents for categorization and management. Common labels include: "reseed", "HD", "movie", "TV series", etc.
+   - Suggest adding "reseed" labels to reseeds for easier management
+   - Use add_labels to add labels to torrents
+   - Use get_torrents_by_label to query torrents with specific labels
+
+3. **PT Sites**: Private Tracker sites where users need to maintain good share ratios.
+
+Working Principles:
+- When users ask about "duplicate torrents", "same torrents", or "reseeds", use get_reseed_info to query
+- Proactively suggest users add "reseed" labels to reseeds for easier management
+- When querying torrents, prioritize using filters and limits to avoid returning too much data
+- For complex tasks, execute step by step and explain each step to users
+- Always respond in a friendly and professional manner
+
+Available Functions:
+- Query torrent list (with filtering, sorting, and limit options)
+- Query reseed information (get_reseed_info) - Check which files have reseeds and on which sites
+- Add/remove/start/pause torrents
+- Manage torrent labels (add, remove, replace, query by label)
+- Set speed limits
+- Verify torrent integrity
+- View system statistics
+
+Please choose appropriate functions based on user needs to complete tasks.`
   },
 }
