@@ -40,7 +40,9 @@
         <el-table-column :label="t('speedStrategy.applyScope')" min-width="150">
           <template #default="{ row }">
             <span v-if="row.trackers.length === 0">{{ t('speedStrategy.allTorrents') }}</span>
-            <el-tag v-else size="small">{{ t('speedStrategy.trackerCount', { count: row.trackers.length }) }}</el-tag>
+            <el-tooltip v-else :content="row.trackers.join(', ')" placement="top" :show-after="300">
+              <span class="scope-text">{{ row.trackers.join(', ') }}</span>
+            </el-tooltip>
           </template>
         </el-table-column>
         <el-table-column :label="t('speedStrategy.createdAt')" width="180">
@@ -497,6 +499,15 @@ onMounted(() => {
   overflow: auto;
   background: #fff;
   border-radius: 6px;
+}
+
+.scope-text {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #606266;
 }
 
 .limit-row {

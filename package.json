@@ -1,7 +1,7 @@
 {
   "name": "bitcake",
   "private": true,
-  "version": "0.7.3",
+  "version": "0.7.4",
   "type": "module",
   "description": "A modern, unified web interface for Transmission and qBittorrent",
   "scripts": {

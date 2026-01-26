@@ -118,6 +118,10 @@ const transmissionService: TorrentService = {
       'downloadedEver',
       'activityDate',
       'labels',
+      'downloadLimited',
+      'downloadLimit',
+      'uploadLimited',
+      'uploadLimit',
       'peers',
       'comment',
     ]
