@@ -804,17 +804,6 @@
             </el-select>
           </div>
         </el-form-item>
-        <el-form-item v-if="limitDialogMode === 'batch'" :label="t('torrent.addLimitLabel')">
-          <div class="limit-row">
-            <el-switch
-              v-model="limitDialogForm.addLabel"
-              class="limit-switch"
-            />
-            <span class="form-tip-inline" v-if="limitDialogForm.addLabel">
-              {{ t('torrent.addLimitLabelTip') }}
-            </span>
-          </div>
-        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="limitDialogVisible = false">{{ t('common.cancel') }}</el-button>
@@ -1053,7 +1042,6 @@ interface LimitFormState {
   uploadLimit: number;
   uploadUnit: "KB" | "MB";
   selectedTrackers: string[];
-  addLabel: boolean;
 }
 
 const createEmptyLimitForm = (): LimitFormState => ({
@@ -1064,7 +1052,6 @@ const createEmptyLimitForm = (): LimitFormState => ({
   uploadLimit: 0,
   uploadUnit: "KB",
   selectedTrackers: [],
-  addLabel: true,
 });
 
 const statusTextMap: Record<TorrentStatus, string> = {
@@ -1210,6 +1197,7 @@ const defaultColumnWidths: Record<string, number> = {
   peersUploading: 100,
   rateDownload: 100,
   rateUpload: 100,
+  speedLimit: 110,
   eta: 140,
   uploadedEver: 100,
   downloadDir: 200,
@@ -1289,6 +1277,15 @@ const tableColumns: ColumnConfig[] = [
     sortable: true,
     minWidth: 120,
     defaultWidth: 140,
+    showInCompact: true,
+  },
+  {
+    key: "speedLimit",
+    label: t('torrent.col.limit'),
+    prop: "speedLimit",
+    sortable: true,
+    minWidth: 110,
+    defaultWidth: 120,
     showInCompact: true,
   },
   {
@@ -1381,6 +1378,13 @@ function debounce<T extends (...args: any[]) => any>(fn: T, delay: number) {
 }
 
 const torrents = ref<Torrent[]>([]);
+const hasAnyPerTorrentLimit = computed(() => {
+  return torrents.value.some((t) => {
+    const downloadLimit = Math.max(0, Math.round((t.downloadLimit as number) || 0));
+    const uploadLimit = Math.max(0, Math.round((t.uploadLimit as number) || 0));
+    return downloadLimit > 0 || uploadLimit > 0;
+  });
+});
 const searchKeyword = ref("");
 const debouncedSearchKeyword = ref("");
 const nameLowerCache = new Map<number, string>();
@@ -1683,8 +1687,16 @@ const loadColumnOrder = () => {
 // 根据顺序获取有序的列配置
 const orderedColumns = computed(() => {
   return columnOrder.value
+    .filter((key) => key !== "speedLimit" || hasAnyPerTorrentLimit.value)
     .map((key) => tableColumns.find((col) => col.key === key))
     .filter(Boolean) as ColumnConfig[];
+});
+
+watch(hasAnyPerTorrentLimit, (hasAny) => {
+  if (hasAny) return;
+  if (sortState.value.prop === "speedLimit") {
+    sortState.value = { prop: "addedDate", order: "descending" };
+  }
 });
 
 const getPeersDownloading = (torrent: Torrent): number => {
@@ -1739,6 +1751,24 @@ const formatLastActivity = (timestamp?: number): string => {
 const formatTorrentDate = (timestamp?: number): string => {
   if (!timestamp) return "—";
   return dayjs(timestamp * 1000).format("YYYY-MM-DD HH:mm");
+};
+
+const formatSpeedLimitText = (torrent: Torrent): { text: string; tooltip: string; active: boolean } => {
+  const downloadLimitKB = Math.max(0, Math.round((torrent.downloadLimit as number) || 0));
+  const uploadLimitKB = Math.max(0, Math.round((torrent.uploadLimit as number) || 0));
+  const formatLimitValue = (kb: number) => {
+    if (kb >= 1024 && kb % 1024 === 0) return `${kb / 1024} MB/s`;
+    return `${kb} KB/s`;
+  };
+
+  const parts: string[] = [];
+  if (downloadLimitKB > 0) parts.push(`↓${formatLimitValue(downloadLimitKB)}`);
+  if (uploadLimitKB > 0) parts.push(`↑${formatLimitValue(uploadLimitKB)}`);
+  if (!parts.length) {
+    return { text: "—", tooltip: "", active: false };
+  }
+  const tooltip = `${t('torrent.perTorrentLimit')}：${parts.join("，")}`;
+  return { text: parts.join(" "), tooltip, active: true };
 };
 
 const isTorrentError = (torrent: Torrent) => {
@@ -1878,6 +1908,11 @@ const getSortValue = (torrent: Torrent, prop?: string) => {
       return torrent.rateDownload;
     case "rateUpload":
       return torrent.rateUpload;
+    case "speedLimit": {
+      const downloadLimit = Math.max(0, Math.round((torrent.downloadLimit as number) || 0));
+      const uploadLimit = Math.max(0, Math.round((torrent.uploadLimit as number) || 0));
+      return Math.max(downloadLimit, uploadLimit);
+    }
     case "eta":
       // eta 为负数或未定义时，排序时放到最后
       return torrent.eta !== undefined && torrent.eta >= 0
@@ -3202,21 +3237,6 @@ const buildLimitPayload = (form: LimitFormState) => {
   return payload;
 };
 
-// 生成限速标签字符串
-const buildLimitLabel = (form: LimitFormState): string => {
-  const parts: string[] = [];
-  if (form.downloadLimited && form.downloadLimit > 0) {
-    parts.push(`↓${form.downloadLimit}${form.downloadUnit}/s`);
-  }
-  if (form.uploadLimited && form.uploadLimit > 0) {
-    parts.push(`↑${form.uploadLimit}${form.uploadUnit}/s`);
-  }
-  if (parts.length === 0) {
-    return "";
-  }
-  return `limit:${parts.join("")}`;
-};
-
 const openBatchLimitDialog = () => {
   if (!torrents.value.length) {
     ElMessage.warning(t('torrent.message.noTorrents'));
@@ -3261,7 +3281,6 @@ const applyLimitFormFromTorrent = (torrent?: Torrent | null) => {
     uploadLimit: torrent.uploadLimit ?? 0,
     uploadUnit: "KB",
     selectedTrackers: [],
-    addLabel: false, // 单个种子模式默认不添加标签
   };
 };
 
@@ -3306,23 +3325,6 @@ const submitLimitSettings = async () => {
   try {
     // 1. 设置限速
     await api.setTorrents(targetIds, buildLimitPayload(limitDialogForm.value));
-
-    // 2. 如果是批量模式且需要添加标签
-    if (limitDialogMode.value === "batch" && limitDialogForm.value.addLabel) {
-      const limitLabel = buildLimitLabel(limitDialogForm.value);
-      if (limitLabel) {
-        // 为每个种子更新标签
-        for (const torrent of targetTorrents) {
-          // 移除旧的限速标签
-          const existingLabels = (torrent.labels || []).filter(
-            (label) => !label.startsWith("limit:")
-          );
-          // 添加新的限速标签
-          const newLabels = [...existingLabels, limitLabel];
-          await api.setTorrents([torrent.id], { labels: newLabels });
-        }
-      }
-    }
 
     ElMessage.success(
       targetIds.length > 1
@@ -3997,6 +3999,30 @@ const tableV2Columns = computed<Column<Torrent>[]>(() => {
       common.cellRenderer = ({ rowData }) => h("span", formatSpeed(rowData.rateDownload));
     } else if (col.key === "rateUpload") {
       common.cellRenderer = ({ rowData }) => h("span", formatSpeed(rowData.rateUpload));
+    } else if (col.key === "speedLimit") {
+      common.cellRenderer = ({ rowData }) => {
+        const info = formatSpeedLimitText(rowData);
+        const cell = h(
+          "span",
+          {
+            class: ["limit-cell", info.active ? "active" : ""],
+            title: info.active ? info.tooltip : undefined,
+            onClick: (e: Event) => {
+              e.stopPropagation();
+              openSingleLimitDialog(rowData);
+            },
+          },
+          info.text
+        );
+        if (!info.active) {
+          return cell;
+        }
+        return h(
+          ElTooltip,
+          { content: info.tooltip, placement: "top" },
+          () => cell
+        );
+      };
     } else if (col.key === "defaultTracker") {
       common.cellRenderer = ({ rowData }) => h("span", getDefaultTracker(rowData));
     } else if (col.key === "peersDownloading") {
@@ -4171,6 +4197,21 @@ onBeforeUnmount(() => {
 .label-tag {
   margin-right: 4px;
   margin-bottom: 4px;
+}
+
+.limit-cell {
+  cursor: pointer;
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+  color: #909399;
+}
+
+.limit-cell.active {
+  color: #606266;
+}
+
+.limit-cell:hover {
+  color: #409eff;
 }
 
 .context-menu {
