@@ -42,14 +42,27 @@ export default defineConfig(({ mode }) => {
         name: 'bitcake-favicon',
         enforce: 'pre',
         transformIndexHtml(html: string) {
+          const softwareName = isQbittorrent ? 'qBittorrent' : 'Transmission'
+
           const iconPath = isQbittorrent ? 'icons/qbittorrent32.png' : 'icons/transmission.ico'
           const typeAttr = isQbittorrent ? 'image/png' : 'image/x-icon'
           const linkTag = `<link rel="icon" type="${typeAttr}" href="${iconPath}" />`
           const hasFavicon = /<link\s+rel=["']icon["'][^>]*>/i.test(html)
+          let result = html
           if (hasFavicon) {
-            return html.replace(/<link\s+rel=["']icon["'][^>]*>/i, linkTag)
+            result = result.replace(/<link\s+rel=["']icon["'][^>]*>/i, linkTag)
+          } else {
+            result = result.replace('</head>', `  ${linkTag}\n  </head>`)
           }
-          return html.replace('</head>', `  ${linkTag}\n  </head>`)
+
+          const titleTag = `<title>BitCake-${softwareName}</title>`
+          if (/<title>[^<]*<\/title>/i.test(result)) {
+            result = result.replace(/<title>[^<]*<\/title>/i, titleTag)
+          } else {
+            result = result.replace('</head>', `  ${titleTag}\n  </head>`)
+          }
+
+          return result
         }
       }
     ],
