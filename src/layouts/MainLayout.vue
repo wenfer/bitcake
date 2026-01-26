@@ -481,6 +481,23 @@ const handleLogout = async () => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
+}
+
+.aside-content :deep(.el-menu) {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  border-right: none;
+}
+
+.aside-content :deep(.el-menu-item .el-icon),
+.aside-content :deep(.el-sub-menu__title .el-icon) {
+  flex: 0 0 auto;
+}
+
+.aside-content :deep(.el-icon svg) {
+  display: block;
 }
 
 .status-label-with-count {
@@ -525,6 +542,23 @@ const handleLogout = async () => {
   flex-direction: column;
   height: calc(100% - 72px);
   padding-bottom: 20px;
+  min-height: 0;
+}
+
+.drawer-body :deep(.el-menu) {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  border-right: none;
+}
+
+.drawer-body :deep(.el-menu-item .el-icon),
+.drawer-body :deep(.el-sub-menu__title .el-icon) {
+  flex: 0 0 auto;
+}
+
+.drawer-body :deep(.el-icon svg) {
+  display: block;
 }
 
 .status-label-with-count {
