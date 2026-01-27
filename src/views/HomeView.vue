@@ -2492,12 +2492,14 @@ const resetColumnWidths = () => {
 };
 
 // 加载种子列表
-const loadTorrents = async (options: { silent?: boolean } = {}) => {
+const loadTorrents = async (
+  options: { silent?: boolean; forceFull?: boolean } = {}
+) => {
   if (!options.silent) {
     loading.value = true;
   }
   try {
-    if (options.silent && isTransmission) {
+    if (options.silent && isTransmission && !options.forceFull) {
       if (!torrents.value.length) {
         const full = await api.getTorrents();
         torrents.value = full.torrents;
@@ -2622,6 +2624,22 @@ const confirmRemoveDialog = async () => {
   } catch (error: any) {
     ElMessage.error(`${t('torrent.message.deleteFailed')}: ${error.message}`);
   }
+};
+
+let lastForegroundRefreshAt = 0;
+const handleForegroundRefresh = () => {
+  if (typeof document === "undefined") return;
+  if (document.visibilityState === "hidden") return;
+  const now = Date.now();
+  if (now - lastForegroundRefreshAt < 800) return;
+  lastForegroundRefreshAt = now;
+
+  isScrolling.value = false;
+  if (scrollStopTimer) {
+    clearTimeout(scrollStopTimer as any);
+    scrollStopTimer = null;
+  }
+  loadTorrents({ silent: true, forceFull: true });
 };
 
 const startAutoRefresh = () => {
@@ -4084,6 +4102,8 @@ onMounted(() => {
   window.addEventListener("click", hideContextMenu);
   window.addEventListener("scroll", hideContextMenu, true);
   window.addEventListener("scroll", handleGlobalScroll, true);
+  window.addEventListener("focus", handleForegroundRefresh);
+  document.addEventListener("visibilitychange", handleForegroundRefresh);
   window.addEventListener("keydown", handleKeydown);
 
   // 延迟初始化列头拖拽排序，确保表格完全渲染
@@ -4097,6 +4117,8 @@ onBeforeUnmount(() => {
   window.removeEventListener("click", hideContextMenu);
   window.removeEventListener("scroll", hideContextMenu, true);
   window.removeEventListener("scroll", handleGlobalScroll, true);
+  window.removeEventListener("focus", handleForegroundRefresh);
+  document.removeEventListener("visibilitychange", handleForegroundRefresh);
   window.removeEventListener("keydown", handleKeydown);
 
   // 清理拖拽实例
