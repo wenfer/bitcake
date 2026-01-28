@@ -1378,10 +1378,18 @@ function debounce<T extends (...args: any[]) => any>(fn: T, delay: number) {
 }
 
 const torrents = ref<Torrent[]>([]);
+const getActivePerTorrentLimitsKB = (torrent: Torrent) => {
+  const downloadLimit = torrent.downloadLimited
+    ? Math.max(0, Math.round((torrent.downloadLimit as number) || 0))
+    : 0;
+  const uploadLimit = torrent.uploadLimited
+    ? Math.max(0, Math.round((torrent.uploadLimit as number) || 0))
+    : 0;
+  return { downloadLimit, uploadLimit };
+};
 const hasAnyPerTorrentLimit = computed(() => {
   return torrents.value.some((t) => {
-    const downloadLimit = Math.max(0, Math.round((t.downloadLimit as number) || 0));
-    const uploadLimit = Math.max(0, Math.round((t.uploadLimit as number) || 0));
+    const { downloadLimit, uploadLimit } = getActivePerTorrentLimitsKB(t);
     return downloadLimit > 0 || uploadLimit > 0;
   });
 });
@@ -1754,8 +1762,8 @@ const formatTorrentDate = (timestamp?: number): string => {
 };
 
 const formatSpeedLimitText = (torrent: Torrent): { text: string; tooltip: string; active: boolean } => {
-  const downloadLimitKB = Math.max(0, Math.round((torrent.downloadLimit as number) || 0));
-  const uploadLimitKB = Math.max(0, Math.round((torrent.uploadLimit as number) || 0));
+  const { downloadLimit: downloadLimitKB, uploadLimit: uploadLimitKB } =
+    getActivePerTorrentLimitsKB(torrent);
   const formatLimitValue = (kb: number) => {
     if (kb >= 1024 && kb % 1024 === 0) return `${kb / 1024} MB/s`;
     return `${kb} KB/s`;
@@ -1909,8 +1917,7 @@ const getSortValue = (torrent: Torrent, prop?: string) => {
     case "rateUpload":
       return torrent.rateUpload;
     case "speedLimit": {
-      const downloadLimit = Math.max(0, Math.round((torrent.downloadLimit as number) || 0));
-      const uploadLimit = Math.max(0, Math.round((torrent.uploadLimit as number) || 0));
+      const { downloadLimit, uploadLimit } = getActivePerTorrentLimitsKB(torrent);
       return Math.max(downloadLimit, uploadLimit);
     }
     case "eta":
