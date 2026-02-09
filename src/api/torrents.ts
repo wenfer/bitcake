@@ -5,7 +5,7 @@ import type {
   SessionConfig,
   SessionStats,
 } from '@/types/transmission'
-import type { Torrent, TorrentFile, TorrentFileStat, TorrentStatus } from '@/types/torrent'
+import type { Torrent, TorrentFile, TorrentFileStat, TorrentPeer, TorrentStatus } from '@/types/torrent'
 import { TorrentStatusEnum } from '@/types/torrent'
 import { transmissionClient } from './client'
 import { qbittorrentClient } from './qbittorrentClient'
@@ -442,6 +442,24 @@ interface QBTorrentProperties {
   share_ratio?: number
 }
 
+interface QBTorrentPeerInfo {
+  ip?: string
+  port?: number
+  client?: string
+  progress?: number
+  dl_speed?: number
+  up_speed?: number
+  flags?: string
+  flags_desc?: string
+}
+
+interface QBTorrentPeersResponse {
+  full_update?: boolean
+  rid?: number
+  peers?: Record<string, QBTorrentPeerInfo>
+  peers_removed?: string[]
+}
+
 interface QBTransferInfo {
   dl_info_speed: number
   up_info_speed: number
@@ -697,6 +715,32 @@ const mapQBTorrent = (item: QBTorrentInfo, properties?: QBTorrentProperties): To
   }
 }
 
+const mapQBTorrentPeers = (response: QBTorrentPeersResponse | null | undefined): TorrentPeer[] => {
+  const peers = response?.peers
+  if (!peers) return []
+
+  return Object.entries(peers)
+    .map(([peerId, peer]) => {
+      const fallbackIndex = peerId.lastIndexOf(':')
+      const fallbackIp = fallbackIndex > 0 ? peerId.slice(0, fallbackIndex) : peerId
+      const fallbackPort = fallbackIndex > 0 ? Number(peerId.slice(fallbackIndex + 1)) : 0
+
+      const address = peer.ip || fallbackIp
+      const port = peer.port ?? fallbackPort
+
+      return {
+        address,
+        port: Number.isFinite(port) ? port : 0,
+        clientName: peer.client || undefined,
+        progress: peer.progress ?? 0,
+        rateToClient: peer.dl_speed ?? 0,
+        rateToPeer: peer.up_speed ?? 0,
+        flagStr: peer.flags ?? peer.flags_desc ?? '',
+      } satisfies TorrentPeer
+    })
+    .filter((p) => Boolean(p.address))
+}
+
 const qbEnsureAuth = async () => {
   // 先尝试获取传输信息，如果成功说明已经认证
   if (qbAuthenticated) return
@@ -767,7 +811,7 @@ const qbittorrentService: TorrentService = {
     for (const info of torrents) {
       let torrent: Torrent
       if (options?.ids?.length) {
-        const [files, qbTrackers, properties] = await Promise.all([
+        const [files, qbTrackers, properties, peersResponse] = await Promise.all([
           qbittorrentClient.get<QBTorrentFile[]>(
             `/torrents/files?hash=${encodeURIComponent(info.hash)}`
           ),
@@ -777,6 +821,11 @@ const qbittorrentService: TorrentService = {
           qbittorrentClient.get<QBTorrentProperties>(
             `/torrents/properties?hash=${encodeURIComponent(info.hash)}`
           ),
+          qbittorrentClient
+            .get<QBTorrentPeersResponse>(
+              `/sync/torrentPeers?hash=${encodeURIComponent(info.hash)}&rid=0`
+            )
+            .catch(() => null),
         ])
         torrent = mapQBTorrent(info, properties)
         const torrentFiles: TorrentFile[] = files.map((file) => ({
@@ -810,6 +859,8 @@ const qbittorrentService: TorrentService = {
               leecherCount: t.num_leeches,
             }))
         }
+
+        torrent.peers = mapQBTorrentPeers(peersResponse)
       } else {
         torrent = mapQBTorrent(info)
       }
