@@ -234,22 +234,18 @@ const transmissionService: TorrentService = {
     for (const torrent of torrents) {
       const trackers = torrent.trackers || []
 
+      const replacements: Array<[number, string]> = []
       for (const tracker of trackers) {
-        if (tracker.announce.includes(oldUrl)) {
+        if (tracker.announce.includes(oldUrl) && typeof tracker.id === 'number') {
           const updatedUrl = tracker.announce.replace(oldUrl, newUrl)
-
-          // 先删除旧tracker
-          await transmissionClient.request('trackerRemove', {
-            ids: [torrent.id],
-            trackerRemove: [tracker.announce],
-          })
-
-          // 再添加新tracker
-          await transmissionClient.request('trackerAdd', {
-            ids: [torrent.id],
-            trackerAdd: [updatedUrl],
-          })
+          replacements.push([tracker.id, updatedUrl])
         }
+      }
+      if (replacements.length) {
+        await transmissionClient.request('torrent-set', {
+          ids: [torrent.id],
+          trackerReplace: replacements,
+        })
       }
     }
   },
