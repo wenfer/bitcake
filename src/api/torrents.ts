@@ -5,7 +5,7 @@ import type {
   SessionConfig,
   SessionStats,
 } from '@/types/transmission'
-import type { Torrent, TorrentFile, TorrentFileStat, TorrentStatus } from '@/types/torrent'
+import type { Torrent, TorrentFile, TorrentFileStat, TorrentPeer, TorrentStatus } from '@/types/torrent'
 import { TorrentStatusEnum } from '@/types/torrent'
 import { transmissionClient } from './client'
 import { qbittorrentClient } from './qbittorrentClient'
@@ -234,21 +234,63 @@ const transmissionService: TorrentService = {
     for (const torrent of torrents) {
       const trackers = torrent.trackers || []
 
-      for (const tracker of trackers) {
-        if (tracker.announce.includes(oldUrl)) {
-          const updatedUrl = tracker.announce.replace(oldUrl, newUrl)
+      const tiers = new Map<number, Set<string>>()
+      let changed = false
+      for (const t of trackers) {
+        const tier = typeof t.tier === 'number' ? t.tier : 0
+        const set = tiers.get(tier) || new Set<string>()
+        const nextAnnounce = t.announce.includes(oldUrl)
+          ? (changed = true, t.announce.replace(oldUrl, newUrl))
+          : t.announce
+        set.add(nextAnnounce)
+        tiers.set(tier, set)
+      }
 
-          // 先删除旧tracker
-          await transmissionClient.request('trackerRemove', {
+      if (changed) {
+        let updated = false
+        const sortedTiers = Array.from(tiers.keys()).sort((a, b) => a - b)
+        const parts: string[] = []
+        for (let i = 0; i < sortedTiers.length; i++) {
+          const tierVal = sortedTiers[i]
+          if (tierVal === undefined) continue
+          const announces = Array.from(tiers.get(tierVal) || [])
+          parts.push(announces.join('\n'))
+          if (i !== sortedTiers.length - 1) parts.push('')
+        }
+        const trackerList = parts.join('\n')
+        try {
+          await transmissionClient.request('torrent-set', {
             ids: [torrent.id],
-            trackerRemove: [tracker.announce],
+            trackerList,
           })
-
-          // 再添加新tracker
-          await transmissionClient.request('trackerAdd', {
-            ids: [torrent.id],
-            trackerAdd: [updatedUrl],
-          })
+          updated = true
+        } catch (e) {
+          const replacements: Array<[number, string]> = []
+          const existing = new Set<string>(trackers.map(tr => tr.announce))
+          for (const tr of trackers) {
+            if (tr.announce.includes(oldUrl) && typeof tr.id === 'number') {
+              const updatedUrl = tr.announce.replace(oldUrl, newUrl)
+              if (!existing.has(updatedUrl)) {
+                replacements.push([tr.id, updatedUrl])
+              } else {
+                await transmissionClient.request('torrent-set', {
+                  ids: [torrent.id],
+                  trackerRemove: [tr.id],
+                })
+                updated = true
+              }
+            }
+          }
+          if (replacements.length) {
+            await transmissionClient.request('torrent-set', {
+              ids: [torrent.id],
+              trackerReplace: replacements,
+            })
+            updated = true
+          }
+        }
+        if (updated) {
+          await transmissionClient.request('torrent-reannounce', { ids: [torrent.id] })
         }
       }
     }
@@ -398,6 +440,24 @@ interface QBTorrentProperties {
   nb_connections?: number
   nb_connections_limit?: number
   share_ratio?: number
+}
+
+interface QBTorrentPeerInfo {
+  ip?: string
+  port?: number
+  client?: string
+  progress?: number
+  dl_speed?: number
+  up_speed?: number
+  flags?: string
+  flags_desc?: string
+}
+
+interface QBTorrentPeersResponse {
+  full_update?: boolean
+  rid?: number
+  peers?: Record<string, QBTorrentPeerInfo>
+  peers_removed?: string[]
 }
 
 interface QBTransferInfo {
@@ -655,6 +715,32 @@ const mapQBTorrent = (item: QBTorrentInfo, properties?: QBTorrentProperties): To
   }
 }
 
+const mapQBTorrentPeers = (response: QBTorrentPeersResponse | null | undefined): TorrentPeer[] => {
+  const peers = response?.peers
+  if (!peers) return []
+
+  return Object.entries(peers)
+    .map(([peerId, peer]) => {
+      const fallbackIndex = peerId.lastIndexOf(':')
+      const fallbackIp = fallbackIndex > 0 ? peerId.slice(0, fallbackIndex) : peerId
+      const fallbackPort = fallbackIndex > 0 ? Number(peerId.slice(fallbackIndex + 1)) : 0
+
+      const address = peer.ip || fallbackIp
+      const port = peer.port ?? fallbackPort
+
+      return {
+        address,
+        port: Number.isFinite(port) ? port : 0,
+        clientName: peer.client || undefined,
+        progress: peer.progress ?? 0,
+        rateToClient: peer.dl_speed ?? 0,
+        rateToPeer: peer.up_speed ?? 0,
+        flagStr: peer.flags ?? peer.flags_desc ?? '',
+      } satisfies TorrentPeer
+    })
+    .filter((p) => Boolean(p.address))
+}
+
 const qbEnsureAuth = async () => {
   // 先尝试获取传输信息，如果成功说明已经认证
   if (qbAuthenticated) return
@@ -725,7 +811,7 @@ const qbittorrentService: TorrentService = {
     for (const info of torrents) {
       let torrent: Torrent
       if (options?.ids?.length) {
-        const [files, qbTrackers, properties] = await Promise.all([
+        const [files, qbTrackers, properties, peersResponse] = await Promise.all([
           qbittorrentClient.get<QBTorrentFile[]>(
             `/torrents/files?hash=${encodeURIComponent(info.hash)}`
           ),
@@ -735,6 +821,11 @@ const qbittorrentService: TorrentService = {
           qbittorrentClient.get<QBTorrentProperties>(
             `/torrents/properties?hash=${encodeURIComponent(info.hash)}`
           ),
+          qbittorrentClient
+            .get<QBTorrentPeersResponse>(
+              `/sync/torrentPeers?hash=${encodeURIComponent(info.hash)}&rid=0`
+            )
+            .catch(() => null),
         ])
         torrent = mapQBTorrent(info, properties)
         const torrentFiles: TorrentFile[] = files.map((file) => ({
@@ -768,6 +859,8 @@ const qbittorrentService: TorrentService = {
               leecherCount: t.num_leeches,
             }))
         }
+
+        torrent.peers = mapQBTorrentPeers(peersResponse)
       } else {
         torrent = mapQBTorrent(info)
       }
@@ -921,6 +1014,7 @@ const qbittorrentService: TorrentService = {
     const torrentsData = await qbittorrentService.getTorrents()
     const targetTorrents = torrentsData.torrents.filter((t) => ids.includes(t.id))
 
+    const changedHashes = new Set<string>()
     for (const torrent of targetTorrents) {
       const hash = torrent.hashString
       const trackers = torrent.trackers || []
@@ -934,8 +1028,17 @@ const qbittorrentService: TorrentService = {
             newUrl: updatedUrl,
           })
           await qbittorrentClient.post('/torrents/editTracker', formData)
+          changedHashes.add(hash)
         }
       }
+    }
+    if (changedHashes.size) {
+      const body = qbittorrentClient.buildFormData({
+        hashes: Array.from(changedHashes).join('|'),
+      })
+      await qbittorrentClient.post('/torrents/reannounce', body, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      })
     }
   },
 

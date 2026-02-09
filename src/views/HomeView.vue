@@ -601,13 +601,13 @@
                   >
                     <el-table-column
                       prop="tier"
-                      label="Tier"
+                      :label="t('torrent.tier')"
                       width="60"
                       align="center"
                     />
                     <el-table-column
                       prop="announce"
-                      label="Announce URL"
+                      :label="t('torrent.announceUrl')"
                       min-width="200"
                       show-overflow-tooltip
                     />
@@ -622,6 +622,7 @@
                       prop="lastAnnounce"
                       :label="t('torrent.lastAnnounce')"
                       width="140"
+                      v-if="isTransmission"
                     />
                   </el-table>
                 </div>
@@ -938,6 +939,7 @@ import { storeToRefs } from "pinia";
 import { isTransmission } from "@/config/torrentClient";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
+import { buildTrackerErrorMappings } from "@/utils/errorMapping";
 
 const REFRESH_INTERVAL = 3000;
 const COLUMN_WIDTH_STORAGE_KEY = "tv_table_column_widths";
@@ -971,7 +973,7 @@ const DETAIL_FIELDS = [
 
 const route = useRoute();
 const router = useRouter();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const filterStore = useFilterStore();
 const systemStatusStore = useSystemStatusStore();
 const {
@@ -1114,22 +1116,22 @@ const errorMappings: ErrorMapping[] = [
   },
   {
     keywords: ["Tracker gave HTTP response code 404", "Tracker not found"],
-    type: t('torrent.errorType.trackerError'),
+    type: t('torrent.errorType.networkError'),
     message: t('torrent.errorType.trackerNotFound'),
   },
   {
     keywords: ["Tracker gave HTTP response code 403", "Forbidden"],
-    type: t('torrent.errorType.trackerError'),
+    type: t('torrent.errorType.authError'),
     message: t('torrent.errorType.trackerDenied'),
   },
   {
     keywords: ["Tracker gave a warning", "Unregistered torrent"],
-    type: t('torrent.errorType.trackerError'),
+    type: t('torrent.errorType.torrentError'),
     message: t('torrent.errorType.torrentNotRegistered'),
   },
   {
     keywords: ["Tracker gave HTTP response code 5", "502"],
-    type: t('torrent.errorType.trackerError'),
+    type: t('torrent.errorType.networkError'),
     message: t('torrent.errorType.trackerServerError'),
   },
   {
@@ -1142,6 +1144,7 @@ const errorMappings: ErrorMapping[] = [
     type: t('torrent.errorType.verifyError'),
     message: t('torrent.errorType.verifyFailed'),
   },
+  ...buildTrackerErrorMappings({ t, namespace: "torrent", locale: locale.value }),
 ];
 
 // 获取友好的错误提示

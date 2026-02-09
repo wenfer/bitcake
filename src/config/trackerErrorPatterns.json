@@ -1,0 +1,38 @@
+{
+  "torrent_error": [
+    { "en": "torrent not registered with this tracker", "zh": "种子未注册" },
+    { "en": "unregistered torrent", "zh": "种子未注册" },
+    { "en": "invalid info hash", "zh": "哈希值无效" }
+  ],
+  "auth_error": [
+    { "en": "invalid passkey (unauthorized)", "zh": "密钥无效" },
+    { "en": "access denied", "zh": "访问被拒绝" },
+    { "en": "your account is disabled", "zh": "账号已禁用" },
+    { "en": "you are not allowed to use this tracker", "zh": "无使用权限" }
+  ],
+  "duplicate_error": [
+    { "en": "Duplicate report rejected", "zh": "重复汇报拒绝" },
+    { "en": "please modify your client's configuration", "zh": "请修改配置" },
+    { "en": "too many torrents from same ip", "zh": "IP任务超限" }
+  ],
+  "network_error": [
+    { "en": "connection timed out", "zh": "连接超时" },
+    { "en": "host unreachable", "zh": "主机不可达" },
+    { "en": "tracker down or unavailable", "zh": "服务器离线" },
+    { "en": "invalid port", "zh": "端口无效" }
+  ],
+  "client_error": [
+    { "en": "your client is blacklisted", "zh": "客户端拉黑" },
+    { "en": "obsolete client, please upgrade", "zh": "版本过低" },
+    { "en": "bad client identity", "zh": "客户端异常" }
+  ],
+  "file_error": [
+    { "en": "piece check failed", "zh": "文件校验失败" },
+    { "en": "corrupted data", "zh": "文件已损坏" }
+  ],
+  "ratio_error": [
+    { "en": "download limit reached", "zh": "下载量超限" },
+    { "en": "you must upload before downloading", "zh": "需先上传" },
+    { "en": "leeching too long, no upload", "zh": "长期无上传" }
+  ]
+}
