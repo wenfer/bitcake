@@ -357,11 +357,12 @@ import { useI18n } from 'vue-i18n'
 import { useSystemStatusStore } from '@/stores/systemStatus'
 import { getTrackerDisplayName } from '@/utils/torrent'
 import { formatBytes, formatSpeed } from '@/utils/format'
+import { buildTrackerErrorMappings } from '@/utils/errorMapping'
 import * as api from '@/api/torrents'
 import type { Torrent, TorrentStatus } from '@/types/torrent'
 import { TorrentStatusEnum } from '@/types/torrent'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 // 防抖函数
 function debounce<T extends (...args: any[]) => any>(fn: T, delay: number) {
@@ -452,22 +453,22 @@ const errorMappings: ErrorMapping[] = [
   },
   {
     keywords: ['Tracker gave HTTP response code 404', 'Tracker not found'],
-    type: t('reseed.errorType.trackerError'),
+    type: t('reseed.errorType.networkError'),
     message: t('reseed.errorType.trackerNotFound'),
   },
   {
     keywords: ['Tracker gave HTTP response code 403', 'Forbidden'],
-    type: t('reseed.errorType.trackerError'),
+    type: t('reseed.errorType.authError'),
     message: t('reseed.errorType.trackerDenied'),
   },
   {
     keywords: ['Tracker gave a warning', 'Unregistered torrent'],
-    type: t('reseed.errorType.trackerError'),
+    type: t('reseed.errorType.torrentError'),
     message: t('reseed.errorType.torrentNotRegistered'),
   },
   {
-    keywords: ['Tracker gave HTTP response code 5'],
-    type: t('reseed.errorType.trackerError'),
+    keywords: ['Tracker gave HTTP response code 5', '502'],
+    type: t('reseed.errorType.networkError'),
     message: t('reseed.errorType.trackerServerError'),
   },
   {
@@ -480,6 +481,7 @@ const errorMappings: ErrorMapping[] = [
     type: t('reseed.errorType.verifyError'),
     message: t('reseed.errorType.verifyFailed'),
   },
+  ...buildTrackerErrorMappings({ t, namespace: 'reseed', locale: locale.value }),
 ]
 
 // 获取错误类型（用于筛选）
