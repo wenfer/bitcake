@@ -12,6 +12,10 @@ import en from 'element-plus/es/locale/lang/en'
 // Import i18n
 import i18n, { getLocale } from './i18n'
 
+// Register Service Worker
+import { registerSW } from './utils/swRegister'
+registerSW()
+
 const app = createApp(App)
 
 app.use(createPinia())

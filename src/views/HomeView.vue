@@ -39,6 +39,14 @@
           <el-button @click="resetColumnWidths" :title="t('torrent.resetColumnWidthTitle')">
             {{ t('torrent.resetColumnWidth') }}
           </el-button>
+          <el-button 
+            :icon="Bell" 
+            :type="notificationState.enabled ? 'success' : 'info'"
+            @click="toggleNotifications"
+            :title="notificationState.enabled ? t('notification.notificationsEnabled') : t('notification.enableNotifications')"
+          >
+            {{ notificationState.enabled ? t('notification.notificationsEnabled') : t('notification.enableNotifications') }}
+          </el-button>
         </template>
         <template v-else>
           <el-dropdown trigger="click" @command="handleActionCommand">
@@ -921,6 +929,7 @@ import {
   Folder,
   Document,
   Operation,
+  Bell,
 } from "@element-plus/icons-vue";
 import * as api from "@/api/torrents";
 import type { Torrent, TorrentStatus } from "@/types/transmission";
@@ -940,6 +949,7 @@ import { isTransmission } from "@/config/torrentClient";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { buildTrackerErrorMappings } from "@/utils/errorMapping";
+import { useNotifications } from "@/composables/useNotifications";
 
 const REFRESH_INTERVAL = 3000;
 const COLUMN_WIDTH_STORAGE_KEY = "tv_table_column_widths";
@@ -984,6 +994,27 @@ const {
   errorTypeFilter,
 } = storeToRefs(filterStore);
 const { sessionConfig } = storeToRefs(systemStatusStore);
+
+// 初始化通知功能
+const { notifyTorrentCompleted, notifyTorrentError, notifyCheckCompleted, notificationState, enableNotifications } = useNotifications();
+
+// 切换通知开关
+const toggleNotifications = async () => {
+  if (notificationState.value.enabled) {
+    // 如果已启用，点击后显示提示（不能直接禁用，需要浏览器设置）
+    ElMessage.info(t('notification.notificationsEnabled'));
+  } else {
+    const granted = await enableNotifications();
+    if (granted) {
+      ElMessage.success(t('notification.notificationsEnabled'));
+    } else {
+      ElMessage.warning(t('notification.notificationsDisabled'));
+    }
+  }
+};
+
+// 存储之前的种子状态用于比较
+const previousTorrents = ref<Map<number, Torrent>>(new Map());
 
 // URL 参数同步功能
 const syncFiltersFromUrl = () => {
@@ -2553,6 +2584,10 @@ const loadTorrents = async (
     }
     // Update the torrents in system status store
     systemStatusStore.setTorrents([...torrents.value]);
+    
+    // 检查状态变化并发送通知
+    checkTorrentStatusChanges();
+    
     restoreSelection();
     syncContextMenuTorrent();
     lastFetchedAt.value = dayjs().format("YYYY-MM-DD HH:mm:ss");
@@ -2603,6 +2638,38 @@ const syncContextMenuTorrent = () => {
   } else {
     hideContextMenu();
   }
+};
+
+// 检查种子状态变化并发送通知
+const checkTorrentStatusChanges = () => {
+  const currentTorrents = new Map<number, Torrent>();
+  
+  torrents.value.forEach((torrent) => {
+    currentTorrents.set(torrent.id, torrent);
+    const prev = previousTorrents.value.get(torrent.id);
+    
+    if (prev) {
+      // 检查是否下载完成（从非完成状态变为完成状态）
+      if (prev.percentDone < 1 && torrent.percentDone === 1) {
+        notifyTorrentCompleted(torrent.name);
+      }
+      
+      // 检查是否出错
+      if ((!prev.error || prev.error === 0) && torrent.error && torrent.error > 0) {
+        notifyTorrentError(torrent.name, torrent.errorString || 'Unknown error');
+      }
+      
+      // 检查校验是否完成（从校验状态变为非校验状态且进度100%）
+      const wasChecking = prev.status === TorrentStatusEnum.CHECK || prev.status === TorrentStatusEnum.CHECK_WAIT;
+      const isChecking = torrent.status === TorrentStatusEnum.CHECK || torrent.status === TorrentStatusEnum.CHECK_WAIT;
+      if (wasChecking && !isChecking && torrent.recheckProgress === 1) {
+        notifyCheckCompleted(torrent.name);
+      }
+    }
+  });
+  
+  // 更新之前的种子状态
+  previousTorrents.value = currentTorrents;
 };
 
 const openRemoveDialog = (ids: number[], message: string) => {
