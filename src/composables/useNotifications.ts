@@ -1,15 +1,17 @@
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { showNotification, requestNotificationPermission, isOnline } from '@/utils/swRegister';
 import { useI18n } from 'vue-i18n';
 
 export interface NotificationState {
   enabled: boolean;
   offline: boolean;
+  supported: boolean;
 }
 
 const notificationState = ref<NotificationState>({
   enabled: false,
   offline: false,
+  supported: false,
 });
 
 // 已通知过的任务 ID 集合（避免重复通知）
@@ -18,12 +20,19 @@ const notifiedTasks = new Set<string>();
 export function useNotifications() {
   const { t } = useI18n();
 
+  // 检查浏览器是否支持通知
+  const isNotificationSupported = (): boolean => {
+    return 'Notification' in window && 'serviceWorker' in navigator;
+  };
+
   // 检查通知权限状态
   const checkNotificationStatus = async () => {
-    if (!('Notification' in window)) {
+    if (!isNotificationSupported()) {
+      notificationState.value.supported = false;
       notificationState.value.enabled = false;
       return;
     }
+    notificationState.value.supported = true;
     notificationState.value.enabled = Notification.permission === 'granted';
   };
 

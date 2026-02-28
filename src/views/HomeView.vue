@@ -40,6 +40,7 @@
             {{ t('torrent.resetColumnWidth') }}
           </el-button>
           <el-button 
+            v-if="notificationState.supported"
             :icon="Bell" 
             :type="notificationState.enabled ? 'success' : 'info'"
             @click="toggleNotifications"
