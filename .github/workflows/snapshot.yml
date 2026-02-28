@@ -4,10 +4,10 @@ permissions:
   packages: write  # Docker 镜像推送权限
 
 on:
-  push:
-    branches: [ "**" ]  # 自动触发：所有分支提交
-  workflow_dispatch:    # 手动触发入口（[[11]](#__11)）
-    inputs:             # 可选：定义手动触发时的输入参数
+  # push:
+  #   branches: [ "**" ]  # 暂时禁用自动触发
+  workflow_dispatch:    # 仅保留手动触发
+    inputs:
       environment:
         description: '手动发布'
         required: true

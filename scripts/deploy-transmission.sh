@@ -241,6 +241,12 @@ main() {
         fi
     else
         # 非交互模式（如 curl | bash）
+        if [ -d "$install_dir" ]; then
+            # 重命名现有目录
+            local backup_name="${install_dir}.backup.$(date +%Y%m%d_%H%M%S)"
+            print_info "目录已存在，重命名为: ${backup_name}"
+            mv "$install_dir" "$backup_name"
+        fi
         print_info "非交互模式，自动继续..."
     fi
     
