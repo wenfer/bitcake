@@ -111,11 +111,12 @@ export async function subscribePushNotifications(): Promise<PushSubscription | n
 
   try {
     const registration = await navigator.serviceWorker.ready;
+    const applicationServerKey = urlBase64ToUint8Array(
+      'BEl62iSMfDjL0p1j8_5r9-Dk5W3h8h8h8h8h8h8h8h8h8h8h8h8h8h8h8h8h8' // 需要替换为实际的 VAPID 公钥
+    );
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(
-        'BEl62iSMfDjL0p1j8_5r9-Dk5W3h8h8h8h8h8h8h8h8h8h8h8h8h8h8h8h8h8' // 需要替换为实际的 VAPID 公钥
-      ),
+      applicationServerKey: applicationServerKey as any,
     });
     console.log('[Push] Subscribed:', subscription);
     return subscription;
