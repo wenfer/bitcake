@@ -43,7 +43,23 @@ check_command() {
 
 # 获取最新版本号
 get_latest_version() {
-    curl -s "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'
+    local api_url="https://api.github.com/repos/${REPO}/releases/latest"
+    local version
+    
+    # 尝试获取，带重试机制
+    for i in 1 2 3; do
+        version=$(curl -sL "${api_url}" 2>/dev/null | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        if [ -n "$version" ]; then
+            echo "$version"
+            return 0
+        fi
+        sleep 1
+    done
+    
+    # 如果 API 失败，尝试直接访问 latest release 页面
+    version=$(curl -sL "https://github.com/${REPO}/releases/latest" 2>/dev/null | grep -o 'tag/[^"]*' | head -1 | sed 's/tag\///')
+    
+    echo "$version"
 }
 
 # 下载 BitCake
@@ -187,31 +203,45 @@ main() {
             print_info "  - Transmission 3.x:  /usr/share/transmission/web"
             print_info "  - 手动安装:          /usr/local/share/transmission/public_html"
             print_info ""
-            print_info "请手动输入 Transmission WebUI 目录:"
-            read -r user_input
-            if [ -n "$user_input" ]; then
-                install_dir="$user_input"
+            
+            if [ -t 0 ]; then
+                # 交互模式
+                print_info "请手动输入 Transmission WebUI 目录:"
+                read -r user_input
+                if [ -n "$user_input" ]; then
+                    install_dir="$user_input"
+                else
+                    print_error "未提供有效目录"
+                    exit 1
+                fi
             else
-                print_error "未提供有效目录"
-                exit 1
+                # 非交互模式，使用默认目录
+                print_info "非交互模式，使用默认目录 /usr/local/share/transmission/public_html"
+                install_dir="/usr/local/share/transmission/public_html"
             fi
         else
             print_info "找到 WebUI 目录: ${install_dir}"
         fi
     fi
     
-    # 确认是否继续
-    if [ -d "$install_dir" ]; then
-        print_warning "目录已存在: ${install_dir}"
-        print_info "该目录的内容将被清空并替换为 BitCake"
+    # 确认是否继续（非交互模式下自动确认）
+    if [ -t 0 ]; then
+        # 交互模式
+        if [ -d "$install_dir" ]; then
+            print_warning "目录已存在: ${install_dir}"
+            print_info "该目录的内容将被清空并替换为 BitCake"
+        else
+            print_info "将创建新目录: ${install_dir}"
+        fi
+        
+        read -p "是否继续? (y/N): " confirm
+        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+            print_info "已取消"
+            exit 0
+        fi
     else
-        print_info "将创建新目录: ${install_dir}"
-    fi
-    
-    read -p "是否继续? (y/N): " confirm
-    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-        print_info "已取消"
-        exit 0
+        # 非交互模式（如 curl | bash）
+        print_info "非交互模式，自动继续..."
     fi
     
     # 创建目录（如果不存在）
