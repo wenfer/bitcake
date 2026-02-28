@@ -6,9 +6,11 @@
 import { onMounted } from "vue";
 import { useConnectionStore } from "@/stores/connection";
 import { configureConnection } from "@/api/torrents";
-// 移除了主题相关的导入和初始化
+import { registerPwaEvents, isPwaMode } from "@/utils/pwaShortcuts";
+import { useMemoryMonitor } from "@/composables/usePerformance";
 
 const connectionStore = useConnectionStore();
+const { updateMemoryUsage } = useMemoryMonitor();
 
 onMounted(async () => {
   // 加载已保存的配置和连接状态
@@ -18,6 +20,18 @@ onMounted(async () => {
   if (connectionStore.serverConfig.username) {
     configureConnection(connectionStore.serverConfig);
   }
+
+  // 注册 PWA 事件
+  registerPwaEvents();
+
+  // 检测 PWA 模式
+  if (isPwaMode()) {
+    console.log('[BitCake] Running in PWA mode');
+    document.body.classList.add('pwa-mode');
+  }
+
+  // 定期更新内存使用情况（用于性能监控）
+  setInterval(updateMemoryUsage, 30000);
 });
 </script>
 

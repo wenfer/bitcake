@@ -950,6 +950,8 @@ import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { buildTrackerErrorMappings } from "@/utils/errorMapping";
 import { useNotifications } from "@/composables/useNotifications";
+import { useTorrentCache, useRequestControl } from "@/composables/usePerformance";
+import { handleSharedMagnet, isPwaMode } from "@/utils/pwaShortcuts";
 
 const REFRESH_INTERVAL = 3000;
 const COLUMN_WIDTH_STORAGE_KEY = "tv_table_column_widths";
@@ -1020,6 +1022,7 @@ const previousTorrents = ref<Map<number, Torrent>>(new Map());
 const syncFiltersFromUrl = () => {
   const statusParam = route.query.status as string | undefined;
   const trackerParam = route.query.tracker as string | undefined;
+  const actionParam = route.query.action as string | undefined;
 
   if (statusParam) {
     const status = urlToStatus(statusParam);
@@ -1031,7 +1034,82 @@ const syncFiltersFromUrl = () => {
   if (trackerParam) {
     filterStore.setTrackerFilter(trackerParam);
   }
+
+  // 处理 PWA 快捷操作
+  if (actionParam) {
+    handlePwaAction(actionParam);
+  }
 };
+
+// 处理 PWA 快捷操作
+const handlePwaAction = (action: string) => {
+  switch (action) {
+    case 'add-torrent':
+      showAddDialog.value = true;
+      break;
+    case 'pause-all':
+      // 暂停所有运行中的种子
+      const runningTorrents = torrents.value.filter(t => t.status !== TorrentStatusEnum.STOPPED);
+      if (runningTorrents.length > 0) {
+        stopTorrents(runningTorrents.map(t => t.id));
+      }
+      break;
+    case 'start-all':
+      // 开始所有已暂停的种子
+      const stoppedTorrents = torrents.value.filter(t => t.status === TorrentStatusEnum.STOPPED);
+      if (stoppedTorrents.length > 0) {
+        startTorrents(stoppedTorrents.map(t => t.id));
+      }
+      break;
+  }
+  // 清除 URL 参数
+  router.replace({ path: '/', query: {} });
+};
+
+// 处理分享的磁力链接
+const handleSharedMagnetLink = (event: CustomEvent) => {
+  const { magnetLink } = event.detail;
+  if (magnetLink) {
+    addForm.value.type = 'magnet';
+    addForm.value.magnet = magnetLink;
+    showAddDialog.value = true;
+  }
+};
+
+// 监听 PWA 事件
+onMounted(() => {
+  window.addEventListener('pwa:open-add-dialog', () => {
+    showAddDialog.value = true;
+  });
+  window.addEventListener('pwa:pause-all', () => {
+    const runningTorrents = torrents.value.filter(t => t.status !== TorrentStatusEnum.STOPPED);
+    if (runningTorrents.length > 0) {
+      stopTorrents(runningTorrents.map(t => t.id));
+    }
+  });
+  window.addEventListener('pwa:start-all', () => {
+    const stoppedTorrents = torrents.value.filter(t => t.status === TorrentStatusEnum.STOPPED);
+    if (stoppedTorrents.length > 0) {
+      startTorrents(stoppedTorrents.map(t => t.id));
+    }
+  });
+  window.addEventListener('pwa:shared-magnet', handleSharedMagnetLink as EventListener);
+
+  // 检查是否是分享目标打开
+  const urlParams = new URLSearchParams(window.location.search);
+  const sharedText = urlParams.get('text');
+  const sharedUrl = urlParams.get('url');
+  if (sharedText || sharedUrl) {
+    const magnetLink = sharedText || sharedUrl || '';
+    if (magnetLink.startsWith('magnet:')) {
+      addForm.value.type = 'magnet';
+      addForm.value.magnet = magnetLink;
+      showAddDialog.value = true;
+      // 清除 URL 参数
+      router.replace({ path: '/', query: {} });
+    }
+  }
+});
 
 // 监听路由变化，同步 URL 参数到 store
 watch(
@@ -2738,20 +2816,40 @@ const stopAutoRefresh = () => {
 
 const startSelected = async () => {
   if (!selectedIds.value.length) return;
+  await startTorrents(selectedIds.value);
+};
+
+const stopSelected = async () => {
+  if (!selectedIds.value.length) return;
+  await stopTorrents(selectedIds.value);
+};
+
+// 开始指定 ID 的种子
+const startTorrents = async (ids: number[]) => {
+  if (!ids.length) return;
   try {
-    await api.startTorrents(selectedIds.value);
-    ElMessage.success(t('torrent.message.startedSelected'));
+    await api.startTorrents(ids);
+    ElMessage.success(
+      ids.length > 1 
+        ? t('torrent.message.startedMultiple', { count: ids.length })
+        : t('torrent.message.started')
+    );
     loadTorrents();
   } catch (error: any) {
     ElMessage.error(`${t('torrent.message.operationFailed')}: ${error.message}`);
   }
 };
 
-const stopSelected = async () => {
-  if (!selectedIds.value.length) return;
+// 停止指定 ID 的种子
+const stopTorrents = async (ids: number[]) => {
+  if (!ids.length) return;
   try {
-    await api.stopTorrents(selectedIds.value);
-    ElMessage.success(t('torrent.message.stoppedSelected'));
+    await api.stopTorrents(ids);
+    ElMessage.success(
+      ids.length > 1
+        ? t('torrent.message.stoppedMultiple', { count: ids.length })
+        : t('torrent.message.stopped')
+    );
     loadTorrents();
   } catch (error: any) {
     ElMessage.error(`${t('torrent.message.operationFailed')}: ${error.message}`);
