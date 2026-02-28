@@ -115,7 +115,6 @@ jobs:
           tags: |
             type=raw,value=${{ steps.package-version.outputs.version }}-${{ steps.commit-id.outputs.short_sha }}
             type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,prefix={{branch}}-
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
