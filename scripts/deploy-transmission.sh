@@ -66,10 +66,13 @@ get_latest_version() {
 # 下载 BitCake（只输出文件路径到 stdout）
 download_bitcake() {
     local version="$1"
-    local download_url="https://github.com/${REPO}/releases/download/${version}/bitcake-transmission.zip"
+    # 从 tag 中提取版本号（去掉 commit hash）
+    local pkg_version=$(echo "$version" | sed -E 's/-[a-f0-9]+$//')
+    local download_url="https://github.com/${REPO}/releases/download/${version}/bitcake-${pkg_version}-transmission.zip"
     local temp_file="/tmp/bitcake-transmission-${version}.zip"
     
     print_info "正在下载 BitCake ${version}..."
+    print_info "下载地址: ${download_url}"
     
     if ! curl -fsSL -o "${temp_file}" "${download_url}" 2>/dev/null; then
         print_error "下载失败: ${download_url}"

@@ -50,16 +50,20 @@ get_latest_version() {
 # 下载 BitCake
 download_bitcake() {
     local version="$1"
-    local download_url="https://github.com/${REPO}/releases/download/${version}/bitcake-qbittorrent.zip"
+    # 从 tag 中提取版本号（去掉 commit hash）
+    local pkg_version=$(echo "$version" | sed -E 's/-[a-f0-9]+$//')
+    local download_url="https://github.com/${REPO}/releases/download/${version}/bitcake-${pkg_version}-qbittorrent.zip"
     local temp_file="/tmp/bitcake-qbittorrent-${version}.zip"
     
     print_info "正在下载 BitCake ${version}..."
+    print_info "下载地址: ${download_url}"
     
-    if ! curl -L -o "${temp_file}" "${download_url}"; then
-        print_error "下载失败"
+    if ! curl -fsSL -o "${temp_file}" "${download_url}" 2>/dev/null; then
+        print_error "下载失败: ${download_url}"
         exit 1
     fi
     
+    print_info "下载完成: ${temp_file}"
     echo "${temp_file}"
 }
 
