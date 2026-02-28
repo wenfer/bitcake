@@ -27,7 +27,7 @@ BitCake 是一个专为 PT（Private Tracker）用户设计的现代化 Transmis
 
 ## 🚀 部署
 
-### 使用预构建容器
+### 方式一：使用预构建容器（推荐）
 
 最简单的方式是使用预构建的 Docker 镜像：
 
@@ -58,7 +58,142 @@ services:
 
 > 注意：使用此镜像时，默认 UI 已经是 BitCake，无需额外配置 WebUI 路径。
 
-### 部署到 Transmission
+---
+
+### 方式二：原生安装部署
+
+如果你不想使用 Docker，可以直接部署到现有的 Transmission 或 qBittorrent 实例。
+
+#### 准备工作
+
+1. **环境要求**
+   - 已安装并运行 Transmission 或 qBittorrent
+   - WebUI 功能已启用
+   - 能够访问下载器的 Web 界面
+
+2. **下载 BitCake**
+   
+   从 [Releases](https://github.com/wenfer/bitcake/releases) 页面下载对应版本的预构建文件：
+   - `bitcake-transmission.zip` - Transmission 版本
+   - `bitcake-qbittorrent.zip` - qBittorrent 版本
+
+#### 部署到 Transmission
+
+**方法 A：通过环境变量指定 WebUI 路径**
+
+1. 解压下载的文件到任意目录，例如 `/opt/bitcake`
+
+2. 在 Transmission 启动时设置环境变量：
+
+```bash
+# 在启动 Transmission 前设置
+export TRANSMISSION_WEB_HOME=/opt/bitcake
+
+# 然后启动 Transmission
+transmission-daemon
+```
+
+或在 systemd 服务文件中添加：
+
+```ini
+[Service]
+Environment="TRANSMISSION_WEB_HOME=/opt/bitcake"
+```
+
+**方法 B：替换默认 WebUI 文件**
+
+1. 找到 Transmission 的 WebUI 目录（通常在 `/usr/share/transmission/web` 或 `/var/lib/transmission-daemon/web`）
+
+2. 备份原有文件：
+```bash
+sudo mv /usr/share/transmission/web /usr/share/transmission/web.backup
+```
+
+3. 将 BitCake 解压到该目录：
+```bash
+sudo mkdir /usr/share/transmission/web
+sudo unzip bitcake-transmission.zip -d /usr/share/transmission/web
+```
+
+4. 重启 Transmission 服务：
+```bash
+sudo systemctl restart transmission-daemon
+```
+
+#### 部署到 qBittorrent
+
+1. 在 qBittorrent 设置中启用"使用替代 WebUI"：
+   - 打开 qBittorrent WebUI
+   - 进入 **设置** → **WebUI** → **使用替代 WebUI**
+   - 勾选"使用替代 WebUI"
+   - 在"文件路径"中填写 BitCake 解压后的目录，例如 `/opt/bitcake`
+
+2. 保存设置，刷新页面即可
+
+> **注意**：如果修改后无法访问 qBittorrent，可以通过以下 API 调用恢复默认 UI：
+> ```bash
+> curl "http://{你的qb地址}/api/v2/app/setPreferences?json=%7B%22alternative_webui_enabled%22:false%7D"
+> ```
+
+#### 使用 Nginx 反向代理（可选）
+
+如果你想通过子路径访问 BitCake：
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location /bitcake/ {
+        alias /opt/bitcake/;
+        index index.html;
+        try_files $uri $uri/ /bitcake/index.html;
+    }
+
+    # Transmission API 代理
+    location /transmission/rpc {
+        proxy_pass http://127.0.0.1:9091/transmission/rpc;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+#### 自动更新脚本
+
+创建一个简单的更新脚本：
+
+```bash
+#!/bin/bash
+# update-bitcake.sh
+
+INSTALL_DIR="/opt/bitcake"
+BACKUP_DIR="/opt/bitcake.backup.$(date +%Y%m%d)"
+DOWNLOAD_URL="https://github.com/wenfer/bitcake/releases/latest/download/bitcake-transmission.zip"
+
+# 备份现有版本
+if [ -d "$INSTALL_DIR" ]; then
+    cp -r "$INSTALL_DIR" "$BACKUP_DIR"
+fi
+
+# 下载最新版本
+cd /tmp
+wget -O bitcake-latest.zip "$DOWNLOAD_URL"
+
+# 解压并替换
+rm -rf "$INSTALL_DIR"
+unzip bitcake-latest.zip -d "$INSTALL_DIR"
+
+# 清理
+rm bitcake-latest.zip
+
+echo "BitCake 已更新到 $INSTALL_DIR"
+echo "备份位于: $BACKUP_DIR"
+```
+
+---
+
+### 部署到 Transmission（旧版说明）
 
 1. 从 [releases 页面](https://github.com/yourusername/bitcake/releases) 下载 Transmission 客户端版本
 
@@ -71,7 +206,7 @@ environment:
   - TRANSMISSION_WEB_HOME=/path/to/webui
 ```
 
-### 部署到 qBittorrent
+### 部署到 qBittorrent（旧版说明）
 
 1. 从 [releases 页面](https://github.com/yourusername/bitcake/releases) 下载 qBittorrent 客户端版本
 
