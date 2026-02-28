@@ -79,56 +79,114 @@ services:
 
 #### 部署到 Transmission
 
-**方法 A：通过环境变量指定 WebUI 路径**
+Transmission 4.0+ 版本的 WebUI 目录名为 `public_html`，旧版本为 `web`。
 
-1. 解压下载的文件到任意目录，例如 `/opt/bitcake`
-
-2. 在 Transmission 启动时设置环境变量：
+**方法 A：一键部署脚本（推荐）**
 
 ```bash
-# 在启动 Transmission 前设置
-export TRANSMISSION_WEB_HOME=/opt/bitcake
+# 使用 curl 直接执行
+sudo curl -fsSL https://raw.githubusercontent.com/wenfer/bitcake/main/scripts/deploy-transmission.sh | bash
 
-# 然后启动 Transmission
+# 或先下载再执行
+curl -fsSL -o deploy-transmission.sh https://raw.githubusercontent.com/wenfer/bitcake/main/scripts/deploy-transmission.sh
+sudo bash deploy-transmission.sh
+```
+
+脚本会自动检测 Transmission 版本并安装到正确的目录。
+
+**方法 B：手动部署**
+
+1. 找到 Transmission 的 WebUI 目录：
+   - Transmission 4.0+: `/usr/share/transmission/public_html`
+   - Transmission 3.x: `/usr/share/transmission/web`
+   - 或通过 `TRANSMISSION_WEB_HOME` 环境变量指定
+
+2. 备份原有文件：
+```bash
+# Transmission 4.0+
+sudo mv /usr/share/transmission/public_html /usr/share/transmission/public_html.backup
+
+# Transmission 3.x
+sudo mv /usr/share/transmission/web /usr/share/transmission/web.backup
+```
+
+3. 下载并解压 BitCake：
+```bash
+# 创建目录（以 Transmission 4.0+ 为例）
+sudo mkdir -p /usr/share/transmission/public_html
+
+# 下载最新版本
+cd /tmp
+wget https://github.com/wenfer/bitcake/releases/latest/download/bitcake-transmission.zip
+
+# 解压
+sudo unzip bitcake-transmission.zip -d /usr/share/transmission/public_html
+
+# 设置权限
+sudo chmod -R 755 /usr/share/transmission/public_html
+```
+
+4. 重启 Transmission：
+```bash
+sudo systemctl restart transmission-daemon
+# 或
+sudo service transmission-daemon restart
+```
+
+**方法 C：使用环境变量（无需替换系统文件）**
+
+1. 将 BitCake 解压到任意目录：
+```bash
+sudo mkdir -p /opt/bitcake
+sudo unzip bitcake-transmission.zip -d /opt/bitcake
+```
+
+2. 设置环境变量并启动 Transmission：
+```bash
+export TRANSMISSION_WEB_HOME=/opt/bitcake
 transmission-daemon
 ```
 
-或在 systemd 服务文件中添加：
-
+或在 systemd 服务中设置：
 ```ini
 [Service]
 Environment="TRANSMISSION_WEB_HOME=/opt/bitcake"
 ```
 
-**方法 B：替换默认 WebUI 文件**
-
-1. 找到 Transmission 的 WebUI 目录（通常在 `/usr/share/transmission/web` 或 `/var/lib/transmission-daemon/web`）
-
-2. 备份原有文件：
-```bash
-sudo mv /usr/share/transmission/web /usr/share/transmission/web.backup
-```
-
-3. 将 BitCake 解压到该目录：
-```bash
-sudo mkdir /usr/share/transmission/web
-sudo unzip bitcake-transmission.zip -d /usr/share/transmission/web
-```
-
-4. 重启 Transmission 服务：
-```bash
-sudo systemctl restart transmission-daemon
-```
-
 #### 部署到 qBittorrent
 
-1. 在 qBittorrent 设置中启用"使用替代 WebUI"：
+**方法 A：一键部署脚本（推荐）**
+
+```bash
+# 使用 curl 直接执行
+curl -fsSL https://raw.githubusercontent.com/wenfer/bitcake/main/scripts/deploy-qbittorrent.sh | bash
+
+# 或先下载再执行
+curl -fsSL -o deploy-qbittorrent.sh https://raw.githubusercontent.com/wenfer/bitcake/main/scripts/deploy-qbittorrent.sh
+bash deploy-qbittorrent.sh
+```
+
+**方法 B：手动部署**
+
+1. 创建 BitCake 目录：
+```bash
+mkdir -p ~/.config/qBittorrent/bitcake
+```
+
+2. 下载并解压：
+```bash
+cd /tmp
+wget https://github.com/wenfer/bitcake/releases/latest/download/bitcake-qbittorrent.zip
+unzip bitcake-qbittorrent.zip -d ~/.config/qBittorrent/bitcake
+```
+
+3. 在 qBittorrent 设置中启用：
    - 打开 qBittorrent WebUI
    - 进入 **设置** → **WebUI** → **使用替代 WebUI**
    - 勾选"使用替代 WebUI"
-   - 在"文件路径"中填写 BitCake 解压后的目录，例如 `/opt/bitcake`
+   - 在"文件路径"中填写：`/home/你的用户名/.config/qBittorrent/bitcake`
 
-2. 保存设置，刷新页面即可
+4. 保存设置，刷新页面
 
 > **注意**：如果修改后无法访问 qBittorrent，可以通过以下 API 调用恢复默认 UI：
 > ```bash
@@ -189,35 +247,6 @@ rm bitcake-latest.zip
 
 echo "BitCake 已更新到 $INSTALL_DIR"
 echo "备份位于: $BACKUP_DIR"
-```
-
----
-
-### 部署到 Transmission（旧版说明）
-
-1. 从 [releases 页面](https://github.com/yourusername/bitcake/releases) 下载 Transmission 客户端版本
-
-2. 解压内容并复制到容器目录
-
-3. 通过 `TRANSMISSION_WEB_HOME` 环境变量设置 WebUI 路径：
-
-```yaml
-environment:
-  - TRANSMISSION_WEB_HOME=/path/to/webui
-```
-
-### 部署到 qBittorrent（旧版说明）
-
-1. 从 [releases 页面](https://github.com/yourusername/bitcake/releases) 下载 qBittorrent 客户端版本
-
-2. 将目录内容复制到自定义 WebUI 目录
-
-3. 在 qBittorrent 设置中启用"使用替代 WebUI"，并指定目录路径
-
-> 如果修改后无法访问 qBittorrent，可以通过以下 API 调用恢复默认 UI：
-
-```bash
-{你的qb地址}/api/v2/app/setPreferences?json=%7B"alternative_webui_enabled":false%7D
 ```
 
 ## 🔧 配置说明
