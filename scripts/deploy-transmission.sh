@@ -37,7 +37,7 @@ print_error() {
 }
 
 print_debug() {
-    echo -e "[DEBUG] $1"
+    echo -e "[DEBUG] $1" >&2
 }
 
 # 检查命令是否存在
