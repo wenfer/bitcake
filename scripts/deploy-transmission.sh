@@ -68,10 +68,15 @@ download_bitcake() {
 # 查找 Transmission WebUI 目录
 find_transmission_web_dir() {
     local possible_dirs=(
+        "/usr/share/transmission/public_html"
         "/usr/share/transmission/web"
+        "/usr/local/share/transmission/public_html"
         "/usr/local/share/transmission/web"
+        "/var/lib/transmission-daemon/public_html"
         "/var/lib/transmission-daemon/web"
+        "/opt/transmission/public_html"
         "/opt/transmission/web"
+        "$HOME/.local/share/transmission/public_html"
         "$HOME/.local/share/transmission/web"
     )
     
@@ -91,6 +96,11 @@ find_transmission_web_dir() {
         real_path=$(readlink -f "$daemon_path")
         local base_dir
         base_dir=$(dirname "$(dirname "$real_path")")
+        # 优先检查 public_html (Transmission 4.0+)
+        if [ -d "${base_dir}/share/transmission/public_html" ]; then
+            echo "${base_dir}/share/transmission/public_html"
+            return 0
+        fi
         if [ -d "${base_dir}/share/transmission/web" ]; then
             echo "${base_dir}/share/transmission/web"
             return 0
@@ -159,10 +169,52 @@ main() {
     INSTALL_DIR=$(find_transmission_web_dir)
     
     if [ -z "$INSTALL_DIR" ]; then
-        print_error "无法找到 Transmission WebUI 目录"
-        print_info "请手动指定目录，例如:"
-        print_info "  sudo $0 /usr/share/transmission/web"
-        exit 1
+        print_warning "无法自动找到 Transmission WebUI 目录"
+        print_info "常见目录位置:"
+        print_info "  - Transmission 4.0+: /usr/share/transmission/public_html"
+        print_info "  - Transmission 3.x:  /usr/share/transmission/web"
+        print_info "  - 手动安装:          /usr/local/share/transmission/public_html"
+        print_info ""
+        
+        # 检查常见目录是否存在父目录
+        if [ -d "/usr/share/transmission" ]; then
+            if [ ! -d "/usr/share/transmission/public_html" ]; then
+                print_info "检测到 /usr/share/transmission 存在，创建 public_html 目录..."
+                mkdir -p "/usr/share/transmission/public_html" 2>/dev/null || true
+                if [ -d "/usr/share/transmission/public_html" ]; then
+                    INSTALL_DIR="/usr/share/transmission/public_html"
+                fi
+            fi
+        elif [ -d "/usr/local/share/transmission" ]; then
+            if [ ! -d "/usr/local/share/transmission/public_html" ]; then
+                print_info "检测到 /usr/local/share/transmission 存在，创建 public_html 目录..."
+                mkdir -p "/usr/local/share/transmission/public_html" 2>/dev/null || true
+                if [ -d "/usr/local/share/transmission/public_html" ]; then
+                    INSTALL_DIR="/usr/local/share/transmission/public_html"
+                fi
+            fi
+        fi
+        
+        # 如果还是没有找到，提示用户输入
+        if [ -z "$INSTALL_DIR" ]; then
+            print_info "请手动输入 Transmission WebUI 目录:"
+            read -r user_input
+            if [ -n "$user_input" ]; then
+                INSTALL_DIR="$user_input"
+                # 如果目录不存在，尝试创建
+                if [ ! -d "$INSTALL_DIR" ]; then
+                    print_info "目录不存在，尝试创建..."
+                    mkdir -p "$INSTALL_DIR" || {
+                        print_error "无法创建目录: $INSTALL_DIR"
+                        print_info "请使用 sudo 运行脚本，或手动创建目录"
+                        exit 1
+                    }
+                fi
+            else
+                print_error "未提供有效目录"
+                exit 1
+            fi
+        fi
     fi
     
     print_info "找到 WebUI 目录: ${INSTALL_DIR}"
