@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { showNotification, requestNotificationPermission, isOnline } from '@/utils/swRegister';
 import { useI18n } from 'vue-i18n';
 
