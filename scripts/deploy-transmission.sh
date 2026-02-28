@@ -16,21 +16,21 @@ NC='\033[0m' # No Color
 # 默认配置
 REPO="wenfer/bitcake"
 
-# 打印带颜色的消息
+# 打印带颜色的消息（全部输出到 stderr，避免污染函数返回值）
 print_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+    echo -e "${BLUE}[INFO]${NC} $1" >&2
 }
 
 print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+    echo -e "${GREEN}[SUCCESS]${NC} $1" >&2
 }
 
 print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+    echo -e "${YELLOW}[WARNING]${NC} $1" >&2
 }
 
 print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    echo -e "${RED}[ERROR]${NC} $1" >&2
 }
 
 # 检查命令是否存在
@@ -41,28 +41,29 @@ check_command() {
     fi
 }
 
-# 获取最新版本号
+# 获取最新版本号（只输出版本号到 stdout）
 get_latest_version() {
     local api_url="https://api.github.com/repos/${REPO}/releases/latest"
-    local version
+    local version=""
     
     # 尝试获取，带重试机制
     for i in 1 2 3; do
         version=$(curl -sL "${api_url}" 2>/dev/null | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [ -n "$version" ]; then
-            echo "$version"
-            return 0
+            break
         fi
         sleep 1
     done
     
     # 如果 API 失败，尝试直接访问 latest release 页面
-    version=$(curl -sL "https://github.com/${REPO}/releases/latest" 2>/dev/null | grep -o 'tag/[^"]*' | head -1 | sed 's/tag\///')
+    if [ -z "$version" ]; then
+        version=$(curl -sL "https://github.com/${REPO}/releases/latest" 2>/dev/null | grep -o 'tag/[^"]*' | head -1 | sed 's/tag\///')
+    fi
     
     echo "$version"
 }
 
-# 下载 BitCake
+# 下载 BitCake（只输出文件路径到 stdout）
 download_bitcake() {
     local version="$1"
     local download_url="https://github.com/${REPO}/releases/download/${version}/bitcake-transmission.zip"
@@ -70,15 +71,16 @@ download_bitcake() {
     
     print_info "正在下载 BitCake ${version}..."
     
-    if ! curl -L -o "${temp_file}" "${download_url}"; then
-        print_error "下载失败"
+    if ! curl -fsSL -o "${temp_file}" "${download_url}" 2>/dev/null; then
+        print_error "下载失败: ${download_url}"
         exit 1
     fi
     
+    print_info "下载完成: ${temp_file}"
     echo "${temp_file}"
 }
 
-# 查找 Transmission WebUI 目录
+# 查找 Transmission WebUI 目录（只输出目录路径到 stdout）
 find_transmission_web_dir() {
     local result=""
     
@@ -129,48 +131,7 @@ find_transmission_web_dir() {
         done
     fi
     
-    # 输出结果（只输出目录路径，不要有其他信息）
     echo "$result"
-}
-
-# 备份现有 WebUI
-backup_webui() {
-    local web_dir="$1"
-    local backup_dir="${web_dir}.backup.$(date +%Y%m%d_%H%M%S)"
-    
-    if [ -d "$web_dir" ] && [ "$(ls -A "$web_dir" 2>/dev/null)" ]; then
-        print_info "备份现有 WebUI 到 ${backup_dir}..."
-        cp -r "$web_dir" "$backup_dir"
-        echo "$backup_dir"
-    else
-        echo ""
-    fi
-}
-
-# 部署 BitCake
-deploy_bitcake() {
-    local zip_file="$1"
-    local target_dir="$2"
-    
-    print_info "部署 BitCake 到 ${target_dir}..."
-    
-    # 清空目标目录
-    if [ -d "$target_dir" ]; then
-        print_info "清空现有目录内容..."
-        rm -rf "${target_dir:?}/"*
-    else
-        print_info "创建目录..."
-        mkdir -p "$target_dir"
-    fi
-    
-    # 解压文件
-    print_info "解压文件..."
-    unzip -q "$zip_file" -d "$target_dir"
-    
-    # 设置权限
-    chmod -R 755 "$target_dir"
-    
-    print_success "部署完成"
 }
 
 # 主函数
@@ -178,7 +139,6 @@ main() {
     local install_dir=""
     local latest_version=""
     local temp_file=""
-    local backup_dir=""
     
     print_info "BitCake for Transmission 部署脚本"
     print_info "=================================="
@@ -198,67 +158,30 @@ main() {
         
         if [ -z "$install_dir" ]; then
             print_warning "无法自动找到 Transmission WebUI 目录"
-            print_info "常见目录位置:"
-            print_info "  - Transmission 4.0+: /usr/share/transmission/public_html"
-            print_info "  - Transmission 3.x:  /usr/share/transmission/web"
-            print_info "  - 手动安装:          /usr/local/share/transmission/public_html"
-            print_info ""
-            
-            if [ -t 0 ]; then
-                # 交互模式
-                print_info "请手动输入 Transmission WebUI 目录:"
-                read -r user_input
-                if [ -n "$user_input" ]; then
-                    install_dir="$user_input"
-                else
-                    print_error "未提供有效目录"
-                    exit 1
-                fi
-            else
-                # 非交互模式，使用默认目录
-                print_info "非交互模式，使用默认目录 /usr/local/share/transmission/public_html"
-                install_dir="/usr/local/share/transmission/public_html"
-            fi
+            print_info "使用默认目录: /usr/local/share/transmission/public_html"
+            install_dir="/usr/local/share/transmission/public_html"
         else
             print_info "找到 WebUI 目录: ${install_dir}"
         fi
     fi
     
-    # 确认是否继续（非交互模式下自动确认）
-    if [ -t 0 ]; then
-        # 交互模式
-        if [ -d "$install_dir" ]; then
-            print_warning "目录已存在: ${install_dir}"
-            print_info "该目录的内容将被清空并替换为 BitCake"
-        else
-            print_info "将创建新目录: ${install_dir}"
-        fi
-        
-        read -p "是否继续? (y/N): " confirm
-        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-            print_info "已取消"
-            exit 0
-        fi
-    else
-        # 非交互模式（如 curl | bash）
-        if [ -d "$install_dir" ]; then
-            # 重命名现有目录
+    # 检查目录是否存在且非空，非空则重命名
+    if [ -d "$install_dir" ]; then
+        if [ "$(ls -A "$install_dir" 2>/dev/null)" ]; then
+            # 目录非空，重命名
             local backup_name="${install_dir}.backup.$(date +%Y%m%d_%H%M%S)"
-            print_info "目录已存在，重命名为: ${backup_name}"
+            print_info "目录非空，重命名为: ${backup_name}"
             mv "$install_dir" "$backup_name"
+        else
+            # 目录为空，直接删除
+            print_info "目录为空，删除..."
+            rmdir "$install_dir"
         fi
-        print_info "非交互模式，自动继续..."
     fi
     
-    # 创建目录（如果不存在）
-    if [ ! -d "$install_dir" ]; then
-        print_info "创建目录..."
-        mkdir -p "$install_dir" || {
-            print_error "无法创建目录: $install_dir"
-            print_info "请使用 sudo 运行脚本"
-            exit 1
-        }
-    fi
+    # 创建目录
+    print_info "创建目录: ${install_dir}"
+    mkdir -p "$install_dir"
     
     # 检查是否有写入权限
     if [ ! -w "$install_dir" ]; then
@@ -281,11 +204,10 @@ main() {
     # 下载
     temp_file=$(download_bitcake "$latest_version")
     
-    # 备份
-    backup_dir=$(backup_webui "$install_dir")
-    
     # 部署
-    deploy_bitcake "$temp_file" "$install_dir"
+    print_info "部署 BitCake..."
+    unzip -q "$temp_file" -d "$install_dir"
+    chmod -R 755 "$install_dir"
     
     # 清理临时文件
     rm -f "$temp_file"
@@ -293,16 +215,8 @@ main() {
     # 输出结果
     print_success "BitCake ${latest_version} 部署成功！"
     print_info "安装目录: ${install_dir}"
-    
-    if [ -n "$backup_dir" ]; then
-        print_info "备份目录: ${backup_dir}"
-    fi
-    
     print_info ""
     print_info "请刷新 Transmission WebUI 查看效果"
-    print_info "如果出现问题，可以通过备份恢复:"
-    print_info "  sudo rm -rf ${install_dir}"
-    print_info "  sudo cp -r ${backup_dir} ${install_dir}"
 }
 
 # 运行主函数
