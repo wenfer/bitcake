@@ -121,7 +121,7 @@ export function useVirtualPagination(
     overscan?: number;
   } = {}
 ) {
-  const { pageSize = 50, overscan = 5 } = options;
+  const { pageSize = 50 } = options;
   const currentPage = ref(1);
   const containerHeight = ref(0);
   const scrollTop = ref(0);

@@ -950,8 +950,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { buildTrackerErrorMappings } from "@/utils/errorMapping";
 import { useNotifications } from "@/composables/useNotifications";
-import { useTorrentCache, useRequestControl } from "@/composables/usePerformance";
-import { handleSharedMagnet, isPwaMode } from "@/utils/pwaShortcuts";
+import { handleSharedMagnet } from "@/utils/pwaShortcuts";
 
 const REFRESH_INTERVAL = 3000;
 const COLUMN_WIDTH_STORAGE_KEY = "tv_table_column_widths";
