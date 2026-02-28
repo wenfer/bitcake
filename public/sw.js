@@ -2,14 +2,14 @@
 
 const CACHE_NAME = 'bitcake-v1';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/cake.svg',
-  '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
-  '/icons/icon-192x192-maskable.png',
-  '/icons/icon-512x512-maskable.png',
+  './',
+  './index.html',
+  './cake.svg',
+  './manifest.json',
+  './icons/icon-192x192.png',
+  './icons/icon-512x512.png',
+  './icons/icon-192x192-maskable.png',
+  './icons/icon-512x512-maskable.png',
 ];
 
 // 安装时缓存静态资源

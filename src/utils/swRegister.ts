@@ -13,8 +13,10 @@ export function onSWUpdate(callback: () => void) {
 export function registerSW() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
+      // 使用相对路径注册 Service Worker
+      const swPath = './sw.js';
       navigator.serviceWorker
-        .register('/sw.js')
+        .register(swPath)
         .then((registration) => {
           console.log('[SW] Registered:', registration.scope);
 

@@ -2,29 +2,30 @@
   "name": "BitCake",
   "short_name": "BitCake",
   "description": "现代化的 Transmission 和 qBittorrent Web 界面",
-  "start_url": "/",
+  "start_url": "./",
+  "scope": ".",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#409eff",
   "icons": [
     {
-      "src": "/icons/icon-192x192.png",
+      "src": "./icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/icons/icon-512x512.png",
+      "src": "./icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "src": "/icons/icon-192x192-maskable.png",
+      "src": "./icons/icon-192x192-maskable.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/icons/icon-512x512-maskable.png",
+      "src": "./icons/icon-512x512-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -35,33 +36,33 @@
       "name": "添加种子",
       "short_name": "添加",
       "description": "快速添加新的种子",
-      "url": "/?action=add-torrent",
-      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+      "url": "./?action=add-torrent",
+      "icons": [{ "src": "./icons/icon-192x192.png", "sizes": "192x192" }]
     },
     {
       "name": "暂停所有",
       "short_name": "暂停",
       "description": "暂停所有正在运行的种子",
-      "url": "/?action=pause-all",
-      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+      "url": "./?action=pause-all",
+      "icons": [{ "src": "./icons/icon-192x192.png", "sizes": "192x192" }]
     },
     {
       "name": "开始所有",
       "short_name": "开始",
       "description": "开始所有已暂停的种子",
-      "url": "/?action=start-all",
-      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+      "url": "./?action=start-all",
+      "icons": [{ "src": "./icons/icon-192x192.png", "sizes": "192x192" }]
     },
     {
       "name": "查看统计",
       "short_name": "统计",
       "description": "查看下载统计信息",
-      "url": "/stats",
-      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+      "url": "./stats",
+      "icons": [{ "src": "./icons/icon-192x192.png", "sizes": "192x192" }]
     }
   ],
   "share_target": {
-    "action": "/",
+    "action": "./",
     "method": "GET",
     "enctype": "application/x-www-form-urlencoded",
     "params": {
