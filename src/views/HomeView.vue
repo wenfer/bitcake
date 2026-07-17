@@ -939,8 +939,8 @@
         >{{ t('torrent.deleteWithFiles') }}</el-checkbox
       >
       <template #footer>
-        <el-button @click="removeDialog.visible = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="danger" @click="confirmRemoveDialog">{{ t('common.delete') }}</el-button>
+        <el-button :disabled="removeDialog.loading" @click="removeDialog.visible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="danger" :loading="removeDialog.loading" @click="confirmRemoveDialog">{{ t('common.delete') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -1689,6 +1689,7 @@ const removeDialog = ref({
   ids: [] as number[],
   withData: false,
   message: "",
+  loading: false,
 });
 const lastFetchedAt = ref("");
 const limitDialogVisible = ref(false);
@@ -2970,6 +2971,7 @@ const confirmRemoveDialog = async () => {
   }
   const ids = [...removeDialog.value.ids];
   const deleteData = removeDialog.value.withData;
+  removeDialog.value.loading = true;
   try {
     await api.removeTorrents(ids, deleteData);
     ElMessage.success(t('torrent.message.deleted'));
@@ -2978,6 +2980,8 @@ const confirmRemoveDialog = async () => {
     await reloadTorrentsAfterMutation();
   } catch (error: any) {
     ElMessage.error(`${t('torrent.message.deleteFailed')}: ${error.message}`);
+  } finally {
+    removeDialog.value.loading = false;
   }
 };
 

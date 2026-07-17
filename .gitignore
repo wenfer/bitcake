@@ -22,3 +22,6 @@ dist*
 .esdata
 .claude
 .pnpm-store
+
+# AI
+.reasonix/*.json
