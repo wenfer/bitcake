@@ -16,6 +16,19 @@ import i18n, { getLocale } from './i18n'
 import { registerSW } from './utils/swRegister'
 registerSW()
 
+// --- Edge 兼容性修复（vue-router 4.6.x 无法最小化） ---
+// vue-router 4.6.0+ 内部监听 visibilitychange：页面隐藏（窗口最小化）时调用
+// history.replaceState 保存滚动位置；新版 Edge 处理该调用时会触发内部"页面激活"
+// 机制，导致最小化后窗口立即弹回。此处仅拦截"页面隐藏时"的 replaceState，
+// 页面可见时的正常路由导航（router.replace 等）不受影响。
+// 副作用：最小化时不再保存滚动位置记忆。
+// 参考：https://blog.csdn.net/u012961419/article/details/157805074
+const originalReplaceState = window.history.replaceState.bind(window.history)
+window.history.replaceState = (state: unknown, unused: string, url?: string | URL | null) => {
+  if (document.visibilityState === 'hidden') return
+  originalReplaceState(state, unused, url)
+}
+
 const app = createApp(App)
 
 app.use(createPinia())
