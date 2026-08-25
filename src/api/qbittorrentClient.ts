@@ -1,5 +1,5 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios'
-import { torrentApiBase } from '@/config/torrentClient'
+import { apiRequestTimeoutMs, torrentApiBase } from '@/config/torrentClient'
 
 class QBittorrentClient {
   private client: AxiosInstance
@@ -8,6 +8,7 @@ class QBittorrentClient {
     this.client = axios.create({
       baseURL,
       withCredentials: true,
+      timeout: apiRequestTimeoutMs,
     })
   }
 
@@ -17,12 +18,12 @@ class QBittorrentClient {
     }
   }
 
-  async get<T = any>(url: string, config?: AxiosRequestConfig) {
+  async get<T = unknown>(url: string, config?: AxiosRequestConfig) {
     const response = await this.client.get<T>(url, config)
     return response.data
   }
 
-  async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig) {
+  async post<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) {
     const response = await this.client.post<T>(url, data, config)
     return response.data
   }

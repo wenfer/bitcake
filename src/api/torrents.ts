@@ -34,8 +34,6 @@ let qbAuthenticated = false
 const configureConnectionInternal = (config: Partial<ServerConfig>) => {
   currentConnection = { ...currentConnection, ...config }
   if (isTransmission) {
-    console.log(currentConnection)
-    console.log(transmissionClient)
     if (currentConnection.username || currentConnection.password) {
       transmissionClient.setAuth(currentConnection.username, currentConnection.password)
     } else {
@@ -321,18 +319,11 @@ const transmissionService: TorrentService = {
   },
 
   async setTorrentCategory(ids, category) {
-    console.log('[Transmission] setTorrentCategory called:', { ids, category })
-
     // 获取当前种子的 ID 和标签
     const result = await transmissionClient.request<{ torrents: Torrent[] }>('torrent-get', {
       ids,
       fields: ['id', 'labels']
     })
-
-    console.log('[Transmission] Current torrents:', result.torrents.map(t => ({
-      id: t.id,
-      labels: t.labels
-    })))
 
     for (const torrent of result.torrents) {
       // 移除旧的分类标签
@@ -342,12 +333,6 @@ const transmissionService: TorrentService = {
         newLabels.push(`category:${category}`)
       }
 
-      console.log('[Transmission] Updating torrent:', {
-        id: torrent.id,
-        oldLabels: torrent.labels,
-        newLabels
-      })
-
       // 更新标签
       await transmissionClient.request('torrent-set', {
         ids: [torrent.id],
@@ -355,7 +340,6 @@ const transmissionService: TorrentService = {
       })
     }
 
-    console.log('[Transmission] Category update complete')
   },
 
   async getCategories() {

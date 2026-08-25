@@ -472,7 +472,6 @@ const loadData = async () => {
 }
 
 onMounted(async () => {
-  systemStatusStore.start()
   try {
     await loadData()
   } catch (error: any) {

@@ -264,11 +264,6 @@ const navigationItems = computed(() => [
   { index: "/stats", label: t('nav.stats'), icon: TrendCharts },
 ]);
 
-// const themeOptions = Object.entries(themeStore.themes).map(([key, theme]) => ({
-//   label: theme.name,
-//   value: key
-// }))
-
 const uploadLimitKBps = computed(() => {
   const c = sessionConfig.value;
   if (!c) return null;
@@ -293,14 +288,17 @@ const downloadLimitKBps = computed(() => {
     return down > 0 ? down : null;
   }
 });
+const formatBytesCompact = (bytes: number): string =>
+  formatBytes(bytes).replace(/\.0(?=\s)/, "").replace(" ", "");
+
 const formatSpeedCompact = (bytesPerSecond: number): string => {
   if (!bytesPerSecond) return "0B/s";
-  return `${formatBytes(bytesPerSecond).replace(" ", "")}/s`;
+  return `${formatBytesCompact(bytesPerSecond)}/s`;
 };
 const formatLimitText = (kbps: number | null): string | null => {
   if (kbps == null || kbps === 0) return null;
   const bps = kbps * 1024;
-  return `${formatBytes(bps).replace(" ", "")}/s`;
+  return `${formatBytesCompact(bps)}/s`;
 };
 const uploadSpeedText = computed(() => {
   const bps = sessionStats.value?.uploadSpeed || 0;

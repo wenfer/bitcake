@@ -1,8 +1,11 @@
-import axios, { type AxiosInstance, type AxiosResponse } from 'axios'
+import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios'
 import type { RpcRequest, RpcResponse } from '@/types/transmission'
-import { torrentApiBase } from '@/config/torrentClient'
+import { apiRequestTimeoutMs, torrentApiBase } from '@/config/torrentClient'
 
 const SESSION_STORAGE_KEY = 'transmission-session-id'
+interface RetryableRequestConfig extends AxiosRequestConfig {
+  transmission409Retried?: boolean
+}
 
 class TransmissionClient {
   private client: AxiosInstance
@@ -12,6 +15,7 @@ class TransmissionClient {
     this.sessionId = this.loadStoredSessionId()
     this.client = axios.create({
       baseURL,
+      timeout: apiRequestTimeoutMs,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -34,8 +38,15 @@ class TransmissionClient {
       },
       async (error) => {
         if (error.response?.status === 409) {
-          this.updateSessionId(error.response)
-          const originalRequest = error.config
+          const originalRequest = error.config as RetryableRequestConfig | undefined
+          const newSessionId = error.response.headers?.['x-transmission-session-id']
+          if (!originalRequest || originalRequest.transmission409Retried || !newSessionId) {
+            return Promise.reject(error)
+          }
+
+          originalRequest.transmission409Retried = true
+          this.sessionId = newSessionId
+          this.persistSessionId()
           originalRequest.headers = originalRequest.headers || {}
           originalRequest.headers['X-Transmission-Session-Id'] = this.sessionId
           return this.client(originalRequest)
@@ -61,7 +72,7 @@ class TransmissionClient {
   /**
    * 发送 RPC 请求
    */
-  async request<T = any>(method: string, args?: Record<string, any>): Promise<T> {
+  async request<T = unknown>(method: string, args?: Record<string, unknown>): Promise<T> {
     const request: RpcRequest = {
       method,
       arguments: args,
@@ -95,7 +106,7 @@ class TransmissionClient {
     this.persistSessionId()
   }
 
-  private updateSessionId(response: AxiosResponse<any>) {
+  private updateSessionId(response: AxiosResponse<unknown>) {
     const newId = response.headers?.['x-transmission-session-id']
     if (newId && newId !== this.sessionId) {
       this.sessionId = newId

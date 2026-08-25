@@ -38,13 +38,11 @@
 import { onMounted, ref, watch } from "vue";
 import { useConnectionStore } from "@/stores/connection";
 import { configureConnection, getPreferences } from "@/api/torrents";
-import { registerPwaEvents, isPwaMode } from "@/utils/pwaShortcuts";
-import { useMemoryMonitor } from "@/composables/usePerformance";
+import { isPwaMode } from "@/utils/pwaShortcuts";
 import { WarningFilled } from '@element-plus/icons-vue'
 import { isTransmission } from "@/config/torrentClient"
 
 const connectionStore = useConnectionStore();
-const { updateMemoryUsage } = useMemoryMonitor();
 
 const showSecurityWarning = ref(false);
 
@@ -84,17 +82,11 @@ onMounted(async () => {
     checkSecurityRisk();
   }
 
-  // 注册 PWA 事件
-  registerPwaEvents();
-
   // 检测 PWA 模式
   if (isPwaMode()) {
-    console.log('[BitCake] Running in PWA mode');
     document.body.classList.add('pwa-mode');
   }
 
-  // 定期更新内存使用情况（用于性能监控）
-  setInterval(updateMemoryUsage, 30000);
 });
 </script>
 

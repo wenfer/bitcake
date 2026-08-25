@@ -524,23 +524,6 @@ const reseedViewRef = ref<HTMLElement | null>(null)
 const toolbarRef = ref<HTMLElement | null>(null)
 const paginationRef = ref<HTMLElement | null>(null)
 
-// 缓存上次的种子数据指纹，用于判断是否需要重新计算
-const lastTorrentsFingerprint = ref('')
-
-// 计算种子数据指纹（使用简单高效的方式）
-const getTorrentsFingerprint = (torrents: Torrent[]): string => {
-  // 只使用种子数量和前后几个种子的 hash 作为指纹，避免遍历所有种子
-  const count = torrents.length
-  if (count === 0) return '0'
-  if (count <= 3) {
-    return `${count}-${torrents.map(t => t.hashString).join(',')}`
-  }
-  // 对于大量种子，只取前 3 个和后 3 个的 hash
-  const first3 = torrents.slice(0, 3).map(t => t.hashString).join(',')
-  const last3 = torrents.slice(-3).map(t => t.hashString).join(',')
-  return `${count}-${first3}-${last3}`
-}
-
 const tableHeight = ref(420)
 
 const updateTableHeight = () => {
@@ -556,18 +539,6 @@ const updateTableHeight = () => {
 const loadReseedData = () => {
   const torrents = systemStatusStore.torrents
 
-  // 计算当前种子数据指纹
-  const currentFingerprint = getTorrentsFingerprint(torrents)
-
-  // 如果数据没有变化，跳过重新计算
-  if (currentFingerprint === lastTorrentsFingerprint.value && reseedData.value.length > 0) {
-    console.log('种子数据未变化，跳过重新计算')
-    return
-  }
-
-  lastTorrentsFingerprint.value = currentFingerprint
-  console.log('总种子数量:', torrents.length)
-
   // 按照文件名+文件大小分组（辅种判定规则）
   const groupedByNameAndSize = new Map<string, Torrent[]>()
 
@@ -580,12 +551,8 @@ const loadReseedData = () => {
     groupedByNameAndSize.get(key)!.push(torrent)
   })
 
-  console.log('文件名+大小分组数量:', groupedByNameAndSize.size)
-
   // 显示所有种子，按文件名+大小分组
   const reseedGroups = Array.from(groupedByNameAndSize.entries())
-
-  console.log('显示种子组数量:', reseedGroups.length)
 
   reseedData.value = reseedGroups.map(([_key, torrents]) => {
     // 使用第一个种子的信息作为基准
@@ -649,6 +616,28 @@ const loadReseedData = () => {
     }
   })
 }
+
+watch(
+  () => systemStatusStore.torrents.map((torrent) => [
+    torrent.id,
+    torrent.name,
+    torrent.hashString,
+    torrent.totalSize,
+    torrent.status,
+    torrent.percentDone,
+    torrent.uploadRatio,
+    torrent.uploadedEver,
+    torrent.downloadedEver,
+    torrent.rateUpload,
+    torrent.category,
+    torrent.downloadDir,
+    torrent.errorString,
+    torrent.trackerStats?.[0]?.announce,
+    torrent.trackerStats?.[0]?.lastAnnounceSucceeded,
+  ]),
+  loadReseedData,
+  { immediate: true }
+)
 
 // 过滤后的辅种数据
 const filteredReseedData = computed(() => {
@@ -809,38 +798,26 @@ watch(searchKeyword, (newValue) => {
 })
 
 watch(locale, async () => {
-  await nextTick()
-  updateTableHeight()
-})
-
-// 定时刷新
-let refreshTimer: number | null = null
-
-onMounted(async () => {
-  // 如果 systemStatusStore 中没有种子数据，先加载
-  if (systemStatusStore.torrents.length === 0) {
-    try {
-      const result = await api.getTorrents()
-      systemStatusStore.setTorrents(result.torrents)
-    } catch (error) {
-      console.error(t('reseed.message.loadFailed'), error)
-    }
-  }
-
   loadReseedData()
   await nextTick()
   updateTableHeight()
+})
+
+onMounted(async () => {
+  // 辅种分析依赖完整字段，不能复用系统状态轮询的精简种子对象。
+  try {
+    const result = await api.getTorrents()
+    systemStatusStore.setTorrents(result.torrents)
+  } catch (error) {
+    console.error(t('reseed.message.loadFailed'), error)
+  }
+
+  await nextTick()
+  updateTableHeight()
   window.addEventListener('resize', updateTableHeight)
-  // 每 10 秒刷新一次（配合缓存机制，数据未变化时不会重新计算）
-  refreshTimer = window.setInterval(() => {
-    loadReseedData()
-  }, 10000)
 })
 
 onUnmounted(() => {
-  if (refreshTimer) {
-    clearInterval(refreshTimer)
-  }
   window.removeEventListener('resize', updateTableHeight)
 })
 </script>

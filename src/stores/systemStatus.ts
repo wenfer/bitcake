@@ -1,12 +1,15 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, shallowRef, computed } from 'vue'
 import dayjs from 'dayjs'
 import * as api from '@/api/torrents'
 import type { SessionStats, SessionConfig } from '@/types/transmission'
 import type { Torrent } from '@/types/transmission'
 import { TorrentStatusEnum } from '@/types/transmission'
+import { AdaptivePoller, SingleFlightExecutor } from '@/utils/polling'
 
 const POLL_INTERVAL = 3000
+const CONFIG_REFRESH_INTERVAL = 30_000
+const FREE_SPACE_REFRESH_INTERVAL = 15_000
 
 // 统计所需的最小字段集，减少数据传输
 const STATS_FIELDS = [
@@ -28,11 +31,26 @@ export const useSystemStatusStore = defineStore('systemStatus', () => {
   const freeSpaceBytes = ref<number | null>(null)
   const lastUpdated = ref('')
   const loading = ref(false)
-  const torrents = ref<Torrent[]>([])
-  let refreshTimer: number | undefined
+  // Torrent objects can contain large nested tracker/file structures. The store
+  // only replaces the array and reads top-level statistics, so deep proxies add
+  // cost without providing value.
+  const torrents = shallowRef<Torrent[]>([])
+  let externalTorrentSourceCount = 0
+  let lastConfigRefreshAt = 0
+  let lastFreeSpaceRefreshAt = 0
 
   const setTorrents = (newTorrents: Torrent[]) => {
     torrents.value = newTorrents
+  }
+
+  const registerTorrentSource = () => {
+    externalTorrentSourceCount += 1
+    let released = false
+    return () => {
+      if (released) return
+      released = true
+      externalTorrentSourceCount = Math.max(0, externalTorrentSourceCount - 1)
+    }
   }
 
   const torrentCounts = computed(() => {
@@ -78,85 +96,101 @@ export const useSystemStatusStore = defineStore('systemStatus', () => {
     return counts
   })
 
-  const load = async (options: LoadOptions = {}) => {
-    if (!options.silent) {
-      loading.value = true
-    }
-    try {
-      const [stats, config, torrentsResult] = await Promise.all([
-        api.getSessionStats(),
-        api.getSession(),
-        api.getTorrents(STATS_FIELDS),
-      ])
-      sessionStats.value = stats
+  const performLoad = async (forceDetails = false): Promise<void> => {
+    const now = Date.now()
+    const shouldRefreshConfig =
+      forceDetails ||
+      !sessionConfig.value ||
+      now - lastConfigRefreshAt >= CONFIG_REFRESH_INTERVAL
+    const [stats, config, torrentsResult] = await Promise.all([
+      api.getSessionStats(),
+      shouldRefreshConfig
+        ? api.getSession()
+        : Promise.resolve(sessionConfig.value),
+      externalTorrentSourceCount > 0
+        ? Promise.resolve(null)
+        : api.getTorrents(STATS_FIELDS),
+    ])
+    sessionStats.value = stats
+    if (shouldRefreshConfig) {
       sessionConfig.value = config
+      lastConfigRefreshAt = now
+    }
 
-      // 更新种子列表用于统计（只在没有完整数据时更新）
-      // 如果 HomeView 已经加载了完整数据，这里的数据会被覆盖
-      if (torrentsResult.torrents) {
-        // 合并数据：保留现有种子的完整字段，只更新统计相关字段
-        const existingMap = new Map(torrents.value.map(t => [t.id, t]))
-        const updatedTorrents = torrentsResult.torrents.map(newT => {
-          const existing = existingMap.get(newT.id)
-          if (existing) {
-            // 更新统计相关字段
-            return {
-              ...existing,
-              status: newT.status,
-              error: newT.error,
-              errorString: newT.errorString,
-              rateDownload: newT.rateDownload,
-              rateUpload: newT.rateUpload,
-            }
-          }
-          return newT
-        })
-        torrents.value = updatedTorrents
-      }
-
-      const downloadDir = config['download-dir']
-      if (downloadDir) {
-        try {
-          const freeSpace = await api.getFreeSpace(downloadDir)
-          freeSpaceBytes.value = freeSpace['size-bytes']
-        } catch (error) {
-          freeSpaceBytes.value = null
-          if (!options.silent) {
-            console.warn('获取可用空间失败', error)
+    // 合并精简统计字段，保留其他页面写入 Store 的完整种子信息。
+    if (externalTorrentSourceCount === 0 && torrentsResult?.torrents) {
+      const existingMap = new Map(torrents.value.map(t => [t.id, t]))
+      torrents.value = torrentsResult.torrents.map(newT => {
+        const existing = existingMap.get(newT.id)
+        if (existing) {
+          return {
+            ...existing,
+            status: newT.status,
+            error: newT.error,
+            errorString: newT.errorString,
+            rateDownload: newT.rateDownload,
+            rateUpload: newT.rateUpload,
           }
         }
-      } else {
+        return newT
+      })
+    }
+
+    const downloadDir = config?.['download-dir']
+    const shouldRefreshFreeSpace =
+      forceDetails ||
+      lastFreeSpaceRefreshAt === 0 ||
+      now - lastFreeSpaceRefreshAt >= FREE_SPACE_REFRESH_INTERVAL
+    if (downloadDir && shouldRefreshFreeSpace) {
+      // Throttle failures as well, otherwise an unavailable disk endpoint
+      // would be retried on every fast statistics poll.
+      lastFreeSpaceRefreshAt = now
+      try {
+        const freeSpace = await api.getFreeSpace(downloadDir)
+        freeSpaceBytes.value = freeSpace['size-bytes']
+      } catch {
         freeSpaceBytes.value = null
       }
+    } else if (!downloadDir) {
+      freeSpaceBytes.value = null
+    }
 
-      lastUpdated.value = dayjs().format('YYYY-MM-DD HH:mm:ss')
+    lastUpdated.value = dayjs().format('YYYY-MM-DD HH:mm:ss')
+  }
+
+  const loader = new SingleFlightExecutor<void>()
+  const load = async (options: LoadOptions = {}): Promise<boolean> => {
+    if (!options.silent) loading.value = true
+    try {
+      await loader.run(() => performLoad(!options.silent))
+      return true
     } catch (error) {
       if (options.silent) {
         console.error('刷新系统状态失败', error)
-      } else {
-        throw error
+        return false
       }
+      throw error
     } finally {
-      if (!options.silent) {
-        loading.value = false
-      }
+      if (!options.silent) loading.value = false
     }
   }
+
+  const poller = new AdaptivePoller(
+    () => load({ silent: true }),
+    {
+      intervalMs: POLL_INTERVAL,
+      maxIntervalMs: 30_000,
+      shouldRun: () => document.visibilityState !== 'hidden',
+    }
+  )
 
   const start = () => {
     if (typeof window === 'undefined') return
-    if (refreshTimer) return
-    load({ silent: true })
-    refreshTimer = window.setInterval(() => {
-      load({ silent: true })
-    }, POLL_INTERVAL)
+    poller.start()
   }
 
   const stop = () => {
-    if (refreshTimer) {
-      window.clearInterval(refreshTimer)
-      refreshTimer = undefined
-    }
+    poller.stop()
   }
 
   return {
@@ -167,6 +201,7 @@ export const useSystemStatusStore = defineStore('systemStatus', () => {
     loading,
     torrents,
     setTorrents,
+    registerTorrentSource,
     torrentCounts,
     load,
     start,

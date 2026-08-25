@@ -1,0 +1,680 @@
+.home-view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.column-toggle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 0 10px 10px;
+}
+
+.column-toggle-item {
+  margin-bottom: 4px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.actions-group {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex: 1 1 auto;
+}
+
+.filter-toggle {
+  align-self: flex-start;
+  flex: 0 0 auto;
+}
+
+.filter-submenu {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: #f5f7fa;
+  border: 1px solid #ebeef5;
+  border-radius: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.submenu-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.filter-select {
+  width: 200px;
+}
+
+.filter-select :deep(.el-select-dropdown) {
+  max-height: 300px;
+}
+
+.filter-select :deep(.el-select-dropdown__list) {
+  max-height: 280px;
+}
+
+.filter-input {
+  width: 240px;
+}
+
+.filter-submenu.is-mobile {
+  width: 100%;
+}
+
+.filter-submenu.is-mobile .filter-controls {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.filter-submenu.is-mobile .filter-select,
+.filter-submenu.is-mobile .filter-input {
+  width: 100%;
+}
+
+.update-info {
+  margin-left: auto;
+  color: #909399;
+  font-size: 13px;
+}
+
+.label-tag {
+  margin-right: 4px;
+  margin-bottom: 4px;
+}
+
+.limit-cell {
+  cursor: pointer;
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+  color: #909399;
+}
+
+.limit-cell.active {
+  color: #606266;
+}
+
+.limit-cell:hover {
+  color: #409eff;
+}
+
+.context-menu {
+  position: fixed;
+  background-color: #fff;
+  border: 1px solid #ebeef5;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  padding: 8px 0;
+  z-index: 2000;
+  min-width: 120px;
+}
+
+.context-menu-header {
+  padding: 6px 16px;
+  font-size: 12px;
+  color: #909399;
+  border-bottom: 1px solid #ebeef5;
+  margin-bottom: 4px;
+}
+
+.context-menu button {
+  display: block;
+  width: 100%;
+  padding: 6px 16px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.context-menu button:hover {
+  background-color: #f5f7fa;
+}
+
+.context-menu button.danger {
+  color: #f56c6c;
+}
+
+.context-menu-divider {
+  height: 1px;
+  background-color: #ebeef5;
+  margin: 4px 0;
+}
+
+.table-container {
+  flex: 1;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.table-scroll {
+  flex: 1;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.table-scroll :deep(.el-table) {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.table-scroll :deep(.el-table__inner-wrapper) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.table-scroll :deep(.el-table__body-wrapper) {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.table-scroll :deep(.el-table__row) {
+  height: 48px;
+}
+
+.table-scroll :deep(.el-table__cell) {
+  padding: 8px 0;
+}
+
+.table-scroll :deep(.el-table .cell) {
+  padding-left: 8px;
+  padding-right: 8px;
+  line-height: 1.4;
+}
+
+.table-scroll :deep(.el-progress) {
+  width: 100%;
+}
+
+.table-scroll :deep(.el-progress__text) {
+  min-width: 36px;
+  font-size: 12px !important;
+}
+
+.pagination {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.pagination :deep(.el-pagination) {
+  width: 100%;
+  max-width: 100%;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.pagination :deep(.el-pagination__sizes) {
+  margin-right: 8px;
+}
+
+.pagination :deep(.el-pagination__sizes .el-select) {
+  width: 110px;
+}
+
+.pagination :deep(.el-pagination__sizes .el-input__wrapper) {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.detail-dialog :deep(.el-dialog__body) {
+  padding: 0;
+  overflow: hidden;
+}
+
+.detail-tabs {
+  border: none;
+}
+
+.detail-tabs :deep(.el-tabs__header) {
+  margin: 0;
+  background-color: #f5f7fa;
+}
+
+.detail-tabs :deep(.el-tabs__content) {
+  padding: 16px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.detail-tabs :deep(.el-descriptions) {
+  margin: 0;
+}
+
+.detail-tabs :deep(.torrent-name-item .el-descriptions__cell-content) {
+  word-break: break-all;
+  white-space: normal;
+  line-height: 1.6;
+}
+
+.hash-value {
+  font-family: monospace;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.files-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.files-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.files-count {
+  color: #606266;
+  font-weight: 500;
+}
+
+.files-actions-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.files-tree {
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  background: #fff;
+  padding: 6px 8px;
+  max-height: 400px;
+  overflow: auto;
+}
+.files-tree :deep(.el-tree-node__content) {
+  height: 32px;
+}
+.files-tree :deep(.el-tree-node__children) {
+  overflow: visible;
+}
+.file-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.file-icon {
+  color: #909399;
+}
+.file-name {
+  flex: 1;
+}
+.file-meta {
+  color: #909399;
+  font-size: 12px;
+}
+
+.limit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.limit-switch {
+  flex-shrink: 0;
+  width: 50px;
+}
+
+.limit-input {
+  width: 120px;
+}
+
+.limit-unit-select {
+  width: 80px;
+}
+
+.limit-form .el-form-item {
+  margin-bottom: 16px;
+}
+
+.form-tip {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #909399;
+}
+
+.form-tip-inline {
+  font-size: 12px;
+  color: #909399;
+  margin-left: 8px;
+}
+
+.dialog-subtitle {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #909399;
+}
+
+.table-placeholder {
+  color: #909399;
+  font-size: 13px;
+  margin: 0 0 16px;
+}
+
+.dropdown-icon {
+  margin-left: 4px;
+}
+
+.ratio-tag {
+  border: none;
+  color: #fff;
+}
+
+.ratio-zero {
+  background-color: #909399;
+}
+
+.ratio-low {
+  background-color: #e6a23c;
+}
+
+.ratio-mid {
+  background-color: #67c23a;
+}
+
+.ratio-high {
+  background-color: #f56c6c;
+}
+
+.delete-message {
+  margin-bottom: 12px;
+  color: #606266;
+}
+
+.torrent-file-upload {
+  width: 100%;
+}
+
+.torrent-file-upload :deep(.el-upload-list) {
+  max-width: 100%;
+}
+
+.torrent-file-upload :deep(.el-upload-list__item) {
+  max-width: 100%;
+}
+
+.torrent-file-upload :deep(.el-upload-list__item-name) {
+  max-width: calc(100% - 80px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+@media (max-width: 1200px) {
+}
+
+@media (max-width: 1024px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions-group {
+    width: 100%;
+  }
+
+  .filter-submenu {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-controls {
+    width: 100%;
+  }
+
+  .update-info {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .table-scroll {
+    border: 1px solid #ebeef5;
+  }
+}
+
+@media (max-width: 900px) {
+}
+
+@media (max-width: 768px) {
+  .home-view {
+    gap: 10px;
+  }
+
+  .actions-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  .actions-group :deep(.el-button) {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .filter-toggle {
+    width: 100%;
+  }
+
+  .table-container {
+    margin-top: 12px;
+  }
+
+  .pagination :deep(.el-pagination) {
+    column-gap: 4px;
+  }
+
+  .pagination :deep(.el-pagination__sizes .el-select) {
+    width: 110px;
+  }
+
+  .pagination :deep(.el-pagination__sizes .el-input__wrapper) {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  .pagination :deep(.btn-prev),
+  .pagination :deep(.btn-next),
+  .pagination :deep(.el-pager li) {
+    min-width: 24px;
+  }
+
+  .pagination :deep(.el-pagination__total) {
+    display: none;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .files-actions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .files-actions-buttons {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .files-actions-buttons :deep(.el-button) {
+    flex: 1;
+  }
+}
+
+/* 批量修改标签对话框样式 */
+.current-labels-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+  background: var(--el-fill-color-light);
+  border-radius: 4px;
+  min-height: 40px;
+}
+
+.label-preview-tag {
+  margin: 0;
+}
+
+.no-labels-text {
+  color: var(--el-text-color-secondary);
+  font-size: 14px;
+}
+
+.form-tip {
+  margin-top: 4px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+/* Table V2 Custom Styles */
+.table-scroll :deep(.el-table-v2__row--striped) .el-table-v2__row-cell {
+  background-color: #fafafa;
+}
+.table-scroll :deep(.current-row) .el-table-v2__row-cell {
+  background-color: #ecf5ff !important;
+}
+.table-scroll :deep(.el-table-v2__header-cell) {
+  background-color: #f5f7fa;
+  color: #909399;
+  font-weight: 600;
+  border-right: 1px solid #ebeef5;
+  border-bottom: 1px solid #ebeef5;
+  overflow: visible;
+  position: relative;
+}
+.table-scroll :deep(.torrent-column-title) {
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 4px;
+}
+.table-scroll :deep(.torrent-cell-ellipsis) {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.table-scroll :deep(.torrent-labels) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+/* Ensure the handle is positioned correctly */
+.table-scroll :deep(.el-table-v2__column-resizer) {
+  position: absolute;
+  right: -3px;
+  top: 0;
+  height: 100%;
+  width: 10px; /* wider touch area */
+  cursor: col-resize;
+  z-index: 10;
+  background-color: transparent; /* Invisible but clickable */
+}
+
+/* Hide default Element Plus TableV2 sort icon */
+.table-scroll :deep(.el-table-v2__header-cell .el-icon.el-table-v2__sort-icon) {
+  display: none !important;
+}
+
+.table-scroll :deep(.el-table-v2__row-cell) {
+  border-right: 1px solid #ebeef5;
+  border-bottom: 1px solid #ebeef5;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+}
+.table-scroll :deep(.el-table-v2__left) {
+  border-right: 1px solid #ebeef5;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+}
+
+/* Custom sort icon visibility control */
+.table-scroll :deep(.custom-sort-icon) {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 24px;
+  height: 14px;
+  overflow: visible;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.table-scroll :deep(.custom-sort-icon .sort-caret) {
+  position: absolute;
+  left: 7px;
+  width: 0;
+  height: 0;
+  border: 5px solid transparent;
+}
+
+.table-scroll :deep(.custom-sort-icon .ascending) {
+  top: -5px;
+}
+
+.table-scroll :deep(.custom-sort-icon .descending) {
+  bottom: -5px;
+}
+
+.table-scroll :deep(.el-table-v2__header-cell:hover .custom-sort-icon),
+.table-scroll :deep(.custom-sort-icon.is-sorted) {
+  opacity: 1;
+}

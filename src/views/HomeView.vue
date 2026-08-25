@@ -5,7 +5,7 @@
         <el-button type="primary" :icon="Plus" @click="showAddDialog = true">
           {{ t('torrent.addTorrent') }}
         </el-button>
-        <el-button :icon="Refresh" @click="loadTorrents()">{{ t('common.refresh') }}</el-button>
+        <el-button :icon="Refresh" @click="handleManualRefresh">{{ t('common.refresh') }}</el-button>
         <template v-if="!isMobile">
           <el-button
             :icon="VideoPlay"
@@ -949,12 +949,12 @@
 <script setup lang="ts">
 import {
   ref,
+  shallowRef,
   computed,
   onMounted,
   onBeforeUnmount,
   watch,
   nextTick,
-  h,
 } from "vue";
 import {
   ElMessage,
@@ -962,19 +962,13 @@ import {
   ElTableV2,
   ElAutoResizer,
   ElTree,
-  ElCheckbox,
-  ElTag,
-  ElProgress,
-  ElTooltip,
 } from "element-plus";
-import type { TableInstance, TableColumnCtx, Column, CheckboxValueType } from "element-plus";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/zh-cn";
 import "dayjs/locale/en";
 
 dayjs.extend(relativeTime);
-// import Sortable from "sortablejs"; // Removed for TableV2 compatibility
 import {
   Plus,
   Refresh,
@@ -994,12 +988,15 @@ import type { Torrent, TorrentStatus } from "@/types/transmission";
 import { TorrentStatusEnum } from "@/types/transmission";
 import {
   getTrackerDisplayName,
-  getTrackerHost,
-  matchesTrackerFilter,
 } from "@/utils/torrent";
 import { getIPGeolocation } from "@/utils/ipGeolocation";
 import { useMediaQuery } from "@/utils/useMediaQuery";
 import { formatBytes, formatSpeed } from "@/utils/format";
+import {
+  AdaptivePoller,
+  SerialExecutor,
+  SingleFlightExecutor,
+} from "@/utils/polling";
 import { useFilterStore, urlToStatus, statusToUrl } from "@/stores/filter";
 import { useSystemStatusStore } from "@/stores/systemStatus";
 import { storeToRefs } from "pinia";
@@ -1008,11 +1005,17 @@ import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { buildTrackerErrorMappings } from "@/utils/errorMapping";
 import { useNotifications } from "@/composables/useNotifications";
+import { useTorrentSelection } from "@/composables/useTorrentSelection";
+import { useTorrentListQuery } from "@/composables/useTorrentListQuery";
+import {
+  useTorrentTable,
+  type TorrentColumnConfig,
+} from "@/composables/useTorrentTable";
+import { useTorrentFacets } from "@/composables/useTorrentFacets";
 import { ElMessageBox } from "element-plus";
 
 const REFRESH_INTERVAL = 3000;
 const COLUMN_WIDTH_STORAGE_KEY = "tv_table_column_widths";
-const COLUMN_ORDER_STORAGE_KEY = "tv_table_column_order";
 const COLUMN_VISIBILITY_STORAGE_KEY = "tv_table_column_visibility";
 const showColumnDialog = ref(false);
 const visibleColumnKeys = ref<string[]>([]);
@@ -1039,11 +1042,11 @@ const loadColumnVisibility = () => {
         tableColumns.some((col) => col.key === key)
       );
     } else {
-      visibleColumnKeys.value = [...defaultColumnOrder];
+      visibleColumnKeys.value = [...defaultColumnKeys];
     }
   } catch (error) {
     console.warn("读取列显示状态失败", error);
-    visibleColumnKeys.value = [...defaultColumnOrder];
+    visibleColumnKeys.value = [...defaultColumnKeys];
   }
 };
 const DETAIL_FIELDS = [
@@ -1091,6 +1094,7 @@ watch(
 
 const filterStore = useFilterStore();
 const systemStatusStore = useSystemStatusStore();
+const releaseTorrentSource = systemStatusStore.registerTorrentSource();
 const {
   statusFilter,
   trackerFilter,
@@ -1120,7 +1124,16 @@ const toggleNotifications = async () => {
 };
 
 // 存储之前的种子状态用于比较
-const previousTorrents = ref<Map<number, Torrent>>(new Map());
+interface TorrentStatusSnapshot {
+  status: TorrentStatus;
+  percentDone: number;
+  recheckProgress?: number;
+  error?: number;
+  generation: number;
+}
+
+const previousTorrentStates = new Map<number, TorrentStatusSnapshot>();
+let torrentStateGeneration = 0;
 
 // URL 参数同步功能
 const syncFiltersFromUrl = () => {
@@ -1145,6 +1158,24 @@ const syncFiltersFromUrl = () => {
   }
 };
 
+const pauseAllRunningTorrents = () => {
+  const runningTorrents = torrents.value.filter(
+    (torrent) => torrent.status !== TorrentStatusEnum.STOPPED
+  );
+  if (runningTorrents.length > 0) {
+    void stopTorrents(runningTorrents.map((torrent) => torrent.id));
+  }
+};
+
+const startAllStoppedTorrents = () => {
+  const stoppedTorrents = torrents.value.filter(
+    (torrent) => torrent.status === TorrentStatusEnum.STOPPED
+  );
+  if (stoppedTorrents.length > 0) {
+    void startTorrents(stoppedTorrents.map((torrent) => torrent.id));
+  }
+};
+
 // 处理 PWA 快捷操作
 const handlePwaAction = (action: string) => {
   switch (action) {
@@ -1152,53 +1183,17 @@ const handlePwaAction = (action: string) => {
       showAddDialog.value = true;
       break;
     case 'pause-all':
-      // 暂停所有运行中的种子
-      const runningTorrents = torrents.value.filter(t => t.status !== TorrentStatusEnum.STOPPED);
-      if (runningTorrents.length > 0) {
-        stopTorrents(runningTorrents.map(t => t.id));
-      }
+      pauseAllRunningTorrents();
       break;
     case 'start-all':
-      // 开始所有已暂停的种子
-      const stoppedTorrents = torrents.value.filter(t => t.status === TorrentStatusEnum.STOPPED);
-      if (stoppedTorrents.length > 0) {
-        startTorrents(stoppedTorrents.map(t => t.id));
-      }
+      startAllStoppedTorrents();
       break;
   }
   // 清除 URL 参数
   router.replace({ path: '/', query: {} });
 };
 
-// 处理分享的磁力链接
-const handleSharedMagnetLink = (event: CustomEvent) => {
-  const { magnetLink } = event.detail;
-  if (magnetLink) {
-    addForm.value.type = 'magnet';
-    addForm.value.magnet = magnetLink;
-    showAddDialog.value = true;
-  }
-};
-
-// 监听 PWA 事件
 onMounted(() => {
-  window.addEventListener('pwa:open-add-dialog', () => {
-    showAddDialog.value = true;
-  });
-  window.addEventListener('pwa:pause-all', () => {
-    const runningTorrents = torrents.value.filter(t => t.status !== TorrentStatusEnum.STOPPED);
-    if (runningTorrents.length > 0) {
-      stopTorrents(runningTorrents.map(t => t.id));
-    }
-  });
-  window.addEventListener('pwa:start-all', () => {
-    const stoppedTorrents = torrents.value.filter(t => t.status === TorrentStatusEnum.STOPPED);
-    if (stoppedTorrents.length > 0) {
-      startTorrents(stoppedTorrents.map(t => t.id));
-    }
-  });
-  window.addEventListener('pwa:shared-magnet', handleSharedMagnetLink as EventListener);
-
   // 检查是否是分享目标打开
   const urlParams = new URLSearchParams(window.location.search);
   const sharedText = urlParams.get('text');
@@ -1424,17 +1419,7 @@ const defaultColumnWidths: Record<string, number> = {
 };
 
 // 定义表格列配置
-interface ColumnConfig {
-  key: string;
-  label: string;
-  prop?: string;
-  sortable?: boolean;
-  minWidth?: number;
-  defaultWidth?: number;
-  showInCompact?: boolean; // 是否在紧凑模式下显示
-}
-
-const tableColumns: ColumnConfig[] = [
+const tableColumns: TorrentColumnConfig[] = [
   {
     key: "name",
     label: t('torrent.col.name'),
@@ -1586,29 +1571,17 @@ const tableColumns: ColumnConfig[] = [
   },
 ];
 
-const defaultColumnOrder = tableColumns.map((col) => col.key);
+const defaultColumnKeys = tableColumns.map((col) => col.key);
 
 // Initialize visible columns if empty
 if (visibleColumnKeys.value.length === 0) {
-  visibleColumnKeys.value = [...defaultColumnOrder];
+  visibleColumnKeys.value = [...defaultColumnKeys];
 }
-
-let refreshTimer: number | undefined;
 
 const loading = ref(false);
-function debounce<T extends (...args: any[]) => any>(fn: T, delay: number) {
-  let timeoutId: number | null = null;
-  return function (this: any, ...args: Parameters<T>) {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-    timeoutId = window.setTimeout(() => {
-      fn.apply(this, args);
-    }, delay);
-  } as T;
-}
-
-const torrents = ref<Torrent[]>([]);
+// API responses are immutable snapshots. Avoid recursively proxying large
+// tracker/file trees; incremental updates replace changed objects instead.
+const torrents = shallowRef<Torrent[]>([]);
 const getActivePerTorrentLimitsKB = (torrent: Torrent) => {
   const downloadLimit = torrent.downloadLimited
     ? Math.max(0, Math.round((torrent.downloadLimit as number) || 0))
@@ -1624,10 +1597,6 @@ const hasAnyPerTorrentLimit = computed(() => {
     return downloadLimit > 0 || uploadLimit > 0;
   });
 });
-const searchKeyword = ref("");
-const debouncedSearchKeyword = ref("");
-const nameLowerCache = new Map<number, string>();
-const defaultTrackerCache = new Map<number, string>();
 const trackerSearchKeyword = ref("");
 const showAddDialog = ref(false);
 const addForm = ref({
@@ -1639,8 +1608,6 @@ const addForm = ref({
 });
 const uploadRef = ref();
 const fileList = ref<any[]>([]);
-const selectedTorrents = ref<Torrent[]>([]);
-const selectedIdsState = ref<number[]>([]);
 const showLocationDialog = ref(false);
 const locationForm = ref({
   path: "",
@@ -1681,9 +1648,6 @@ const detailPeers = ref<
     countryFlag?: string;
   }>
 >([]);
-const tableRef = ref<TableInstance | null>(null);
-const suppressSelectionChange = ref(false);
-const lastClickedIndex = ref<number>(-1);
 const removeDialog = ref({
   visible: false,
   ids: [] as number[],
@@ -1754,67 +1718,12 @@ const isMobile = useMediaQuery("(max-width: 768px)");
 const isCompactTable = useMediaQuery("(max-width: 1100px)");
 const showMobileFilters = ref(!isMobile.value);
 const columnWidths = ref<Record<string, number>>({ ...defaultColumnWidths });
-const columnOrder = ref<string[]>([...defaultColumnOrder]);
 const createDialogWidth = (desktopWidth: string, mobileWidth = "94vw") =>
   computed(() => (isMobile.value ? mobileWidth : desktopWidth));
 const defaultDialogWidth = createDialogWidth("600px");
 const detailDialogWidth = createDialogWidth("900px", "96vw");
 const limitDialogWidth = createDialogWidth("480px");
 const removeDialogWidth = createDialogWidth("420px", "90vw");
-
-type SortOrder = "ascending" | "descending" | null;
-
-const sortState = ref<{ prop: string; order: SortOrder }>({
-  prop: "addedDate",
-  order: "descending",
-});
-
-const currentPage = ref(1);
-const pageSize = ref(50);
-const pageSizeOptions = [25, 50, 100, 200, 500];
-
-const hasSelection = computed(() => selectedTorrents.value.length > 0);
-
-// 批量标签相关计算属性
-const availableLabelsOptions = computed(() => {
-  const labelsSet = new Set<string>();
-  torrents.value.forEach((torrent) => {
-    if (torrent.labels && torrent.labels.length > 0) {
-      torrent.labels.forEach((label) => {
-        // 排除分类标签
-        if (!label.startsWith("category:")) {
-          labelsSet.add(label);
-        }
-      });
-    }
-  });
-  return Array.from(labelsSet)
-    .sort()
-    .map((label) => ({ label, value: label }));
-});
-
-// 标签筛选选项：包含所有标签（category: 前缀剥离显示，按原始值去重）
-const labelOptions = computed(() => {
-  const seen = new Set<string>();
-  const result: { label: string; value: string }[] = [];
-  torrents.value.forEach((torrent) => {
-    (torrent.labels ?? []).forEach((raw) => {
-      if (seen.has(raw)) return;
-      seen.add(raw);
-      const display = raw.startsWith("category:") ? raw.slice("category:".length) : raw;
-      result.push({ label: display, value: raw });
-    });
-  });
-  result.sort((a, b) => a.label.localeCompare(b.label));
-  return result;
-});
-
-// 是否存在无普通标签的种子（仅有 category: 前缀标签也算无标签）
-const hasNoLabelTorrent = computed(() =>
-  torrents.value.some(
-    (t) => !(t.labels ?? []).some((l) => !l.startsWith("category:"))
-  )
-);
 
 const currentLabelsPreview = computed(() => {
   const labelsSet = new Set<string>();
@@ -1883,6 +1792,30 @@ const getDefaultTracker = (torrent: Torrent): string => {
   return tracker ? getTrackerDisplayName(tracker.announce) : "—";
 };
 
+const {
+  searchKeyword,
+  sortState,
+  currentPage,
+  pageSize,
+  pageSizeOptions,
+  displayedTorrents,
+  paginatedTorrents,
+  updateIndexes: updateTorrentIndexes,
+  rebuildIndexes: rebuildTorrentIndexes,
+  removeIndexes: removeTorrentIndexes,
+} = useTorrentListQuery({
+  torrents,
+  statusFilter,
+  trackerFilter,
+  categoryFilter,
+  downloadDirFilter,
+  errorTypeFilter,
+  labelFilter,
+  getNoCategoryLabel: () => t('torrent.noCategory'),
+  getErrorType,
+  getDefaultTracker,
+});
+
 const persistColumnWidths = () => {
   if (typeof window === "undefined") return;
   try {
@@ -1909,57 +1842,12 @@ const loadColumnWidths = () => {
   }
 };
 
-// 持久化列顺序
-/*
-const persistColumnOrder = () => {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(
-      COLUMN_ORDER_STORAGE_KEY,
-      JSON.stringify(columnOrder.value)
-    );
-  } catch (error) {
-    console.warn("保存列顺序失败", error);
-  }
-};
-*/
-
-// 加载列顺序
-const loadColumnOrder = () => {
-  if (typeof window === "undefined") return;
-  try {
-    const stored = window.localStorage.getItem(COLUMN_ORDER_STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      // 验证顺序数组的有效性，确保包含所有列
-      const validOrder = parsed.filter((key: string) =>
-        tableColumns.some((col) => col.key === key)
-      );
-      // 添加新增的列（如果配置中有新列但存储中没有）
-      const newColumns = tableColumns
-        .map((col) => col.key)
-        .filter((key) => !validOrder.includes(key));
-      columnOrder.value = [...validOrder, ...newColumns];
-    } else {
-      columnOrder.value = [...defaultColumnOrder];
-    }
-  } catch (error) {
-    console.warn("读取列顺序失败", error);
-    columnOrder.value = [...defaultColumnOrder];
-  }
-};
-
-// 根据顺序获取有序的列配置
-const orderedColumns = computed(() => {
-  return columnOrder.value
-    .filter((key) => {
-      if (key === "speedLimit" && !hasAnyPerTorrentLimit.value) return false;
-      if (key === "category" && isTransmission) return false;
-      // 过滤掉未勾选的列，但始终保留 'name' 列
-      return key === 'name' || visibleColumnKeys.value.includes(key);
-    })
-    .map((key) => tableColumns.find((col) => col.key === key))
-    .filter(Boolean) as ColumnConfig[];
+const visibleColumns = computed(() => {
+  return tableColumns.filter((column) => {
+    if (column.key === "speedLimit" && !hasAnyPerTorrentLimit.value) return false;
+    if (column.key === "category" && isTransmission) return false;
+    return column.key === "name" || visibleColumnKeys.value.includes(column.key);
+  });
 });
 
 watch(hasAnyPerTorrentLimit, (hasAny) => {
@@ -2045,6 +1933,22 @@ const isTorrentError = (torrent: Torrent) => {
   return (torrent.error ?? 0) > 0 || !!torrent.errorString;
 };
 
+const {
+  availableLabelsOptions,
+  labelOptions,
+  hasNoLabelTorrent,
+  trackerOptions,
+  categoryOptions,
+  downloadDirs,
+  downloadDirOptions,
+  errorTypeOptions,
+} = useTorrentFacets({
+  torrents,
+  noCategoryLabel: () => t('torrent.noCategory'),
+  isTorrentError,
+  getErrorType,
+});
+
 const getTorrentProgress = (torrent: Torrent): number => {
   // 对于校验状态，使用校验进度
   if (
@@ -2101,169 +2005,21 @@ const getRatioClass = (ratio: number): string => {
   return "ratio-high";
 };
 
-// 筛选后的种子列表
-const filteredTorrents = computed(() => {
-  const keyword = debouncedSearchKeyword.value.trim().toLowerCase();
-  return torrents.value.filter((torrent) => {
-    const nameLower =
-      nameLowerCache.get(torrent.id) ?? torrent.name.toLowerCase();
-    const matchesKeyword = keyword
-      ? nameLower.includes(keyword)
-      : true;
-    const matchesStatus =
-      statusFilter.value === "all"
-        ? true
-        : statusFilter.value === "error"
-        ? isTorrentError(torrent)
-        : statusFilter.value === "queued"
-        ? (
-            [
-              TorrentStatusEnum.CHECK_WAIT,
-              TorrentStatusEnum.DOWNLOAD_WAIT,
-              TorrentStatusEnum.SEED_WAIT,
-            ] as TorrentStatus[]
-          ).includes(torrent.status)
-        : statusFilter.value === "active"
-        ? torrent.rateDownload > 0 || torrent.rateUpload > 0
-        : Number(statusFilter.value) === torrent.status;
-    const matchesTracker =
-      !trackerFilter.value ||
-      (torrent.trackers ?? []).some((tracker) =>
-        matchesTrackerFilter(tracker.announce, trackerFilter.value)
-      );
-    const matchesCategory =
-      !categoryFilter.value ||
-      (categoryFilter.value === t('torrent.noCategory')
-        ? !torrent.category
-        : torrent.category === categoryFilter.value);
-    const matchesDownloadDir =
-      !downloadDirFilter.value ||
-      torrent.downloadDir === downloadDirFilter.value;
-    const matchesErrorType =
-      !errorTypeFilter.value ||
-      (isTorrentError(torrent) &&
-        getErrorType(torrent.errorString) === errorTypeFilter.value);
-    const matchesLabel =
-      !labelFilter.value ||
-      (labelFilter.value === "__no_label__"
-        ? !(torrent.labels ?? []).some(
-            (l) => !l.startsWith("category:")
-          )
-        : (torrent.labels ?? []).some(
-            (l) => l === labelFilter.value
-          ));
-    return (
-      matchesKeyword &&
-      matchesStatus &&
-      matchesTracker &&
-      matchesCategory &&
-      matchesDownloadDir &&
-      matchesErrorType &&
-      matchesLabel
-    );
-  });
-});
-
-const getSortValue = (torrent: Torrent, prop?: string) => {
-  switch (prop) {
-    case "name":
-      return nameLowerCache.get(torrent.id) ?? torrent.name.toLowerCase();
-    case "status":
-      return torrent.status;
-    case "percentDone":
-      return torrent.percentDone;
-    case "totalSize":
-      return torrent.totalSize;
-    case "uploadRatio":
-      return torrent.uploadRatio;
-    case "defaultTracker":
-      return defaultTrackerCache.get(torrent.id) ?? getDefaultTracker(torrent);
-    case "peersDownloading":
-      // 按照 tracker 报告的种子总数排序
-      return getTrackerPeerCounts(torrent).seeders;
-    case "peersUploading":
-      // 按照 tracker 报告的用户总数排序
-      return getTrackerPeerCounts(torrent).leechers;
-    case "rateDownload":
-      return torrent.rateDownload;
-    case "rateUpload":
-      return torrent.rateUpload;
-    case "speedLimit": {
-      const { downloadLimit, uploadLimit } = getActivePerTorrentLimitsKB(torrent);
-      return Math.max(downloadLimit, uploadLimit);
-    }
-    case "eta":
-      // eta 为负数或未定义时，排序时放到最后
-      return torrent.eta !== undefined && torrent.eta >= 0
-        ? torrent.eta
-        : Number.MAX_SAFE_INTEGER;
-    case "uploadedEver":
-      return torrent.uploadedEver ?? 0;
-    case "downloadDir":
-      return (torrent.downloadDir || "").toLowerCase();
-    case "addedDate":
-      return torrent.addedDate ?? 0;
-    case "activityDate":
-      return torrent.activityDate ?? 0;
-    default:
-      return (torrent as Record<string, any>)[prop || ""] ?? 0;
-  }
-};
-
-const displayedTorrents = computed(() => {
-  const base = filteredTorrents.value;
-  const { prop, order } = sortState.value;
-  if (!prop || !order) return base;
-  return [...base].sort((a, b) => {
-    const aVal = getSortValue(a, prop);
-    const bVal = getSortValue(b, prop);
-    if (typeof aVal === "string" && typeof bVal === "string") {
-      const compare = aVal.localeCompare(bVal);
-      return order === "ascending" ? compare : -compare;
-    }
-    const compare = Number(aVal) - Number(bVal);
-    return order === "ascending" ? compare : -compare;
-  });
-});
-
-const paginatedTorrents = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  return displayedTorrents.value.slice(start, start + pageSize.value);
-});
-
-const trackerOptions = computed(() => {
-  interface TrackerOption {
-    label: string;
-    value: string;
-    displayName: string;
-    host: string;
-  }
-  const trackerMap = new Map<string, TrackerOption>();
-  torrents.value.forEach((torrent) => {
-    const list = torrent.trackers || [];
-    const recognized = list.find((tr) => {
-      const dn = getTrackerDisplayName(tr.announce);
-      const h = getTrackerHost(tr.announce);
-      return dn !== h;
-    });
-    const chosen = recognized || list[0];
-    if (!chosen) return;
-    const displayName = getTrackerDisplayName(chosen.announce);
-    const host = getTrackerHost(chosen.announce);
-    if (!trackerMap.has(displayName)) {
-      const label = displayName !== host ? `${displayName} (${host})` : host;
-      trackerMap.set(displayName, {
-        label,
-        value: displayName,
-        displayName,
-        host,
-      });
-    }
-  });
-  return Array.from(trackerMap.values()).sort((a, b) =>
-    a.label.localeCompare(b.label)
-  );
-});
+const {
+  selectedIdsState,
+  selectedTorrents,
+  hasSelection,
+  isAllSelected,
+  isIndeterminate,
+  isSelected: isTorrentSelected,
+  toggleRow: toggleTorrentSelection,
+  togglePage: togglePageSelection,
+  selectPage: selectCurrentPage,
+  handleRowClick: updateSelectionFromRowClick,
+  remove: removeFromSelection,
+  reconcile: reconcileSelection,
+  clear: clearSelection,
+} = useTorrentSelection(torrents, paginatedTorrents);
 
 const filteredTrackerOptions = computed(() => {
   if (!trackerSearchKeyword.value) {
@@ -2284,50 +2040,11 @@ const filterTrackerOptions = (query: string) => {
   trackerSearchKeyword.value = query;
 };
 
-const categoryOptions = computed(() => {
-  const categories = new Set<string>();
-  torrents.value.forEach((torrent) => {
-    if (torrent.category) {
-      categories.add(torrent.category);
-    }
-  });
-  const result = Array.from(categories).sort();
-  // 检查是否有无分类的种子
-  const hasUncategorized = torrents.value.some((t) => !t.category);
-  if (hasUncategorized) {
-    result.unshift(t('torrent.noCategory'));
-  }
-  return result.map((cat) => ({ label: cat, value: cat }));
-});
-
-const downloadDirOptions = computed(() => {
-  const dirMap = new Map<string, { label: string; value: string }>();
-
-  torrents.value.forEach((torrent) => {
-    const dir = torrent.downloadDir;
-    if (dir && !dirMap.has(dir)) {
-      dirMap.set(dir, {
-        label: dir,
-        value: dir,
-      });
-    }
-  });
-
-  return Array.from(dirMap.values())
-    .sort((a, b) => a.label.localeCompare(b.label))
-    .map((item) => ({
-      label: item.label,
-      value: item.value,
-    }));
-});
-
 const allDownloadDirs = computed(() => {
   const set = new Set<string>();
   const def = sessionConfig.value?.["download-dir"];
   if (def) set.add(def);
-  torrents.value.forEach((t) => {
-    if (t.downloadDir) set.add(t.downloadDir);
-  });
+  downloadDirs.value.forEach((dir) => set.add(dir));
   return Array.from(set).sort((a, b) => a.localeCompare(b));
 });
 
@@ -2339,24 +2056,7 @@ const searchDownloadDirs = (queryString: string, cb: (results: any[]) => void) =
   cb(list.map((dir) => ({ value: dir })));
 };
 
-const errorTypeOptions = computed(() => {
-  const errorTypes = new Set<string>();
-
-  torrents.value.forEach((torrent) => {
-    if (isTorrentError(torrent)) {
-      const errorType = getErrorType(torrent.errorString);
-      errorTypes.add(errorType);
-    }
-  });
-
-  return Array.from(errorTypes)
-    .sort()
-    .map((type) => ({ label: type, value: type }));
-});
-
-const selectedIds = computed(() =>
-  selectedTorrents.value.map((torrent) => torrent.id)
-);
+const selectedIds = selectedIdsState;
 const detailTrackerRows = computed(() => {
   if (!detailTorrent.value?.trackers?.length) return [];
   return detailTorrent.value.trackers.map((tracker, index) => {
@@ -2481,22 +2181,6 @@ watch(detailTorrent, () => {
   detailTreeInitialized.value = false;
 });
 
-watch([searchKeyword, statusFilter, trackerFilter, labelFilter], () => {
-  currentPage.value = 1;
-});
-
-watch(pageSize, () => {
-  currentPage.value = 1;
-});
-
-const debouncedSearch = debounce((value: string) => {
-  debouncedSearchKeyword.value = value;
-  currentPage.value = 1;
-}, 300);
-watch(searchKeyword, (val) => {
-  debouncedSearch(val);
-});
-
 const isScrolling = ref(false);
 let scrollStopTimer: number | null = null;
 const handleGlobalScroll = () => {
@@ -2512,16 +2196,6 @@ const handleGlobalScroll = () => {
 watch(isMobile, (mobile) => {
   showMobileFilters.value = !mobile;
 });
-
-watch(
-  () => displayedTorrents.value.length,
-  (total) => {
-    const maxPage = Math.max(1, Math.ceil(total / pageSize.value) || 1);
-    if (currentPage.value > maxPage) {
-      currentPage.value = maxPage;
-    }
-  }
-);
 
 watch(showLocationDialog, (visible) => {
   if (!visible) {
@@ -2568,84 +2242,6 @@ watch(limitDialogVisible, (visible) => {
   }
 });
 
-const handleSortChange = ({
-  prop,
-  order,
-}: {
-  column: any;
-  prop: string;
-  order: SortOrder;
-}) => {
-  sortState.value = {
-    prop: prop || "",
-    order: order || null,
-  };
-};
-
-/*
-const handleSelectionChange = (selection: Torrent[]) => {
-  selectedTorrents.value = selection;
-  if (suppressSelectionChange.value) {
-    return;
-  }
-  selectedIdsState.value = selection.map((torrent) => torrent.id);
-};
-*/
-
-const handleRowClick = (row: Torrent, _column: any, event: MouseEvent) => {
-  if (!tableRef.value) return;
-
-  // 获取当前行在分页数据中的索引
-  const clickedIndex = paginatedTorrents.value.findIndex(
-    (t) => t.id === row.id
-  );
-  if (clickedIndex === -1) return;
-
-  // 判断是否在选中状态
-  const isSelected = selectedTorrents.value.some((t) => t.id === row.id);
-
-  if (event.ctrlKey || event.metaKey) {
-    // Ctrl/Cmd + 点击：切换选中状态
-    if (isSelected) {
-      tableRef.value.toggleRowSelection(row, false);
-    } else {
-      tableRef.value.toggleRowSelection(row, true);
-    }
-    lastClickedIndex.value = clickedIndex;
-  } else if (event.shiftKey) {
-    // Shift + 点击：范围选择
-    if (
-      lastClickedIndex.value >= 0 &&
-      lastClickedIndex.value < paginatedTorrents.value.length
-    ) {
-      // 清除当前所有选中
-      tableRef.value.clearSelection();
-
-      // 计算范围
-      const start = Math.min(lastClickedIndex.value, clickedIndex);
-      const end = Math.max(lastClickedIndex.value, clickedIndex);
-
-      // 选中范围内的所有行
-      for (let i = start; i <= end; i++) {
-        tableRef.value.toggleRowSelection(paginatedTorrents.value[i], true);
-      }
-    } else {
-      // 如果没有上次点击记录，只选中当前行
-      tableRef.value.clearSelection();
-      tableRef.value.toggleRowSelection(row, true);
-      lastClickedIndex.value = clickedIndex;
-    }
-  } else {
-    // 普通点击：切换当前行的选中状态
-    if (isSelected) {
-      tableRef.value.toggleRowSelection(row, false);
-    } else {
-      tableRef.value.toggleRowSelection(row, true);
-    }
-    lastClickedIndex.value = clickedIndex;
-  }
-};
-
 const handleRowContextMenu = (
   row: Torrent,
   _column: any,
@@ -2657,7 +2253,7 @@ const handleRowContextMenu = (
   contextMenuSelectedText.value = window.getSelection()?.toString() || "";
 
   // 判断右键的种子是否在已选择列表中
-  const isRowSelected = selectedTorrents.value.some((t) => t.id === row.id);
+  const isRowSelected = isTorrentSelected(row.id);
 
   // 如果右键的种子在选中列表中，使用所有选中的种子；否则只使用当前右键的种子
   if (isRowSelected && selectedTorrents.value.length > 0) {
@@ -2699,13 +2295,8 @@ const handleKeydown = (event: KeyboardEvent) => {
     event.preventDefault();
 
     // 全选当前页的所有行
-    if (tableRef.value && paginatedTorrents.value.length > 0) {
-      tableRef.value.clearSelection();
-      paginatedTorrents.value.forEach((torrent) => {
-        tableRef.value?.toggleRowSelection(torrent, true);
-      });
-      // 更新最后点击索引为最后一行
-      lastClickedIndex.value = paginatedTorrents.value.length - 1;
+    if (paginatedTorrents.value.length > 0) {
+      selectCurrentPage();
     }
   }
 };
@@ -2718,10 +2309,7 @@ const hideContextMenu = () => {
 };
 
 const clearTorrentSelection = () => {
-  selectedIdsState.value = [];
-  selectedTorrents.value = [];
-  lastClickedIndex.value = -1;
-  tableRef.value?.clearSelection?.();
+  clearSelection();
   hideContextMenu();
 };
 
@@ -2767,22 +2355,17 @@ const adjustContextMenuPosition = () => {
 
 const handleColumnResize = (
   newWidth: number,
-  _oldWidth: number,
-  column: TableColumnCtx<Torrent>
+  key: string | undefined,
+  minWidth: number | undefined
 ) => {
-  const key = column.columnKey as string | undefined;
   if (!key || key === "selection") return;
-  const minWidth = Number(column.minWidth) || 80;
-  const normalizedWidth = Math.max(minWidth, Math.round(newWidth));
+  const normalizedWidth = Math.max(Number(minWidth) || 80, Math.round(newWidth));
   if (columnWidths.value[key] === normalizedWidth) return;
   columnWidths.value = {
     ...columnWidths.value,
     [key]: normalizedWidth,
   };
   persistColumnWidths();
-  nextTick(() => {
-    tableRef.value?.doLayout?.();
-  });
 };
 
 const resetColumnWidths = () => {
@@ -2798,121 +2381,116 @@ const resetColumnWidths = () => {
       columnWidths.value = { ...defaultColumnWidths };
       window.localStorage.removeItem(COLUMN_WIDTH_STORAGE_KEY);
       
-      // 重置列顺序
-      columnOrder.value = [...defaultColumnOrder];
-      window.localStorage.removeItem(COLUMN_ORDER_STORAGE_KEY);
-
       // 重置列显示
-      visibleColumnKeys.value = [...defaultColumnOrder];
+      visibleColumnKeys.value = [...defaultColumnKeys];
       window.localStorage.removeItem(COLUMN_VISIBILITY_STORAGE_KEY);
       
       ElMessage({
         type: 'success',
         message: t('common.success'),
       });
-      nextTick(() => {
-        tableRef.value?.doLayout?.();
-      });
     })
     .catch(() => {});
 };
 
-// 加载种子列表
-const loadTorrents = async (
-  options: { silent?: boolean; forceFull?: boolean } = {}
-) => {
-  if (!options.silent) {
-    loading.value = true;
-  }
-  try {
-    if (options.silent && isTransmission && !options.forceFull) {
-      if (!torrents.value.length) {
-        const full = await api.getTorrents();
-        torrents.value = full.torrents;
-        nameLowerCache.clear();
-        defaultTrackerCache.clear();
-        full.torrents.forEach((t) => {
-          nameLowerCache.set(t.id, (t.name || "").toLowerCase());
-          defaultTrackerCache.set(t.id, getDefaultTracker(t));
-        });
-      } else {
-        const inc = await api.getTorrents(undefined, { ids: "recently-active" });
-        const removed = inc.removed || [];
-        if (removed.length) {
-          const removeSet = new Set(removed);
-          torrents.value = torrents.value.filter((t) => !removeSet.has(t.id));
-          selectedIdsState.value = selectedIdsState.value.filter((id) => !removeSet.has(id));
-          selectedTorrents.value = selectedTorrents.value.filter((t) => !removeSet.has(t.id));
-        }
-        const map = new Map<number, Torrent>();
-        torrents.value.forEach((t) => map.set(t.id, t));
-        inc.torrents.forEach((u) => {
-          const cur = map.get(u.id);
-          if (cur) {
-            Object.assign(cur, u);
-          } else {
-            torrents.value.push(u);
-          }
-          nameLowerCache.set(u.id, (u.name || "").toLowerCase());
-          defaultTrackerCache.set(u.id, getDefaultTracker(u));
-        });
-      }
+type TorrentLoadMode = "full" | "incremental";
+interface TorrentLoadOptions {
+  silent?: boolean;
+  forceFull?: boolean;
+}
+
+const performLoadTorrents = async (mode: TorrentLoadMode): Promise<void> => {
+  if (mode === "incremental") {
+    if (!torrents.value.length) {
+      const full = await api.getTorrents();
+      torrents.value = full.torrents;
+      rebuildTorrentIndexes(full.torrents);
     } else {
-      const result = await api.getTorrents();
-      torrents.value = result.torrents;
-      nameLowerCache.clear();
-      defaultTrackerCache.clear();
-      result.torrents.forEach((t) => {
-        nameLowerCache.set(t.id, (t.name || "").toLowerCase());
-        defaultTrackerCache.set(t.id, getDefaultTracker(t));
-      });
+      const inc = await api.getTorrents(undefined, { ids: "recently-active" });
+      const removed = inc.removed || [];
+      const removedSet = new Set(removed);
+      if (removedSet.size) {
+        removeFromSelection(removedSet);
+        removeTorrentIndexes(removedSet);
+      }
+
+      if (removedSet.size || inc.torrents.length) {
+        const updates = new Map(
+          inc.torrents.map((torrent) => [torrent.id, torrent])
+        );
+        const nextTorrents: Torrent[] = [];
+        for (const current of torrents.value) {
+          if (removedSet.has(current.id)) continue;
+          const update = updates.get(current.id);
+          nextTorrents.push(update ? { ...current, ...update } : current);
+          updates.delete(current.id);
+        }
+        nextTorrents.push(...updates.values());
+        torrents.value = nextTorrents;
+      }
+      updateTorrentIndexes(inc.torrents);
     }
-    // Update the torrents in system status store
-    systemStatusStore.setTorrents([...torrents.value]);
-    
-    // 检查状态变化并发送通知
-    checkTorrentStatusChanges();
-    
-    restoreSelection();
-    syncContextMenuTorrent();
-    lastFetchedAt.value = dayjs().format("YYYY-MM-DD HH:mm:ss");
-  } catch (error: any) {
-    ElMessage.error(`${t('torrent.message.loadFailed')}: ${error.message}`);
-  } finally {
+  } else {
+    const result = await api.getTorrents();
+    torrents.value = result.torrents;
+    rebuildTorrentIndexes(result.torrents);
+  }
+
+  systemStatusStore.setTorrents(torrents.value);
+  checkTorrentStatusChanges();
+  reconcileSelection();
+  syncContextMenuTorrent();
+  lastFetchedAt.value = dayjs().format("YYYY-MM-DD HH:mm:ss");
+};
+
+const fullTorrentLoader = new SingleFlightExecutor<void>();
+const incrementalTorrentLoader = new SingleFlightExecutor<void>();
+const torrentUpdateQueue = new SerialExecutor();
+const loadTorrents = async (
+  options: TorrentLoadOptions = {}
+): Promise<boolean> => {
+  const mode: TorrentLoadMode =
+    options.silent && isTransmission && !options.forceFull
+      ? "incremental"
+      : "full";
+  const loader = mode === "incremental" ? incrementalTorrentLoader : fullTorrentLoader;
+
+  if (!options.silent) loading.value = true;
+  try {
+    await loader.run(() =>
+      torrentUpdateQueue.run(() => performLoadTorrents(mode))
+    );
+    return true;
+  } catch (error: unknown) {
     if (!options.silent) {
-      loading.value = false;
+      const message = error instanceof Error ? error.message : String(error);
+      ElMessage.error(`${t('torrent.message.loadFailed')}: ${message}`);
     }
+    return false;
+  } finally {
+    if (!options.silent) loading.value = false;
   }
 };
 
-const restoreSelection = () => {
-  if (!tableRef.value) return;
-  const idsToRestore = [...selectedIdsState.value];
-  suppressSelectionChange.value = true;
-  nextTick(() => {
-    const table = tableRef.value;
-    if (!table) {
-      suppressSelectionChange.value = false;
-      return;
-    }
-    table.clearSelection();
-    if (!idsToRestore.length) {
-      selectedTorrents.value = [];
-      suppressSelectionChange.value = false;
-      return;
-    }
-    const idSet = new Set(idsToRestore);
-    const rowsToSelect = paginatedTorrents.value.filter((torrent) =>
-      idSet.has(torrent.id)
-    );
-    rowsToSelect.forEach((torrent) => {
-      table.toggleRowSelection(torrent, true);
-    });
-    selectedTorrents.value = rowsToSelect;
-    selectedIdsState.value = rowsToSelect.map((torrent) => torrent.id);
-    suppressSelectionChange.value = false;
-  });
+const handleManualRefresh = async () => {
+  clearTorrentSelection();
+  try {
+    await loadTorrents();
+  } finally {
+    clearTorrentSelection();
+  }
 };
+
+const torrentPoller = new AdaptivePoller(
+  () => loadTorrents({ silent: true }),
+  {
+    intervalMs: REFRESH_INTERVAL,
+    maxIntervalMs: 30_000,
+    shouldRun: () =>
+      !isScrolling.value &&
+      (typeof document === "undefined" || document.visibilityState !== "hidden"),
+  }
+);
 
 const syncContextMenuTorrent = () => {
   if (!contextMenu.value.visible || !contextMenu.value.torrent) return;
@@ -2927,11 +2505,10 @@ const syncContextMenuTorrent = () => {
 
 // 检查种子状态变化并发送通知
 const checkTorrentStatusChanges = () => {
-  const currentTorrents = new Map<number, Torrent>();
+  const generation = ++torrentStateGeneration;
   
   torrents.value.forEach((torrent) => {
-    currentTorrents.set(torrent.id, torrent);
-    const prev = previousTorrents.value.get(torrent.id);
+    const prev = previousTorrentStates.get(torrent.id);
     
     if (prev) {
       // 检查是否下载完成（从非完成状态变为完成状态）
@@ -2951,10 +2528,27 @@ const checkTorrentStatusChanges = () => {
         notifyCheckCompleted(torrent.name);
       }
     }
+
+    if (prev) {
+      prev.status = torrent.status;
+      prev.percentDone = torrent.percentDone;
+      prev.recheckProgress = torrent.recheckProgress;
+      prev.error = torrent.error;
+      prev.generation = generation;
+    } else {
+      previousTorrentStates.set(torrent.id, {
+        status: torrent.status,
+        percentDone: torrent.percentDone,
+        recheckProgress: torrent.recheckProgress,
+        error: torrent.error,
+        generation,
+      });
+    }
   });
-  
-  // 更新之前的种子状态
-  previousTorrents.value = currentTorrents;
+
+  for (const [id, snapshot] of previousTorrentStates) {
+    if (snapshot.generation !== generation) previousTorrentStates.delete(id);
+  }
 };
 
 const openRemoveDialog = (ids: number[], message: string) => {
@@ -2998,24 +2592,15 @@ const handleForegroundRefresh = () => {
     clearTimeout(scrollStopTimer as any);
     scrollStopTimer = null;
   }
-  loadTorrents({ silent: true, forceFull: true });
+  void loadTorrents({ silent: true, forceFull: true });
 };
 
 const startAutoRefresh = () => {
-  stopAutoRefresh();
-  refreshTimer = window.setInterval(() => {
-    if (isScrolling.value) return;
-    if (typeof document !== "undefined" && document.visibilityState === "hidden")
-      return;
-    loadTorrents({ silent: true });
-  }, REFRESH_INTERVAL);
+  torrentPoller.start(false);
 };
 
 const stopAutoRefresh = () => {
-  if (refreshTimer) {
-    window.clearInterval(refreshTimer);
-    refreshTimer = undefined;
-  }
+  torrentPoller.stop();
 };
 
 const startSelected = async () => {
@@ -4085,1121 +3670,82 @@ const formatCommentWithLinks = (comment: string): string => {
   });
 };
 
-// 初始化表格列头拖拽排序
-// let sortableInstance: Sortable | null = null;
-
-const initColumnDragSort = () => {
-  // TableV2暂不支持SortableJS拖拽排序
-  return;
-};
-
-// Table V2 Logic
-
-const isAllSelected = computed(() => {
-  return (
-    paginatedTorrents.value.length > 0 &&
-    selectedIdsState.value.length === paginatedTorrents.value.length &&
-    paginatedTorrents.value.every((t) => selectedIdsState.value.includes(t.id))
-  );
+const {
+  columns: tableV2Columns,
+  sortBy: v2SortState,
+  handleSort: handleV2Sort,
+  handleResize: handleColumnResizeV2,
+  rowEventHandlers: v2RowEventHandlers,
+  rowClassName: v2RowClassName,
+} = useTorrentTable({
+  visibleColumns,
+  compact: isCompactTable,
+  sortState,
+  selectedIds: selectedIdsState,
+  allSelected: isAllSelected,
+  indeterminate: isIndeterminate,
+  isSelected: isTorrentSelected,
+  togglePage: togglePageSelection,
+  toggleRow: toggleTorrentSelection,
+  handleRowClick: updateSelectionFromRowClick,
+  handleRowDoubleClick,
+  handleRowContextMenu: (torrent, event) =>
+    handleRowContextMenu(torrent, null, event),
+  getColumnWidth,
+  resizeColumn: handleColumnResize,
+  getStatusType,
+  getStatusText,
+  isTorrentError,
+  getProgress: getTorrentProgress,
+  getProgressTooltip,
+  getRatioClass,
+  formatRatio,
+  formatSpeedLimit: formatSpeedLimitText,
+  openSpeedLimit: openSingleLimitDialog,
+  getDefaultTracker,
+  getSeeders,
+  getLeechers,
+  formatDate: formatTorrentDate,
+  formatLastActivity,
+  unknownErrorText: () => t('torrent.unknownError'),
 });
-
-const isIndeterminate = computed(() => {
-  const selectedCount = paginatedTorrents.value.filter((t) =>
-    selectedIdsState.value.includes(t.id)
-  ).length;
-  return selectedCount > 0 && selectedCount < paginatedTorrents.value.length;
-});
-
-const toggleAllSelection = (val: CheckboxValueType) => {
-  if (!!val) {
-    const ids = paginatedTorrents.value.map((t) => t.id);
-    const newSelected = [...selectedIdsState.value];
-    ids.forEach((id) => {
-      if (!newSelected.includes(id)) {
-        newSelected.push(id);
-      }
-    });
-    selectedIdsState.value = newSelected;
-    selectedTorrents.value = torrents.value.filter((t) =>
-      newSelected.includes(t.id)
-    );
-  } else {
-    const ids = paginatedTorrents.value.map((t) => t.id);
-    const newSelected = selectedIdsState.value.filter(
-      (id) => !ids.includes(id)
-    );
-    selectedIdsState.value = newSelected;
-    selectedTorrents.value = torrents.value.filter((t) =>
-      newSelected.includes(t.id)
-    );
-  }
-};
-
-const toggleRowSelection = (row: Torrent, val: CheckboxValueType) => {
-  if (!!val) {
-    if (!selectedIdsState.value.includes(row.id)) {
-      selectedIdsState.value = [...selectedIdsState.value, row.id];
-    }
-  } else {
-    selectedIdsState.value = selectedIdsState.value.filter(
-      (id) => id !== row.id
-    );
-  }
-  selectedTorrents.value = torrents.value.filter((t) =>
-    selectedIdsState.value.includes(t.id)
-  );
-};
-
-const v2SortState = computed(() => {
-  if (!sortState.value.order) return undefined;
-  return {
-    key: sortState.value.prop,
-    order: sortState.value.order === "ascending" ? "asc" : "desc",
-  } as any;
-});
-
-const handleV2Sort = ({ key, order }: { key: any; order: any }) => {
-  handleSortChange({
-    column: null,
-    prop: key,
-    order: order === "asc" ? "ascending" : "descending",
-  });
-};
-
-const handleColumnResizeV2 = ({
-  column,
-  width,
-}: {
-  column: any;
-  width: number;
-}) => {
-  handleColumnResize(width, 0, {
-    columnKey: column.key,
-    minWidth: column.minWidth,
-  } as any);
-};
-
-const v2RowEventHandlers = {
-  onClick: ({ rowData, event }: { rowData: Torrent; event: Event }) => {
-    handleRowClick(rowData, null, event as MouseEvent);
-  },
-  onDblclick: ({ rowData }: { rowData: Torrent }) => {
-    handleRowDoubleClick(rowData);
-  },
-  onContextmenu: ({
-    rowData,
-    event,
-  }: {
-    rowData: Torrent;
-    event: Event;
-  }) => {
-    handleRowContextMenu(rowData, null, event as MouseEvent);
-  },
-};
-
-const v2RowClassName = ({ rowData, rowIndex }: { rowData: Torrent; rowIndex: number }) => {
-  const classes = [];
-  if (rowIndex % 2 === 1) {
-    classes.push("el-table-v2__row--striped");
-  }
-  if (selectedIdsState.value.includes(rowData.id)) {
-    classes.push("current-row");
-  }
-  return classes.join(" ");
-};
-
-const onColumnResizeMouseDown = (e: MouseEvent, column: any) => {
-  e.preventDefault();
-  e.stopPropagation();
-
-  const startX = e.clientX;
-  const startWidth = column.width || 80;
-
-  const onMouseMove = (e: MouseEvent) => {
-    requestAnimationFrame(() => {
-      const diff = e.clientX - startX;
-      const newWidth = Math.max(column.minWidth || 50, startWidth + diff);
-      
-      handleColumnResizeV2({
-        column,
-        width: newWidth
-      });
-    });
-  };
-
-  const onMouseUp = () => {
-    document.removeEventListener('mousemove', onMouseMove);
-    document.removeEventListener('mouseup', onMouseUp);
-    document.body.style.cursor = '';
-  };
-
-  document.addEventListener('mousemove', onMouseMove);
-  document.addEventListener('mouseup', onMouseUp);
-  document.body.style.cursor = 'col-resize';
-};
-
-const tableV2Columns = computed<Column<Torrent>[]>(() => {
-  const selectionCol: Column<Torrent> = {
-    key: "selection",
-    width: 48,
-    fixed: true,
-    align: "center",
-    headerCellRenderer: () => {
-      return h(ElCheckbox, {
-        modelValue: isAllSelected.value,
-        indeterminate: isIndeterminate.value,
-        "onUpdate:modelValue": toggleAllSelection,
-      });
-    },
-    cellRenderer: ({ rowData }) => {
-      return h(ElCheckbox, {
-        modelValue: selectedIdsState.value.includes(rowData.id),
-        "onUpdate:modelValue": (val: CheckboxValueType) =>
-          toggleRowSelection(rowData, val),
-        onClick: (e: Event) => e.stopPropagation(),
-      });
-    },
-  };
-
-  const dynamicCols = orderedColumns.value.map((col) => {
-    const common: Column<Torrent> = {
-      key: col.key,
-      dataKey: col.key,
-      title: col.label,
-      width: getColumnWidth(col.key, col.defaultWidth),
-      sortable: col.sortable,
-      resizable: true,
-      minWidth: col.minWidth,
-      headerCellRenderer: (props: any) => {
-        return h('div', { 
-          class: 'el-table-v2__header-cell-text',
-          style: { height: '100%', display: 'flex', alignItems: 'center', width: '100%' } 
-        }, [
-          h('span', { style: { flex: '0 1 auto', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '4px' }, title: props.column.title }, props.column.title),
-          
-          props.column.sortable && h('span', { 
-            class: {
-              'el-table-v2__sort-icon': true,
-              'custom-sort-icon': true,
-              'is-sorted': props.sortBy?.key === props.column.key
-            },
-            style: { 
-              cursor: 'pointer', 
-              flexShrink: 0,
-              display: 'inline-flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              height: '14px',
-              width: '24px',
-              verticalAlign: 'middle',
-              overflow: 'initial',
-              position: 'relative'
-            }
-          }, [
-            h('i', {
-              class: {
-                'sort-caret': true,
-                'ascending': true,
-                'active': props.sortBy?.key === props.column.key && props.sortBy?.order === 'asc'
-              },
-              style: {
-                width: 0,
-                height: 0,
-                border: '5px solid transparent',
-                position: 'absolute',
-                left: '7px',
-                borderBottomColor: props.sortBy?.key === props.column.key && props.sortBy?.order === 'asc' ? '#409eff' : '#c0c4cc',
-                top: '-5px'
-              }
-            }),
-            h('i', {
-              class: {
-                'sort-caret': true,
-                'descending': true,
-                'active': props.sortBy?.key === props.column.key && props.sortBy?.order === 'desc'
-              },
-              style: {
-                width: 0,
-                height: 0,
-                border: '5px solid transparent',
-                position: 'absolute',
-                left: '7px',
-                borderTopColor: props.sortBy?.key === props.column.key && props.sortBy?.order === 'desc' ? '#409eff' : '#c0c4cc',
-                bottom: '-5px'
-              }
-            })
-          ]),
-
-          h('div', {
-            class: 'el-table-v2__column-resizer',
-            onMousedown: (e: MouseEvent) => onColumnResizeMouseDown(e, props.column),
-            onClick: (e: MouseEvent) => e.stopPropagation(),
-          })
-        ]);
-      }
-      // hidden: !col.showInCompact && isCompactTable.value // Logic handled in orderedColumns? No, orderedColumns only filters by columnOrder which contains all keys usually.
-      // Wait, orderedColumns logic in original code:
-      // <template v-for="column in orderedColumns">
-      //   <el-table-column v-if="..." ... />
-      // </template>
-      // The v-if conditions check showInCompact.
-    };
-    
-    // Filter out hidden columns based on compact mode
-    if (!col.showInCompact && isCompactTable.value) {
-      return null;
-    }
-
-    if (col.key === "name") {
-      common.cellRenderer = ({ rowData }) =>
-        h(
-          "span",
-          {
-            style: {
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              display: "block",
-              width: "100%",
-            },
-            title: rowData.name,
-          },
-          rowData.name
-        );
-    } else if (col.key === "status") {
-      common.cellRenderer = ({ rowData }) => {
-        const type = getStatusType(rowData) as any;
-        const text = getStatusText(rowData);
-        const isError = isTorrentError(rowData);
-        const tag = h(ElTag, { type }, () => text);
-        if (isError) {
-          return h(
-            ElTooltip,
-            { content: rowData.errorString || t('torrent.unknownError'), placement: "top" },
-            () => tag
-          );
-        }
-        return tag;
-      };
-    } else if (col.key === "percentDone") {
-      common.cellRenderer = ({ rowData }) => {
-        const progress = getTorrentProgress(rowData);
-        const percentage = Math.round(progress * 100);
-        const status = progress === 1 ? "success" : undefined;
-        const bar = h(ElProgress, { percentage, status });
-        const tooltipContent = getProgressTooltip(rowData);
-        return h(
-          ElTooltip,
-          {
-            content: tooltipContent,
-            disabled: progress === 1,
-            placement: "top",
-          },
-          () => bar
-        );
-      };
-    } else if (col.key === "totalSize") {
-      common.cellRenderer = ({ rowData }) => h("span", formatBytes(rowData.totalSize));
-    } else if (col.key === "uploadRatio") {
-      common.cellRenderer = ({ rowData }) => {
-        return h(
-          ElTag,
-          {
-            size: "small",
-            class: ["ratio-tag", getRatioClass(rowData.uploadRatio)],
-          },
-          () => formatRatio(rowData.uploadRatio)
-        );
-      };
-    } else if (col.key === "rateDownload") {
-      common.cellRenderer = ({ rowData }) => h("span", formatSpeed(rowData.rateDownload));
-    } else if (col.key === "rateUpload") {
-      common.cellRenderer = ({ rowData }) => h("span", formatSpeed(rowData.rateUpload));
-    } else if (col.key === "speedLimit") {
-      common.cellRenderer = ({ rowData }) => {
-        const info = formatSpeedLimitText(rowData);
-        const cell = h(
-          "span",
-          {
-            class: ["limit-cell", info.active ? "active" : ""],
-            title: info.active ? info.tooltip : undefined,
-            onClick: (e: Event) => {
-              e.stopPropagation();
-              openSingleLimitDialog(rowData);
-            },
-          },
-          info.text
-        );
-        if (!info.active) {
-          return cell;
-        }
-        return h(
-          ElTooltip,
-          { content: info.tooltip, placement: "top" },
-          () => cell
-        );
-      };
-    } else if (col.key === "defaultTracker") {
-      common.cellRenderer = ({ rowData }) => h("span", getDefaultTracker(rowData));
-    } else if (col.key === "peersDownloading") {
-      common.cellRenderer = ({ rowData }) => h("span", getSeeders(rowData));
-    } else if (col.key === "peersUploading") {
-      common.cellRenderer = ({ rowData }) => h("span", getLeechers(rowData));
-    } else if (col.key === "uploadedEver") {
-      common.cellRenderer = ({ rowData }) =>
-        h("span", formatBytes(rowData.uploadedEver || 0));
-    } else if (col.key === "downloadDir") {
-      common.cellRenderer = ({ rowData }) =>
-        h(
-          "span",
-          {
-            style: {
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              display: "block",
-              width: "100%",
-            },
-            title: rowData.downloadDir || "—",
-          },
-          rowData.downloadDir || "—"
-        );
-    } else if (col.key === "addedDate") {
-      common.cellRenderer = ({ rowData }) =>
-        h("span", formatTorrentDate(rowData.addedDate));
-    } else if (col.key === "activityDate") {
-      common.cellRenderer = ({ rowData }) =>
-        h("span", { title: formatTorrentDate(rowData.activityDate) }, formatLastActivity(rowData.activityDate));
-    } else if (col.key === "labels") {
-      common.cellRenderer = ({ rowData }) => {
-        if (!rowData.labels?.length) return h("span", "—");
-        return h(
-          "div",
-          { style: { display: "flex", flexWrap: "wrap", gap: "4px" } },
-          rowData.labels.map((label: string) => {
-            const display = label.startsWith("category:")
-              ? label.slice("category:".length)
-              : label;
-            return h(ElTag, { size: "small", class: "label-tag" }, () => display);
-          })
-        );
-      };
-    } else if (col.key === "category") {
-      common.cellRenderer = ({ rowData }) =>
-        h("span", rowData.category || "—");
-    }
-
-    return common;
-  });
-
-  return [selectionCol, ...dynamicCols.filter(Boolean)] as Column<Torrent>[];
-});
-
 onMounted(() => {
   // 首先从 URL 恢复过滤状态
   syncFiltersFromUrl();
 
   loadColumnWidths();
-  loadColumnOrder();
   loadColumnVisibility();
   loadTorrents();
   startAutoRefresh();
   window.addEventListener("click", hideContextMenu);
-  window.addEventListener("scroll", hideContextMenu, true);
-  window.addEventListener("scroll", handleGlobalScroll, true);
+  window.addEventListener("scroll", hideContextMenu, {
+    capture: true,
+    passive: true,
+  });
+  window.addEventListener("scroll", handleGlobalScroll, {
+    capture: true,
+    passive: true,
+  });
   window.addEventListener("focus", handleForegroundRefresh);
   document.addEventListener("visibilitychange", handleForegroundRefresh);
   window.addEventListener("keydown", handleKeydown);
 
-  // 延迟初始化列头拖拽排序，确保表格完全渲染
-  setTimeout(() => {
-    initColumnDragSort();
-  }, 500);
 });
 
 onBeforeUnmount(() => {
+  releaseTorrentSource();
   stopAutoRefresh();
+  if (scrollStopTimer) {
+    window.clearTimeout(scrollStopTimer);
+    scrollStopTimer = null;
+  }
   window.removeEventListener("click", hideContextMenu);
   window.removeEventListener("scroll", hideContextMenu, true);
   window.removeEventListener("scroll", handleGlobalScroll, true);
   window.removeEventListener("focus", handleForegroundRefresh);
   document.removeEventListener("visibilitychange", handleForegroundRefresh);
   window.removeEventListener("keydown", handleKeydown);
-
-  // 清理拖拽实例
-  // if (sortableInstance) {
-  //   sortableInstance.destroy();
-  //   sortableInstance = null;
-  // }
 });
 </script>
 
-<style scoped>
-.home-view {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.column-toggle-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-height: 50vh;
-  overflow-y: auto;
-  padding: 0 10px 10px;
-}
-
-.column-toggle-item {
-  margin-bottom: 4px;
-}
-
-.toolbar {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.actions-group {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  flex: 1 1 auto;
-}
-
-.filter-toggle {
-  align-self: flex-start;
-  flex: 0 0 auto;
-}
-
-.filter-submenu {
-  margin-top: 12px;
-  padding: 12px;
-  background-color: #f5f7fa;
-  border: 1px solid #ebeef5;
-  border-radius: 6px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-}
-
-.submenu-section {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.filter-controls {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.filter-select {
-  width: 200px;
-}
-
-.filter-select :deep(.el-select-dropdown) {
-  max-height: 300px;
-}
-
-.filter-select :deep(.el-select-dropdown__list) {
-  max-height: 280px;
-}
-
-.filter-input {
-  width: 240px;
-}
-
-.filter-submenu.is-mobile {
-  width: 100%;
-}
-
-.filter-submenu.is-mobile .filter-controls {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
-}
-
-.filter-submenu.is-mobile .filter-select,
-.filter-submenu.is-mobile .filter-input {
-  width: 100%;
-}
-
-.update-info {
-  margin-left: auto;
-  color: #909399;
-  font-size: 13px;
-}
-
-.label-tag {
-  margin-right: 4px;
-  margin-bottom: 4px;
-}
-
-.limit-cell {
-  cursor: pointer;
-  user-select: none;
-  font-variant-numeric: tabular-nums;
-  color: #909399;
-}
-
-.limit-cell.active {
-  color: #606266;
-}
-
-.limit-cell:hover {
-  color: #409eff;
-}
-
-.context-menu {
-  position: fixed;
-  background-color: #fff;
-  border: 1px solid #ebeef5;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-  padding: 8px 0;
-  z-index: 2000;
-  min-width: 120px;
-}
-
-.context-menu-header {
-  padding: 6px 16px;
-  font-size: 12px;
-  color: #909399;
-  border-bottom: 1px solid #ebeef5;
-  margin-bottom: 4px;
-}
-
-.context-menu button {
-  display: block;
-  width: 100%;
-  padding: 6px 16px;
-  text-align: left;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.context-menu button:hover {
-  background-color: #f5f7fa;
-}
-
-.context-menu button.danger {
-  color: #f56c6c;
-}
-
-.context-menu-divider {
-  height: 1px;
-  background-color: #ebeef5;
-  margin: 4px 0;
-}
-
-.table-container {
-  flex: 1;
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.table-scroll {
-  flex: 1;
-  overflow: hidden;
-  border-radius: 6px;
-  background: #fff;
-  display: flex;
-  flex-direction: column;
-}
-
-.table-scroll :deep(.el-table) {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.table-scroll :deep(.el-table__inner-wrapper) {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.table-scroll :deep(.el-table__body-wrapper) {
-  flex: 1;
-  overflow-y: auto;
-}
-
-.table-scroll :deep(.el-table__row) {
-  height: 48px;
-}
-
-.table-scroll :deep(.el-table__cell) {
-  padding: 8px 0;
-}
-
-.table-scroll :deep(.el-table .cell) {
-  padding-left: 8px;
-  padding-right: 8px;
-  line-height: 1.4;
-}
-
-.table-scroll :deep(.el-progress) {
-  width: 100%;
-}
-
-.table-scroll :deep(.el-progress__text) {
-  min-width: 36px;
-  font-size: 12px !important;
-}
-
-.pagination {
-  margin-top: 16px;
-  display: flex;
-  justify-content: flex-end;
-  width: 100%;
-  max-width: 100%;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
-.pagination :deep(.el-pagination) {
-  width: 100%;
-  max-width: 100%;
-  justify-content: flex-end;
-  flex-wrap: nowrap;
-  white-space: nowrap;
-}
-
-.pagination :deep(.el-pagination__sizes) {
-  margin-right: 8px;
-}
-
-.pagination :deep(.el-pagination__sizes .el-select) {
-  width: 110px;
-}
-
-.pagination :deep(.el-pagination__sizes .el-input__wrapper) {
-  padding-left: 8px;
-  padding-right: 8px;
-}
-
-.detail-dialog :deep(.el-dialog__body) {
-  padding: 0;
-  overflow: hidden;
-}
-
-.detail-tabs {
-  border: none;
-}
-
-.detail-tabs :deep(.el-tabs__header) {
-  margin: 0;
-  background-color: #f5f7fa;
-}
-
-.detail-tabs :deep(.el-tabs__content) {
-  padding: 16px;
-  max-height: 500px;
-  overflow-y: auto;
-}
-
-.detail-tabs :deep(.el-descriptions) {
-  margin: 0;
-}
-
-.detail-tabs :deep(.torrent-name-item .el-descriptions__cell-content) {
-  word-break: break-all;
-  white-space: normal;
-  line-height: 1.6;
-}
-
-.hash-value {
-  font-family: monospace;
-  font-size: 12px;
-  word-break: break-all;
-}
-
-.files-container {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.files-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background-color: #f5f7fa;
-  border-radius: 4px;
-  font-size: 13px;
-}
-
-.files-count {
-  color: #606266;
-  font-weight: 500;
-}
-
-.files-actions-buttons {
-  display: flex;
-  gap: 8px;
-}
-
-.files-tree {
-  border: 1px solid #ebeef5;
-  border-radius: 4px;
-  background: #fff;
-  padding: 6px 8px;
-  max-height: 400px;
-  overflow: auto;
-}
-.files-tree :deep(.el-tree-node__content) {
-  height: 32px;
-}
-.files-tree :deep(.el-tree-node__children) {
-  overflow: visible;
-}
-.file-node {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-}
-.file-icon {
-  color: #909399;
-}
-.file-name {
-  flex: 1;
-}
-.file-meta {
-  color: #909399;
-  font-size: 12px;
-}
-
-.limit-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.limit-switch {
-  flex-shrink: 0;
-  width: 50px;
-}
-
-.limit-input {
-  width: 120px;
-}
-
-.limit-unit-select {
-  width: 80px;
-}
-
-.limit-form .el-form-item {
-  margin-bottom: 16px;
-}
-
-.form-tip {
-  margin-top: 4px;
-  font-size: 12px;
-  color: #909399;
-}
-
-.form-tip-inline {
-  font-size: 12px;
-  color: #909399;
-  margin-left: 8px;
-}
-
-.dialog-subtitle {
-  margin: 0 0 12px;
-  font-size: 13px;
-  color: #909399;
-}
-
-.table-placeholder {
-  color: #909399;
-  font-size: 13px;
-  margin: 0 0 16px;
-}
-
-.dropdown-icon {
-  margin-left: 4px;
-}
-
-.ratio-tag {
-  border: none;
-  color: #fff;
-}
-
-.ratio-zero {
-  background-color: #909399;
-}
-
-.ratio-low {
-  background-color: #e6a23c;
-}
-
-.ratio-mid {
-  background-color: #67c23a;
-}
-
-.ratio-high {
-  background-color: #f56c6c;
-}
-
-.delete-message {
-  margin-bottom: 12px;
-  color: #606266;
-}
-
-.torrent-file-upload {
-  width: 100%;
-}
-
-.torrent-file-upload :deep(.el-upload-list) {
-  max-width: 100%;
-}
-
-.torrent-file-upload :deep(.el-upload-list__item) {
-  max-width: 100%;
-}
-
-.torrent-file-upload :deep(.el-upload-list__item-name) {
-  max-width: calc(100% - 80px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: inline-block;
-  vertical-align: middle;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: translateY(-6px);
-}
-
-@media (max-width: 1200px) {
-}
-
-@media (max-width: 1024px) {
-  .toolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .actions-group {
-    width: 100%;
-  }
-
-  .filter-submenu {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .filter-controls {
-    width: 100%;
-  }
-
-  .update-info {
-    margin-left: 0;
-    width: 100%;
-  }
-
-  .table-scroll {
-    border: 1px solid #ebeef5;
-  }
-}
-
-@media (max-width: 900px) {
-}
-
-@media (max-width: 768px) {
-  .home-view {
-    gap: 10px;
-  }
-
-  .actions-group {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  }
-
-  .actions-group :deep(.el-button) {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .filter-toggle {
-    width: 100%;
-  }
-
-  .table-container {
-    margin-top: 12px;
-  }
-
-  .pagination :deep(.el-pagination) {
-    column-gap: 4px;
-  }
-
-  .pagination :deep(.el-pagination__sizes .el-select) {
-    width: 110px;
-  }
-
-  .pagination :deep(.el-pagination__sizes .el-input__wrapper) {
-    padding-left: 6px;
-    padding-right: 6px;
-  }
-
-  .pagination :deep(.btn-prev),
-  .pagination :deep(.btn-next),
-  .pagination :deep(.el-pager li) {
-    min-width: 24px;
-  }
-
-  .pagination :deep(.el-pagination__total) {
-    display: none;
-  }
-
-  .detail-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .files-actions {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .files-actions-buttons {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-
-  .files-actions-buttons :deep(.el-button) {
-    flex: 1;
-  }
-}
-
-/* 批量修改标签对话框样式 */
-.current-labels-preview {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 8px;
-  background: var(--el-fill-color-light);
-  border-radius: 4px;
-  min-height: 40px;
-}
-
-.label-preview-tag {
-  margin: 0;
-}
-
-.no-labels-text {
-  color: var(--el-text-color-secondary);
-  font-size: 14px;
-}
-
-.form-tip {
-  margin-top: 4px;
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
-}
-
-/* 拖拽排序相关样式 */
-.table-scroll :deep(th) {
-  cursor: move;
-  cursor: grab;
-  user-select: none;
-}
-
-.table-scroll :deep(th:active) {
-  cursor: grabbing;
-}
-
-.table-scroll :deep(th.el-table-column--selection) {
-  cursor: default;
-}
-
-.table-scroll :deep(.sortable-ghost) {
-  opacity: 0.4;
-  background: #f0f9ff;
-}
-
-.table-scroll :deep(.sortable-chosen) {
-  background: #ecfdf5;
-}
-
-.table-scroll :deep(.sortable-drag) {
-  opacity: 0.8;
-  background: #dbeafe;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-/* Table V2 Custom Styles */
-.table-scroll :deep(.el-table-v2__row--striped) .el-table-v2__row-cell {
-  background-color: #fafafa;
-}
-.table-scroll :deep(.current-row) .el-table-v2__row-cell {
-  background-color: #ecf5ff !important;
-}
-.table-scroll :deep(.el-table-v2__header-cell) {
-  background-color: #f5f7fa;
-  color: #909399;
-  font-weight: 600;
-  border-right: 1px solid #ebeef5;
-  border-bottom: 1px solid #ebeef5;
-  overflow: visible;
-  position: relative;
-}
-/* Ensure the handle is positioned correctly */
-.table-scroll :deep(.el-table-v2__column-resizer) {
-  position: absolute;
-  right: -3px;
-  top: 0;
-  height: 100%;
-  width: 10px; /* wider touch area */
-  cursor: col-resize;
-  z-index: 10;
-  background-color: transparent; /* Invisible but clickable */
-}
-
-/* Hide default Element Plus TableV2 sort icon */
-.table-scroll :deep(.el-table-v2__header-cell .el-icon.el-table-v2__sort-icon) {
-  display: none !important;
-}
-
-.table-scroll :deep(.el-table-v2__row-cell) {
-  border-right: 1px solid #ebeef5;
-  border-bottom: 1px solid #ebeef5;
-  padding: 0 8px;
-  display: flex;
-  align-items: center;
-}
-.table-scroll :deep(.el-table-v2__left) {
-  border-right: 1px solid #ebeef5;
-  box-shadow: 2px 0 5px rgba(0,0,0,0.05);
-}
-
-/* Custom sort icon visibility control */
-.table-scroll :deep(.custom-sort-icon) {
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.table-scroll :deep(.el-table-v2__header-cell:hover .custom-sort-icon),
-.table-scroll :deep(.custom-sort-icon.is-sorted) {
-  opacity: 1;
-}
-</style>
+<style scoped src="./HomeView.css"></style>

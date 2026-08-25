@@ -37,7 +37,6 @@ const loadStore = (): SpeedLimitStrategyStore => {
 
     // 检查是否过期
     if (data.expiresAt && Date.now() > data.expiresAt) {
-      console.log('策略数据已过期，清除数据')
       localStorage.removeItem(STORAGE_KEY)
       return {
         strategies: [],
