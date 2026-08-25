@@ -1,13 +1,13 @@
-name: Snapshot Release
+name: Tag Release
+
 permissions:
-  contents: write  # 必需权限
-  packages: write  # Docker 镜像推送权限
+  contents: write
+  packages: write
 
 on:
   push:
     tags:
-      - 'v*'  # 只在推送 v 开头的 tag 时触发，如 v1.0.0
-  workflow_dispatch:    # 保留手动触发
+      - '*'
 
 jobs:
   build-and-release:
@@ -16,7 +16,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # 获取完整提交历史（[[0]](#__0) [[10]](#__10)）
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -29,17 +29,20 @@ jobs:
           version: 9
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
-      - name: Extract package version
-        id: package-version
+      - name: Validate release version
+        id: release-version
+        shell: bash
         run: |
-          VERSION=$(jq -r .version package.json)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Get short commit SHA
-        id: commit-id
-        run: echo "short_sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$TAG_VERSION" != "$PACKAGE_VERSION" ]; then
+            echo "Tag version ($GITHUB_REF_NAME) does not match package.json ($PACKAGE_VERSION)" >&2
+            exit 1
+          fi
+          echo "version=$PACKAGE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
 
       - name: Build Transmission version
         run: pnpm run build:transmission
@@ -47,53 +50,34 @@ jobs:
       - name: Build qBittorrent version
         run: pnpm run build:qbittorrent
 
-      - name: Compress files to ZIP
+      - name: Compress release files
+        shell: bash
         run: |
-          # 压缩 Transmission 版本
-          cd dist-transmission
-          zip -r ../bitcake-${{ steps.package-version.outputs.version }}-transmission.zip .
-          cd ..
+          VERSION="${{ steps.release-version.outputs.version }}"
+          (cd dist-transmission && zip -r "../bitcake-${VERSION}-transmission.zip" .)
+          (cd dist-qbittorrent/public && zip -r "../../bitcake-${VERSION}-qbittorrent.zip" .)
 
-          # 压缩 qBittorrent 版本 (在 public 子目录中)
-          cd dist-qbittorrent
-          zip -r ../bitcake-${{ steps.package-version.outputs.version }}-qbittorrent.zip .
-          cd ..
-
-          # 输出文件路径供后续步骤使用
-          echo "TRANSMISSION_ZIP=$(pwd)/bitcake-${{ steps.package-version.outputs.version }}-transmission.zip" >> $GITHUB_ENV
-          echo "QBITTORRENT_ZIP=$(pwd)/bitcake-${{ steps.package-version.outputs.version }}-qbittorrent.zip" >> $GITHUB_ENV
-
-      - name: Determine Release Version
-        id: version-clean
-        run: |
-          # 始终使用 package.json 中的版本号
-          VERSION=${{ steps.package-version.outputs.version }}
-          echo "clean_version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag_name=v$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Create Snapshot Release
-        uses: softprops/action-gh-release@v1
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version-clean.outputs.tag_name }}
-          name: ${{ steps.version-clean.outputs.clean_version }}
+          tag_name: ${{ steps.release-version.outputs.tag }}
+          name: ${{ steps.release-version.outputs.version }}
           body: |
-            Automated snapshot build from commit ${{ github.sha }}
+            Automated build from tag `${{ steps.release-version.outputs.tag }}` and commit `${{ github.sha }}`.
 
             ## 📦 Build Artifacts
-            - `bitcake-${{ steps.package-version.outputs.version }}-transmission.zip` - Transmission 客户端版本
-            - `bitcake-${{ steps.package-version.outputs.version }}-qbittorrent.zip` - qBittorrent 客户端版本
+            - `bitcake-${{ steps.release-version.outputs.version }}-transmission.zip` - Transmission 客户端版本
+            - `bitcake-${{ steps.release-version.outputs.version }}-qbittorrent.zip` - qBittorrent 客户端版本
 
             ## 🐳 Docker Image
             ```bash
-            docker pull ghcr.io/${{ github.repository_owner }}/bitcake:${{ steps.version-clean.outputs.clean_version }}
+            docker pull ghcr.io/${{ github.repository_owner }}/bitcake:${{ steps.release-version.outputs.version }}
             docker pull ghcr.io/${{ github.repository_owner }}/bitcake:latest
             ```
           prerelease: false
           files: |
-            ${{ env.TRANSMISSION_ZIP }}
-            ${{ env.QBITTORRENT_ZIP }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            bitcake-${{ steps.release-version.outputs.version }}-transmission.zip
+            bitcake-${{ steps.release-version.outputs.version }}-qbittorrent.zip
 
       # Docker 镜像构建和推送
       - name: Set up QEMU
@@ -115,11 +99,11 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/bitcake
           tags: |
-            type=raw,value=${{ steps.version-clean.outputs.clean_version }}
+            type=raw,value=${{ steps.release-version.outputs.version }}
             type=raw,value=latest
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64
