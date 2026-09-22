@@ -8,6 +8,8 @@ export interface NotificationState {
   supported: boolean;
 }
 
+export const NOTIFICATION_STORAGE_KEY = 'desktop_notification_enabled';
+
 const notificationState = ref<NotificationState>({
   enabled: false,
   offline: false,
@@ -33,18 +35,46 @@ export function useNotifications() {
       return;
     }
     notificationState.value.supported = true;
-    notificationState.value.enabled = Notification.permission === 'granted';
+    const userPref = localStorage.getItem(NOTIFICATION_STORAGE_KEY);
+    const hasPermission = Notification.permission === 'granted';
+    notificationState.value.enabled = hasPermission && userPref !== 'false';
   };
 
   // 启用通知
   const enableNotifications = async (): Promise<boolean> => {
+    if (!isNotificationSupported()) {
+      return false;
+    }
     const granted = await requestNotificationPermission();
-    notificationState.value.enabled = granted;
-    return granted;
+    if (granted) {
+      localStorage.setItem(NOTIFICATION_STORAGE_KEY, 'true');
+      notificationState.value.enabled = true;
+      return true;
+    } else {
+      localStorage.setItem(NOTIFICATION_STORAGE_KEY, 'false');
+      notificationState.value.enabled = false;
+      return false;
+    }
+  };
+
+  // 关闭通知
+  const disableNotifications = (): void => {
+    localStorage.setItem(NOTIFICATION_STORAGE_KEY, 'false');
+    notificationState.value.enabled = false;
+  };
+
+  // 切换通知状态
+  const toggleNotifications = async (): Promise<boolean> => {
+    if (notificationState.value.enabled) {
+      disableNotifications();
+      return false;
+    }
+    return await enableNotifications();
   };
 
   // 显示种子完成通知
   const notifyTorrentCompleted = (torrentName: string) => {
+    if (!notificationState.value.enabled) return;
     const taskId = `completed:${torrentName}`;
     if (notifiedTasks.has(taskId)) return;
     notifiedTasks.add(taskId);
@@ -61,6 +91,7 @@ export function useNotifications() {
 
   // 显示种子出错通知
   const notifyTorrentError = (torrentName: string, errorMessage: string) => {
+    if (!notificationState.value.enabled) return;
     const taskId = `error:${torrentName}`;
     if (notifiedTasks.has(taskId)) return;
     notifiedTasks.add(taskId);
@@ -77,6 +108,7 @@ export function useNotifications() {
 
   // 显示校验完成通知
   const notifyCheckCompleted = (torrentName: string) => {
+    if (!notificationState.value.enabled) return;
     const taskId = `check:${torrentName}`;
     if (notifiedTasks.has(taskId)) return;
     notifiedTasks.add(taskId);
@@ -95,6 +127,8 @@ export function useNotifications() {
   const notifyConnectionStatus = (online: boolean) => {
     const wasOffline = notificationState.value.offline;
     notificationState.value.offline = !online;
+
+    if (!notificationState.value.enabled) return;
 
     // 只在状态变化时通知
     if (wasOffline && online) {
@@ -117,22 +151,31 @@ export function useNotifications() {
   // 监听网络状态
   const handleOnline = () => notifyConnectionStatus(true);
   const handleOffline = () => notifyConnectionStatus(false);
+  const handleStorageChange = (e: StorageEvent) => {
+    if (e.key === NOTIFICATION_STORAGE_KEY) {
+      checkNotificationStatus();
+    }
+  };
 
   onMounted(() => {
     checkNotificationStatus();
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    window.addEventListener('storage', handleStorageChange);
     notificationState.value.offline = !isOnline();
   });
 
   onUnmounted(() => {
     window.removeEventListener('online', handleOnline);
     window.removeEventListener('offline', handleOffline);
+    window.removeEventListener('storage', handleStorageChange);
   });
 
   return {
     notificationState,
     enableNotifications,
+    disableNotifications,
+    toggleNotifications,
     notifyTorrentCompleted,
     notifyTorrentError,
     notifyCheckCompleted,

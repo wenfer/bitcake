@@ -41,12 +41,12 @@
           </el-button>
           <el-button 
             v-if="notificationState.supported"
-            :icon="Bell" 
+            :icon="notificationState.enabled ? Bell : MuteNotification" 
             :type="notificationState.enabled ? 'success' : 'info'"
             @click="toggleNotifications"
-            :title="notificationState.enabled ? t('notification.notificationsEnabled') : t('notification.enableNotifications')"
+            :title="notificationState.enabled ? t('notification.disableNotifications') : t('notification.enableNotifications')"
           >
-            {{ notificationState.enabled ? t('notification.notificationsEnabled') : t('notification.enableNotifications') }}
+            {{ notificationState.enabled ? t('notification.disableNotifications') : t('notification.enableNotifications') }}
           </el-button>
         </template>
         <template v-else>
@@ -74,6 +74,12 @@
                 </el-dropdown-item>
                 <el-dropdown-item command="columnVisibility">
                   {{ t('torrent.columnSettings') }}
+                </el-dropdown-item>
+                <el-dropdown-item
+                  v-if="notificationState.supported"
+                  command="toggleNotifications"
+                >
+                  {{ notificationState.enabled ? t('notification.disableNotifications') : t('notification.enableNotifications') }}
                 </el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -982,6 +988,7 @@ import {
   Document,
   Operation,
   Bell,
+  MuteNotification,
 } from "@element-plus/icons-vue";
 import * as api from "@/api/torrents";
 import type { Torrent, TorrentStatus } from "@/types/transmission";
@@ -1106,19 +1113,34 @@ const {
 const { sessionConfig } = storeToRefs(systemStatusStore);
 
 // 初始化通知功能
-const { notifyTorrentCompleted, notifyTorrentError, notifyCheckCompleted, notificationState, enableNotifications } = useNotifications();
+const {
+  notifyTorrentCompleted,
+  notifyTorrentError,
+  notifyCheckCompleted,
+  notificationState,
+  enableNotifications,
+  disableNotifications,
+} = useNotifications();
 
 // 切换通知开关
 const toggleNotifications = async () => {
   if (notificationState.value.enabled) {
-    // 如果已启用，点击后显示提示（不能直接禁用，需要浏览器设置）
-    ElMessage.info(t('notification.notificationsEnabled'));
+    disableNotifications();
+    ElMessage.success(t('notification.notificationsDisabled'));
   } else {
+    if ('Notification' in window && Notification.permission === 'denied') {
+      ElMessage.warning(t('notification.permissionDenied'));
+      return;
+    }
     const granted = await enableNotifications();
     if (granted) {
       ElMessage.success(t('notification.notificationsEnabled'));
     } else {
-      ElMessage.warning(t('notification.notificationsDisabled'));
+      ElMessage.warning(
+        'Notification' in window && Notification.permission === 'denied'
+          ? t('notification.permissionDenied')
+          : t('notification.notificationsDisabled')
+      );
     }
   }
 };
@@ -2665,6 +2687,7 @@ const handleActionCommand = (
     | "replaceTracker"
     | "resetWidth"
     | "columnVisibility"
+    | "toggleNotifications"
 ) => {
   if (command === "start") {
     startSelected();
@@ -2696,6 +2719,10 @@ const handleActionCommand = (
   }
   if (command === "columnVisibility") {
     showColumnDialog.value = true;
+    return;
+  }
+  if (command === "toggleNotifications") {
+    toggleNotifications();
   }
 };
 
