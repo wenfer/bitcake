@@ -281,6 +281,22 @@
   line-height: 1.6;
 }
 
+.torrent-name-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.torrent-name-text {
+  word-break: break-all;
+}
+
+.torrent-rename-btn {
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
 .hash-value {
   font-family: monospace;
   font-size: 12px;
@@ -338,10 +354,25 @@
 }
 .file-name {
   flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .file-meta {
   color: #909399;
   font-size: 12px;
+  flex-shrink: 0;
+}
+.file-rename-btn {
+  opacity: 0;
+  transition: opacity 0.2s;
+  margin-left: 4px;
+  padding: 2px 4px;
+  flex-shrink: 0;
+  color: var(--el-color-primary);
+}
+.file-node:hover .file-rename-btn {
+  opacity: 1;
 }
 
 .limit-row {
@@ -551,6 +582,10 @@
 
   .files-actions-buttons :deep(.el-button) {
     flex: 1;
+  }
+
+  .file-rename-btn {
+    opacity: 1;
   }
 }
 

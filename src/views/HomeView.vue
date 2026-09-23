@@ -274,6 +274,12 @@
       <button @click="handleContextAction('labels')">{{ t('torrent.modifyLabels') }}</button>
       <button
         v-if="contextMenuTargets.length === 1"
+        @click="handleContextAction('rename')"
+      >
+        {{ t('torrent.renameTorrent') }}
+      </button>
+      <button
+        v-if="contextMenuTargets.length === 1"
         @click="handleContextAction('detail')"
       >
         {{ t('torrent.viewDetail') }}
@@ -523,7 +529,17 @@
                     :span="2"
                     class-name="torrent-name-item"
                   >
-                    {{ detailTorrent.name }}
+                    <div class="torrent-name-wrapper">
+                      <span class="torrent-name-text">{{ detailTorrent.name }}</span>
+                      <el-button
+                        class="torrent-rename-btn"
+                        link
+                        size="small"
+                        :icon="Edit"
+                        :title="t('torrent.renameTorrent')"
+                        @click="openRenameTorrentDialog(detailTorrent)"
+                      />
+                    </div>
                   </el-descriptions-item>
                   <el-descriptions-item :label="t('torrent.state')">
                     <el-tag size="small" :type="getStatusType(detailTorrent) as any">
@@ -639,7 +655,7 @@
                       <div class="file-node">
                         <el-icon class="file-icon" v-if="data.isDir"><Folder /></el-icon>
                         <el-icon class="file-icon" v-else><Document /></el-icon>
-                        <span class="file-name">{{ data.label }}</span>
+                        <span class="file-name" :title="data.fullPath || data.label">{{ data.label }}</span>
                         <span class="file-meta" v-if="!data.isDir">
                           {{
                             formatBytes(
@@ -651,6 +667,14 @@
                             formatBytes(detailTorrent?.files?.[data.index!]?.length || 0)
                           }}
                         </span>
+                        <el-button
+                          class="file-rename-btn"
+                          link
+                          size="small"
+                          :icon="Edit"
+                          :title="data.isDir ? t('torrent.renameFolder') : t('torrent.renameFile')"
+                          @click.stop="openRenamePathDialog(data)"
+                        />
                       </div>
                     </template>
                   </el-tree>
@@ -780,6 +804,16 @@
         </template>
       </el-skeleton>
       <template #footer>
+        <el-button
+          v-if="detailTorrent"
+          :disabled="
+            detailTorrent.status === TorrentStatusEnum.CHECK ||
+            detailTorrent.status === TorrentStatusEnum.CHECK_WAIT
+          "
+          @click="verifyTorrentsById([detailTorrent.id])"
+        >
+          {{ t('torrent.verify') }}
+        </el-button>
         <el-button @click="showDetailDialog = false">{{ t('common.close') }}</el-button>
       </template>
     </el-dialog>
@@ -989,6 +1023,7 @@ import {
   Operation,
   Bell,
   MuteNotification,
+  Edit,
 } from "@element-plus/icons-vue";
 import * as api from "@/api/torrents";
 import type { Torrent, TorrentStatus } from "@/types/transmission";
@@ -2130,6 +2165,7 @@ type FileTreeNode = {
   label: string;
   isDir: boolean;
   index?: number;
+  fullPath?: string;
   children?: FileTreeNode[];
 };
 
@@ -2139,13 +2175,14 @@ const buildDetailFileTree = (files: Array<{ name: string; index: number }>): Fil
     parent.children = parent.children || [];
     let child = parent.children.find((n) => n.isDir && n.label === name);
     if (!child) {
-      child = { key: fullPath, label: name, isDir: true, children: [] };
+      child = { key: fullPath, label: name, isDir: true, fullPath, children: [] };
       parent.children.push(child);
     }
     return child;
   };
   files.forEach((file) => {
-    const parts = (file.name || "").split("/").filter(Boolean);
+    const normalizedName = (file.name || "").replace(/\\/g, "/");
+    const parts = normalizedName.split("/").filter(Boolean);
     let parent = root;
     let acc = "";
     parts.forEach((part, i) => {
@@ -2158,6 +2195,7 @@ const buildDetailFileTree = (files: Array<{ name: string; index: number }>): Fil
           label: part,
           isDir: false,
           index: file.index,
+          fullPath: acc,
         });
       } else {
         parent = ensureDir(parent, part, acc);
@@ -2739,6 +2777,7 @@ const handleContextAction = (
     | "category"
     | "labels"
     | "copy"
+    | "rename"
 ) => {
   const targets = [...contextMenuTargets.value];
   if (!targets.length) return;
@@ -2794,6 +2833,12 @@ const handleContextAction = (
     }
     return;
   }
+  if (action === "rename") {
+    if (!isBatch && targets[0]) {
+      openRenameTorrentDialog(targets[0]);
+    }
+    return;
+  }
   if (action === "limit") {
     if (isBatch) {
       openBatchLimitDialogWithTargets(targets);
@@ -2832,6 +2877,9 @@ const startTorrentsById = async (ids: number[]) => {
       ids.length > 1 ? t('torrent.message.startedMultiple', { count: ids.length }) : t('torrent.message.started')
     );
     await reloadTorrentsAfterMutation();
+    if (detailTorrent.value && ids.includes(detailTorrent.value.id)) {
+      await refreshDetailData();
+    }
   } catch (error: any) {
     ElMessage.error(`${t('torrent.message.operationFailed')}: ${error.message}`);
   }
@@ -2845,6 +2893,9 @@ const stopTorrentsById = async (ids: number[]) => {
       ids.length > 1 ? t('torrent.message.stoppedMultiple', { count: ids.length }) : t('torrent.message.stopped')
     );
     await reloadTorrentsAfterMutation();
+    if (detailTorrent.value && ids.includes(detailTorrent.value.id)) {
+      await refreshDetailData();
+    }
   } catch (error: any) {
     ElMessage.error(`${t('torrent.message.operationFailed')}: ${error.message}`);
   }
@@ -2858,6 +2909,9 @@ const verifyTorrentsById = async (ids: number[]) => {
       ids.length > 1 ? t('torrent.message.verifyStartedMultiple', { count: ids.length }) : t('torrent.message.verifyStarted')
     );
     await reloadTorrentsAfterMutation();
+    if (detailTorrent.value && ids.includes(detailTorrent.value.id)) {
+      await refreshDetailData();
+    }
   } catch (error: any) {
     ElMessage.error(`${t('torrent.message.verifyFailed')}: ${error.message}`);
   }
@@ -3236,6 +3290,113 @@ const saveDetailFileSelections = async () => {
     ElMessage.error(`${t('torrent.message.updateFailed')}: ${error.message}`);
   } finally {
     detailFilesSaving.value = false;
+  }
+};
+
+// 重命名种子对话框
+const openRenameTorrentDialog = async (torrent: Torrent) => {
+  try {
+    const { value } = await ElMessageBox.prompt(
+      t('torrent.renameTorrentPrompt', { name: torrent.name }),
+      t('torrent.renameTorrent'),
+      {
+        confirmButtonText: t('common.confirm'),
+        cancelButtonText: t('common.cancel'),
+        inputValue: torrent.name,
+        inputPlaceholder: t('torrent.enterNewName'),
+        inputValidator: (val) => {
+          if (!val || !val.trim()) {
+            return t('torrent.nameCannotBeEmpty');
+          }
+          if (val.trim() === torrent.name) {
+            return t('torrent.nameNotChanged');
+          }
+          if (val.includes('/') || val.includes('\\')) {
+            return t('torrent.noPathSeparators');
+          }
+          return true;
+        },
+      }
+    );
+
+    const newName = value.trim();
+    const loadingTarget = document.querySelector(".detail-dialog") ? ".detail-dialog" : undefined;
+    const loadingInstance = ElLoading.service({
+      target: loadingTarget,
+      text: t('torrent.renaming'),
+    });
+
+    try {
+      await api.renameTorrent(torrent.id, newName);
+      ElMessage.success(t('torrent.renameSuccess'));
+      await reloadTorrentsAfterMutation();
+      if (detailTorrent.value && detailTorrent.value.id === torrent.id) {
+        await refreshDetailData();
+      }
+    } catch (err: any) {
+      ElMessage.error(`${t('torrent.renameFailed')}: ${err.message || err}`);
+    } finally {
+      loadingInstance.close();
+    }
+  } catch {
+    // 用户取消输入
+  }
+};
+
+// 重命名文件或目录对话框
+const openRenamePathDialog = async (node: FileTreeNode) => {
+  if (!detailTorrent.value || !node.fullPath) return;
+
+  const isFolder = node.isDir;
+  const title = isFolder ? t('torrent.renameFolder') : t('torrent.renameFile');
+  const message = isFolder
+    ? t('torrent.renameFolderPrompt', { name: node.label })
+    : t('torrent.renameFilePrompt', { name: node.label });
+
+  try {
+    const { value } = await ElMessageBox.prompt(message, title, {
+      confirmButtonText: t('common.confirm'),
+      cancelButtonText: t('common.cancel'),
+      inputValue: node.label,
+      inputPlaceholder: t('torrent.enterNewName'),
+      inputValidator: (val) => {
+        if (!val || !val.trim()) {
+          return t('torrent.nameCannotBeEmpty');
+        }
+        if (val.trim() === node.label) {
+          return t('torrent.nameNotChanged');
+        }
+        if (val.includes('/') || val.includes('\\')) {
+          return t('torrent.noPathSeparators');
+        }
+        return true;
+      },
+    });
+
+    const newName = value.trim();
+    const targetEl = document.querySelector(".files-container");
+    const loadingInstance = ElLoading.service({
+      target: targetEl ? (targetEl as HTMLElement) : undefined,
+      text: t('torrent.renaming'),
+    });
+
+    try {
+      await api.renameTorrentPath(
+        detailTorrent.value.id,
+        node.fullPath,
+        newName,
+        node.isDir
+      );
+      ElMessage.success(t('torrent.renameSuccess'));
+      await refreshDetailData();
+      await reloadTorrentsAfterMutation();
+    } catch (err: any) {
+      ElMessage.error(`${t('torrent.renameFailed')}: ${err.message || err}`);
+    } finally {
+      loadingInstance.close();
+    }
+  } catch {
+    // 用户取消输入
   }
 };
 

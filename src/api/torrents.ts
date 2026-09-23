@@ -73,6 +73,8 @@ interface TorrentService {
   reannounceTorrents(ids: number[]): Promise<void>
   setTorrentLocation(ids: number[], location: string, move?: boolean): Promise<void>
   setTorrents(ids: number[], params: Record<string, any>): Promise<void>
+  renameTorrent(id: number, newName: string): Promise<void>
+  renameTorrentPath(id: number, oldPath: string, newName: string, isDir?: boolean): Promise<void>
   replaceTrackers(ids: number[], oldUrl: string, newUrl: string): Promise<void>
   setTorrentCategory?(ids: number[], category: string): Promise<void>
   getCategories?(): Promise<string[]>
@@ -217,6 +219,27 @@ const transmissionService: TorrentService = {
       ids,
       ...params,
     })
+  },
+
+  renameTorrentPath(id, oldPath, newName) {
+    if (!oldPath || !newName) throw new Error('Path and new name cannot be empty')
+    const normalizedPath = oldPath.replace(/\\/g, '/').replace(/\/+$/, '')
+    return transmissionClient.request('torrent-rename-path', {
+      ids: [id],
+      path: normalizedPath,
+      name: newName,
+    })
+  },
+
+  async renameTorrent(id, newName) {
+    if (!newName) throw new Error('Torrent name cannot be empty')
+    const response = await transmissionClient.request<{ torrents: Torrent[] }>('torrent-get', {
+      ids: [id],
+      fields: ['id', 'name'],
+    })
+    const torrent = response.torrents?.[0]
+    if (!torrent) throw new Error('Torrent not found')
+    return transmissionService.renameTorrentPath(id, torrent.name, newName)
   },
 
   async replaceTrackers(ids, oldUrl, newUrl) {
@@ -996,6 +1019,44 @@ const qbittorrentService: TorrentService = {
     }
   },
 
+  async renameTorrent(id, newName) {
+    if (!newName) throw new Error('Torrent name cannot be empty')
+    await qbEnsureAuth()
+    const hashes = await qbResolveHashes([id])
+    const hash = hashes[0]
+    if (!hash) throw new Error('Torrent hash not found')
+    const body = qbittorrentClient.buildFormData({
+      hash,
+      name: newName,
+    })
+    await qbittorrentClient.post('/torrents/rename', body, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
+  },
+
+  async renameTorrentPath(id, oldPath, newName, isDir = false) {
+    if (!oldPath || !newName) throw new Error('Path and new name cannot be empty')
+    await qbEnsureAuth()
+    const hashes = await qbResolveHashes([id])
+    const hash = hashes[0]
+    if (!hash) throw new Error('Torrent hash not found')
+
+    const normalizedOldPath = oldPath.replace(/\\/g, '/').replace(/\/+$/, '')
+    const parts = normalizedOldPath.split('/')
+    parts[parts.length - 1] = newName
+    const newPath = parts.join('/')
+
+    const endpoint = isDir ? '/torrents/renameFolder' : '/torrents/renameFile'
+    const body = qbittorrentClient.buildFormData({
+      hash,
+      oldPath: normalizedOldPath,
+      newPath,
+    })
+    await qbittorrentClient.post(endpoint, body, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
+  },
+
   async replaceTrackers(ids, oldUrl, newUrl) {
     await qbEnsureAuth()
     const torrentsData = await qbittorrentService.getTorrents()
@@ -1369,6 +1430,9 @@ export const setTorrentLocation = (ids: number[], location: string, move = false
   activeService.setTorrentLocation(ids, location, move)
 export const setTorrents = (ids: number[], params: Record<string, any>) =>
   activeService.setTorrents(ids, params)
+export const renameTorrent = (id: number, newName: string) => activeService.renameTorrent(id, newName)
+export const renameTorrentPath = (id: number, oldPath: string, newName: string, isDir?: boolean) =>
+  activeService.renameTorrentPath(id, oldPath, newName, isDir)
 export const replaceTrackers = (ids: number[], oldUrl: string, newUrl: string) =>
   activeService.replaceTrackers(ids, oldUrl, newUrl)
 export const getSessionStats = () => activeService.getSessionStats()
