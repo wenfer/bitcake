@@ -1,4 +1,4 @@
-# BitCake 🍰
+# BitCake
 
 **中文** | [English](./README_EN.md)
 
@@ -6,26 +6,26 @@
 
 > 感谢 jackloves111 的加入和贡献
 
-## 📖 项目简介
+## 项目简介
 
 BitCake 是一个专为 PT（Private Tracker）用户设计的现代化 Transmission 和 qBittorrent Web 界面。它提供了简洁、高效且功能丰富的种子管理体验。
 
-## ✨ 特性
+## 特性
 
-- 🚀 基于 Vue 3 + TypeScript + Vite 构建
-- 🎯 统一接口，同时支持 Transmission 和 qBittorrent
-- 📱 响应式设计，完美支持移动端访问
-- 🎨 使用 Element Plus 组件库，界面美观现代
-- 📊 强大的数据统计与可视化功能
-- 🔧 紧凑的布局设计，信息密度更高
-- 🌍 多语言支持（中文 & 英文）
-- 🎨 多主题选择（清新绿、简约蓝、可爱粉）
-- 🏷️ 高级种子管理，支持标签和分类
-- ⚡ 批量操作和限速策略
-- 📈 实时速度监控和 Tracker 统计
-- 🔄 辅种管理，支持跨站做种
+- 基于 Vue 3 + TypeScript + Vite 构建
+- 统一接口，同时支持 Transmission 和 qBittorrent
+- 响应式设计，良好支持移动端访问
+- 使用 Element Plus 组件库，界面规范现代
+- 丰富的数据统计与可视化功能
+- 紧凑的布局设计，信息密度更高
+- 多语言支持（中文 & 英文）
+- 多主题选择（清新绿、简约蓝、可爱粉）
+- 高级种子管理，支持标签和分类
+- 批量操作和限速策略
+- 实时速度监控和 Tracker 统计
+- 辅种管理，支持跨站做种
 
-## 🚀 部署
+## 部署
 
 ### 方式一：使用预构建容器（推荐）
 
@@ -249,7 +249,7 @@ echo "BitCake 已更新到 $INSTALL_DIR"
 echo "备份位于: $BACKUP_DIR"
 ```
 
-## 🔧 配置说明
+## 配置说明
 
 ### Tracker 站点映射
 
@@ -270,7 +270,7 @@ BitCake 在 `public` 目录下包含 `trackerSites.json` 文件，用于将 Trac
 
 点击右上角的退出按钮即可注销。
 
-## 💻 开发
+## 开发
 
 ### 环境要求
 
@@ -312,7 +312,7 @@ npm run build:qbittorrent
 npm run build:both
 ```
 
-## 🎨 预览
+## 预览
 
 ![首页](preview/index.png)
 *主界面 - 高级筛选功能*
@@ -323,7 +323,7 @@ npm run build:both
 ![批量限速](preview/stat2.png)
 *批量限速管理*
 
-## 🙏 致谢
+## 致谢
 
 - [Vue.js](https://vuejs.org/) - 渐进式 JavaScript 框架
 - [Element Plus](https://element-plus.org/) - Vue 3 组件库
@@ -331,14 +331,14 @@ npm run build:both
 - [Transmission](https://transmissionbt.com/) - 轻量级 BT 客户端
 - [qBittorrent](https://www.qbittorrent.org/) - 开源 BT 客户端
 
-## 🤝 贡献
+## 贡献
 
 欢迎贡献代码！请随时提交 Pull Request。
 
-## 📄 License
+## License
 
 MIT License
 
 ---
 
-用 ❤️ 为 PT 爱好者打造
+专为 PT 爱好者打造

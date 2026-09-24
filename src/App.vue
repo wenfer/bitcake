@@ -805,7 +805,7 @@ html[data-theme="pink"] .el-table th.el-table__cell.is-leaf {
 /* 对话框 */
 html[data-theme="pink"] .el-dialog {
   background: var(--pink-bg-elevated);
-  border-radius: 24px;
+  border-radius: 16px;
   box-shadow: var(--pink-shadow-lg);
   border: 2px solid var(--pink-border-light);
 }

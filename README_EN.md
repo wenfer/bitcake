@@ -1,4 +1,4 @@
-# BitCake 🍰
+# BitCake
 
 [中文](./README.md) | **English**
 
@@ -6,26 +6,26 @@
 
 > Thanks to jackloves111 for joining and contributing
 
-## 📖 Overview
+## Overview
 
 BitCake is a modern, unified web interface for Transmission and qBittorrent, designed with PT (Private Tracker) users in mind. It provides a clean, efficient, and feature-rich interface for managing your torrents.
 
-## ✨ Features
+## Features
 
-- 🚀 Built with Vue 3 + TypeScript + Vite
-- 🎯 Unified interface supporting both Transmission and qBittorrent
-- 📱 Responsive design with perfect mobile support
-- 🎨 Modern UI powered by Element Plus
-- 📊 Powerful statistics and data visualization
-- 🔧 Compact layout with high information density
-- 🌍 Multi-language support (Chinese & English)
-- 🎨 Multiple theme options (Fresh Green, Simple Blue, Cute Pink)
-- 🏷️ Advanced torrent management with labels and categories
-- ⚡ Batch operations and speed limit strategies
-- 📈 Real-time speed monitoring and tracker statistics
-- 🔄 Reseed management for cross-seeding
+- Built with Vue 3 + TypeScript + Vite
+- Unified interface supporting both Transmission and qBittorrent
+- Responsive design with mobile support
+- Modern UI powered by Element Plus
+- Comprehensive statistics and data visualization
+- Compact layout with high information density
+- Multi-language support (Chinese & English)
+- Multiple theme options (Fresh Green, Simple Blue, Cute Pink)
+- Advanced torrent management with labels and categories
+- Batch operations and speed limit strategies
+- Real-time speed monitoring and tracker statistics
+- Reseed management for cross-seeding
 
-## 🚀 Deployment
+## Deployment
 
 ### Using Pre-built Container
 
@@ -87,7 +87,7 @@ environment:
 {your-qb-address}/api/v2/app/setPreferences?json=%7B"alternative_webui_enabled":false%7D
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Tracker Sites Mapping
 
@@ -108,7 +108,7 @@ Feel free to contribute additional tracker mappings!
 
 Click the logout button in the top-right corner to sign out.
 
-## 💻 Development
+## Development
 
 ### Prerequisites
 
@@ -150,7 +150,7 @@ npm run build:qbittorrent
 npm run build
 ```
 
-## 🎨 Screenshots
+## Screenshots
 
 ![Home Page](preview/index.png)
 *Main torrent list with advanced filtering*
@@ -161,7 +161,7 @@ npm run build
 ![Batch Operations](preview/stat2.png)
 *Batch speed limit management*
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [Vue.js](https://vuejs.org/) - Progressive JavaScript Framework
 - [Element Plus](https://element-plus.org/) - Vue 3 Component Library
@@ -169,14 +169,14 @@ npm run build
 - [Transmission](https://transmissionbt.com/) - Lightweight BitTorrent Client
 - [qBittorrent](https://www.qbittorrent.org/) - Open Source BitTorrent Client
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## 📄 License
+## License
 
 MIT License
 
 ---
 
-Made with ❤️ for PT enthusiasts
+Made for PT enthusiasts
