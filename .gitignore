@@ -1,27 +1,26 @@
-.env*
 # Dependencies
 node_modules
 
 # Build output
-dist
+dist*
 *.log
 
 # Editor files
 .DS_Store
 .vscode
+.idea
 
 # Local caches
 .pnpm-store
-.idea
+.esdata
 
 # Env
-.env
-.env.local
-.vscode
-dist*
-.esdata
-.claude
-.pnpm-store
+.env*
 
-# AI
+# Debug artifacts
+scratch/
+
+# AI / 本地助手数据
+.claude
 .reasonix/*.json
+.workbuddy/

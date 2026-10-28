@@ -852,22 +852,22 @@ const qbittorrentService: TorrentService = {
         torrent.fileStats = fileStats
 
         // Map qBittorrent trackers to Transmission format
-        if (qbTrackers?.length) {
-          torrent.trackers = qbTrackers
-            .filter((t) => t.url && !t.url.startsWith('**'))
-            .map((t) => ({
-              announce: t.url,
-              tier: t.tier,
-            }))
-          torrent.trackerStats = qbTrackers
-            .filter((t) => t.url && !t.url.startsWith('**'))
-            .map((t) => ({
-              announce: t.url,
-              lastAnnounceSucceeded: t.status === 2,
-              lastAnnounceTime: 0,
-              seederCount: t.num_seeds,
-              leecherCount: t.num_leeches,
-            }))
+        // '**' 开头的是 qBittorrent 的 DHT/PeX/LSD 虚拟 tracker，需要排除
+        const validTrackers = (qbTrackers ?? []).filter(
+          (tracker) => tracker.url && !tracker.url.startsWith('**')
+        )
+        if (validTrackers.length) {
+          torrent.trackers = validTrackers.map((tracker) => ({
+            announce: tracker.url,
+            tier: tracker.tier,
+          }))
+          torrent.trackerStats = validTrackers.map((tracker) => ({
+            announce: tracker.url,
+            lastAnnounceSucceeded: tracker.status === 2,
+            lastAnnounceTime: 0,
+            seederCount: tracker.num_seeds,
+            leecherCount: tracker.num_leeches,
+          }))
         }
 
         torrent.peers = mapQBTorrentPeers(peersResponse)

@@ -26,6 +26,12 @@ export interface TorrentTrackerStat {
   isBackup?: boolean
   lastAnnounceTime?: number
   lastAnnounceSucceeded?: boolean
+  /** 上次汇报的原始结果（Transmission：成功为空或 "Success"，失败为具体原因） */
+  lastAnnounceResult?: string
+  /** 是否至少完成过一次汇报（Transmission） */
+  hasAnnounced?: boolean
+  /** 汇报状态机：0 未激活 / 1 等待 / 2 排队 / 3 汇报中（Transmission） */
+  announceState?: number
   lastAnnouncePeerCount?: number
   nextAnnounceTime?: number
 }

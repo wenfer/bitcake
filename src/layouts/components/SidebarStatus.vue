@@ -25,13 +25,14 @@ defineProps<{
 .sidebar-status {
   margin-top: auto;
   padding: 12px;
-  background: #fff;
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid var(--bc-border);
+  background: var(--bc-surface);
 }
 
 .status-header {
   font-size: 12px;
-  color: #909399;
+  font-weight: 600;
+  color: var(--bc-text-subtle);
   margin-bottom: 8px;
   padding-left: 4px;
 }
@@ -46,20 +47,26 @@ defineProps<{
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   font-size: 12px;
-  padding: 4px 8px;
-  background: #f5f7fa;
-  border-radius: 4px;
+  padding: 7px 10px;
+  background: var(--bc-surface-muted);
+  border: 1px solid var(--bc-border);
+  border-radius: var(--bc-radius-sm);
 }
 
 .status-label {
-  color: #606266;
+  color: var(--bc-text-subtle);
+  flex: 0 0 auto;
 }
 
 .status-value {
-  color: #303133;
-  font-weight: 500;
-  font-family: 'SF Mono', Monaco, Consolas, monospace;
+  color: var(--bc-text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 768px) {

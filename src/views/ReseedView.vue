@@ -234,7 +234,7 @@
                     </el-tag>
                   </el-tooltip>
                 </template>
-                <span v-else style="color: #909399">—</span>
+                <span v-else style="color: var(--bc-text-subtle)">—</span>
               </template>
             </el-table-column>
             <el-table-column
@@ -357,6 +357,7 @@ import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useSystemStatusStore } from '@/stores/systemStatus'
 import { getTrackerDisplayName } from '@/utils/torrent'
+import { getTorrentErrorMessage, isTorrentError } from '@/utils/torrentStatus'
 import { formatBytes, formatSpeed } from '@/utils/format'
 import { buildTrackerErrorMappings } from '@/utils/errorMapping'
 import * as api from '@/api/torrents'
@@ -569,9 +570,10 @@ const loadReseedData = () => {
         if (!tracker) return
         const announce = tracker.announce
         if (!trackerMap.has(announce)) {
-          // 基于种子的 errorString 判断是否异常，而不是 tracker.lastAnnounceSucceeded
-          const hasError = !!torrent.errorString
-          const errorDetail = hasError ? torrent.errorString : undefined
+          // 基于种子的错误信息判断是否异常，而不是 tracker.lastAnnounceSucceeded
+          // 注意：部分 tracker 对正常种子会返回 `ook` 之类的响应，不能算作异常
+          const hasError = isTorrentError(torrent)
+          const errorDetail = getTorrentErrorMessage(torrent)
 
           trackerMap.set(announce, {
             announce,
@@ -598,21 +600,24 @@ const loadReseedData = () => {
       totalUploadRatio,
       totalUploaded,
       totalDownloaded,
-      torrents: torrents.map(torrent => ({
-        id: torrent.id,
-        trackerName: torrent.trackerStats && torrent.trackerStats.length > 0 && torrent.trackerStats[0]
-          ? getTrackerDisplayName(torrent.trackerStats[0].announce)
-          : t('reseed.unknownTracker'),
-        status: torrent.status,
-        percentDone: torrent.percentDone,
-        uploadRatio: torrent.uploadRatio,
-        uploadedEver: torrent.uploadedEver || 0,
-        rateUpload: torrent.rateUpload,
-        category: torrent.category,
-        downloadDir: torrent.downloadDir,
-        errorString: torrent.errorString,
-        errorType: torrent.errorString ? getErrorType(torrent.errorString) : undefined
-      }))
+      torrents: torrents.map(torrent => {
+        const errorMessage = getTorrentErrorMessage(torrent)
+        return {
+          id: torrent.id,
+          trackerName: torrent.trackerStats && torrent.trackerStats.length > 0 && torrent.trackerStats[0]
+            ? getTrackerDisplayName(torrent.trackerStats[0].announce)
+            : t('reseed.unknownTracker'),
+          status: torrent.status,
+          percentDone: torrent.percentDone,
+          uploadRatio: torrent.uploadRatio,
+          uploadedEver: torrent.uploadedEver || 0,
+          rateUpload: torrent.rateUpload,
+          category: torrent.category,
+          downloadDir: torrent.downloadDir,
+          errorString: errorMessage,
+          errorType: errorMessage ? getErrorType(errorMessage) : undefined
+        }
+      })
     }
   })
 }
@@ -933,21 +938,25 @@ onUnmounted(() => {
 }
 
 .ratio-excellent {
-  color: #67c23a;
-  font-weight: bold;
+  color: var(--bc-success);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .ratio-good {
-  color: #409eff;
-  font-weight: bold;
+  color: var(--bc-accent);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .ratio-normal {
-  color: #e6a23c;
+  color: var(--bc-warning);
+  font-variant-numeric: tabular-nums;
 }
 
 .ratio-low {
-  color: #f56c6c;
+  color: var(--bc-danger);
+  font-variant-numeric: tabular-nums;
 }
 
 .reseed-details .torrents-list {
@@ -972,9 +981,10 @@ onUnmounted(() => {
 }
 
 .tracker-list {
-  background-color: #f5f7fa;
+  background-color: var(--bc-surface-muted);
+  border: 1px solid var(--bc-border);
   padding: 12px;
-  border-radius: 4px;
+  border-radius: var(--bc-radius-sm);
 }
 
 .tracker-list p {

@@ -26,12 +26,12 @@
           >
             <el-divider content-position="left">{{ t('settings.transmission.savePath') }}</el-divider>
             <el-row :gutter="16">
-              <el-col :xs="24" :md="12">
+              <el-col :xs="24">
                 <el-form-item :label="t('settings.transmission.defaultSaveDir')">
-                  <el-input v-model="settings['download-dir']" />
+                  <el-input v-model="settings['download-dir']" class="path-field" />
                 </el-form-item>
               </el-col>
-              <el-col :xs="24" :md="12">
+              <el-col :xs="24">
                 <el-form-item :label="t('settings.transmission.enableIncompleteDir')">
                   <div class="inline-row">
                     <el-switch v-model="settings['incomplete-dir-enabled']" />
@@ -39,7 +39,7 @@
                       v-model="settings['incomplete-dir']"
                       :disabled="!settings['incomplete-dir-enabled']"
                       placeholder=".../Incomplete"
-                      class="inline-input"
+                      class="path-field"
                     />
                   </div>
                 </el-form-item>
@@ -47,12 +47,12 @@
             </el-row>
             <el-divider content-position="left">{{ t('settings.transmission.addBehaviorAndExtension') }}</el-divider>
             <el-row :gutter="16">
-              <el-col :xs="24" :md="8">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.autoStartNewTorrents')">
                   <el-switch v-model="settings['start-added-torrents']" />
                 </el-form-item>
               </el-col>
-              <el-col :xs="24" :md="8">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.renamePartialFiles')">
                   <el-switch v-model="settings['rename-partial-files']" />
                 </el-form-item>
@@ -73,28 +73,28 @@
           >
             <el-divider content-position="left">{{ t('settings.transmission.globalSpeedLimit') }}</el-divider>
             <el-row :gutter="16">
-              <el-col :xs="24" :md="12">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.enableMaxDownloadSpeed')">
                   <div class="inline-row">
                     <el-switch v-model="settings['speed-limit-down-enabled']" />
-                    <el-input-number
+                    <el-input-number controls-position="right"
                       v-model="settings['speed-limit-down']"
                       :disabled="!settings['speed-limit-down-enabled']"
                       :min="0"
-                      class="inline-input"
+                      class="num-field"
                     />
                   </div>
                 </el-form-item>
               </el-col>
-              <el-col :xs="24" :md="12">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.enableMaxUploadSpeed')">
                   <div class="inline-row">
                     <el-switch v-model="settings['speed-limit-up-enabled']" />
-                    <el-input-number
+                    <el-input-number controls-position="right"
                       v-model="settings['speed-limit-up']"
                       :disabled="!settings['speed-limit-up-enabled']"
                       :min="0"
-                      class="inline-input"
+                      class="num-field"
                     />
                   </div>
                 </el-form-item>
@@ -102,61 +102,61 @@
             </el-row>
             <el-divider content-position="left">{{ t('settings.transmission.altSpeedLimit') }}</el-divider>
             <el-row :gutter="16">
-              <el-col :xs="24" :md="12">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.altDownloadSpeed')">
-                  <el-input-number v-model="settings['alt-speed-down']" :min="0" class="full-width" />
+                  <el-input-number controls-position="right" v-model="settings['alt-speed-down']" :min="0" class="num-field" />
                 </el-form-item>
               </el-col>
-              <el-col :xs="24" :md="12">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.altUploadSpeed')">
-                  <el-input-number v-model="settings['alt-speed-up']" :min="0" class="full-width" />
+                  <el-input-number controls-position="right" v-model="settings['alt-speed-up']" :min="0" class="num-field" />
                 </el-form-item>
               </el-col>
             </el-row>
             <el-divider content-position="left">{{ t('settings.transmission.schedule') }}</el-divider>
             <el-row :gutter="16">
-              <el-col :xs="24" :md="8">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.enableAltSpeed')">
                   <el-switch v-model="settings['alt-speed-enabled']" />
                 </el-form-item>
               </el-col>
-              <el-col :xs="24" :md="8">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.altSpeedSchedule')">
                   <el-switch v-model="settings['alt-speed-time-enabled']" />
                 </el-form-item>
               </el-col>
             </el-row>
             <el-row :gutter="16" v-if="settings['alt-speed-time-enabled']">
-              <el-col :xs="24" :md="8">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.startTime')">
                   <el-time-select
                     v-model="altSpeedBeginTime"
                     start="00:00"
                     end="23:30"
                     step="00:30"
-                    class="full-width"
+                    class="time-field"
                   />
                 </el-form-item>
               </el-col>
-              <el-col :xs="24" :md="8">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.endTime')">
                   <el-time-select
                     v-model="altSpeedEndTime"
                     start="00:00"
                     end="23:30"
                     step="00:30"
-                    class="full-width"
+                    class="time-field"
                   />
                 </el-form-item>
               </el-col>
-              <el-col :xs="24" :md="8">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.effectiveDays')">
                   <el-select
                     v-model="altSpeedDays"
                     multiple
                     collapse-tags
                     :placeholder="t('settings.transmission.selectDays')"
-                    class="full-width"
+                    class="select-field"
                   >
                     <el-option
                       v-for="day in dayOptions"
@@ -170,29 +170,29 @@
             </el-row>
             <el-divider content-position="left">{{ t('settings.transmission.seedRatioAndLimit') }}</el-divider>
             <el-row :gutter="16">
-              <el-col :xs="24" :md="12">
-                <el-form-item :label="t('settings.transmission.stopSeedingAtRatio')">
+              <el-col :xs="24">
+                <el-form-item :label="t('settings.transmission.stopSeedingAtRatio')" class="form-item--long-label">
                   <div class="inline-row">
                     <el-switch v-model="settings['seedRatioLimited']" />
-                    <el-input-number
+                    <el-input-number controls-position="right"
                       v-model="settings['seedRatioLimit']"
                       :disabled="!settings['seedRatioLimited']"
                       :min="0"
                       :step="0.1"
-                      class="inline-input"
+                      class="num-field"
                     />
                   </div>
                 </el-form-item>
               </el-col>
-              <el-col :xs="24" :md="12">
-                <el-form-item :label="t('settings.transmission.stopSeedingWhenIdle')">
+              <el-col :xs="24">
+                <el-form-item :label="t('settings.transmission.stopSeedingWhenIdle')" class="form-item--long-label">
                   <div class="inline-row">
                     <el-switch v-model="settings['seedIdleLimited']" />
-                    <el-input-number
+                    <el-input-number controls-position="right"
                       v-model="settings['seedIdleLimit']"
                       :disabled="!settings['seedIdleLimited']"
                       :min="0"
-                      class="inline-input"
+                      class="num-field"
                     />
                   </div>
                 </el-form-item>
@@ -213,12 +213,12 @@
           >
             <el-divider content-position="left">{{ t('settings.transmission.portAndMapping') }}</el-divider>
             <el-row :gutter="16">
-              <el-col :xs="24" :md="8">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.peerFixedPort')">
-                  <el-input-number v-model="settings['peer-port']" :min="1" :max="65535" class="full-width" />
+                  <el-input-number controls-position="right" v-model="settings['peer-port']" :min="1" :max="65535" class="num-field" />
                 </el-form-item>
               </el-col>
-              <el-col :xs="24" :md="8">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.portConnectivity')">
                   <div class="port-test">
                     <el-button size="small" :loading="testingPort" @click="handleTestPort">
@@ -235,14 +235,14 @@
                   </div>
                 </el-form-item>
               </el-col>
-              <el-col :xs="24" :md="8">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.portMapping')">
                   <el-switch v-model="settings['port-forwarding-enabled']" />
                 </el-form-item>
               </el-col>
             </el-row>
             <el-row :gutter="16">
-              <el-col :xs="24" :md="8">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.randomPortOnStart')">
                   <el-switch v-model="settings['peer-port-random-on-start']" />
                 </el-form-item>
@@ -250,21 +250,21 @@
             </el-row>
             <el-divider content-position="left">{{ t('settings.transmission.connectionLimitAndEncryption') }}</el-divider>
             <el-row :gutter="16">
-              <el-col :xs="24" :md="12">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.globalPeerLimit')">
-                  <el-input-number v-model="settings['peer-limit-global']" :min="1" class="full-width" />
+                  <el-input-number controls-position="right" v-model="settings['peer-limit-global']" :min="1" class="num-field" />
                 </el-form-item>
               </el-col>
-              <el-col :xs="24" :md="12">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.perTorrentPeerLimit')">
-                  <el-input-number v-model="settings['peer-limit-per-torrent']" :min="1" class="full-width" />
+                  <el-input-number controls-position="right" v-model="settings['peer-limit-per-torrent']" :min="1" class="num-field" />
                 </el-form-item>
               </el-col>
             </el-row>
             <el-row :gutter="16">
-              <el-col :xs="24" :md="12">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.encryptionPolicy')">
-                  <el-select v-model="settings.encryption" class="full-width">
+                  <el-select v-model="settings.encryption" class="select-field">
                     <el-option
                       v-for="option in encryptionOptions"
                       :key="option.value"
@@ -290,22 +290,22 @@
           >
             <el-divider content-position="left">{{ t('settings.transmission.peerDiscoveryAndExchange') }}</el-divider>
             <el-row :gutter="16">
-              <el-col :xs="12" :md="6">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.enableDHT')">
                   <el-switch v-model="settings['dht-enabled']" />
                 </el-form-item>
               </el-col>
-              <el-col :xs="12" :md="6">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.enablePEX')">
                   <el-switch v-model="settings['pex-enabled']" />
                 </el-form-item>
               </el-col>
-              <el-col :xs="12" :md="6">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.enableLPD')">
                   <el-switch v-model="settings['lpd-enabled']" />
                 </el-form-item>
               </el-col>
-              <el-col :xs="12" :md="6">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.enableUTP')">
                   <el-switch v-model="settings['utp-enabled']" />
                 </el-form-item>
@@ -326,28 +326,28 @@
           >
             <el-divider content-position="left">{{ t('settings.transmission.queueLimit') }}</el-divider>
             <el-row :gutter="16">
-              <el-col :xs="24" :md="12">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.enableDownloadQueue')">
                   <div class="inline-row">
                     <el-switch v-model="settings['download-queue-enabled']" />
-                    <el-input-number
+                    <el-input-number controls-position="right"
                       v-model="settings['download-queue-size']"
                       :disabled="!settings['download-queue-enabled']"
                       :min="0"
-                      class="inline-input"
+                      class="num-field"
                     />
                   </div>
                 </el-form-item>
               </el-col>
-              <el-col :xs="24" :md="12">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.enableSeedQueue')">
                   <div class="inline-row">
                     <el-switch v-model="settings['seed-queue-enabled']" />
-                    <el-input-number
+                    <el-input-number controls-position="right"
                       v-model="settings['seed-queue-size']"
                       :disabled="!settings['seed-queue-enabled']"
                       :min="0"
-                      class="inline-input"
+                      class="num-field"
                     />
                   </div>
                 </el-form-item>
@@ -355,14 +355,14 @@
             </el-row>
             <el-divider content-position="left">{{ t('settings.transmission.stalledTaskDetection') }}</el-divider>
             <el-row :gutter="16">
-              <el-col :xs="24" :md="12">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.detectStalledTasks')">
                   <el-switch v-model="settings['queue-stalled-enabled']" />
                 </el-form-item>
               </el-col>
-              <el-col :xs="24" :md="12">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.stalledMinutes')">
-                  <el-input-number v-model="settings['queue-stalled-minutes']" :min="0" class="full-width" />
+                  <el-input-number controls-position="right" v-model="settings['queue-stalled-minutes']" :min="0" class="num-field" />
                 </el-form-item>
               </el-col>
             </el-row>
@@ -381,20 +381,20 @@
           >
             <el-divider content-position="left">{{ t('settings.transmission.authentication') }}</el-divider>
             <el-row :gutter="16">
-              <el-col :xs="24" :md="12">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.requireAuth')">
                   <el-switch v-model="settings['rpc-authentication-required']" />
                 </el-form-item>
               </el-col>
-              <el-col :xs="24" :md="12">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.username')">
-                  <el-input v-model="settings['rpc-username']" />
+                  <el-input v-model="settings['rpc-username']" class="text-field" />
                 </el-form-item>
               </el-col>
             </el-row>
             <el-divider content-position="left">{{ t('settings.transmission.whitelist') }}</el-divider>
             <el-row :gutter="16">
-              <el-col :xs="24" :md="12">
+              <el-col :xs="24" :sm="12">
                 <el-form-item :label="t('settings.transmission.enableWhitelist')">
                   <el-switch v-model="settings['rpc-whitelist-enabled']" />
                 </el-form-item>
@@ -408,6 +408,7 @@
                     type="textarea"
                     :rows="3"
                     placeholder="127.0.0.1,192.168.*.*"
+                    class="textarea-field"
                   />
                 </el-form-item>
               </el-col>
@@ -417,32 +418,24 @@
 
         <!-- 系统信息 -->
         <el-tab-pane :label="t('settings.transmission.systemInfo')" name="system">
-          <el-form
-            v-loading="loading"
-            :model="settings"
-            :label-position="formLabelPosition"
-            :label-width="formLabelWidth"
-            size="small"
-            class="compact-form"
-          >
-            <el-row :gutter="16">
-              <el-col :xs="24" :md="8">
-                <el-form-item :label="t('settings.transmission.backendVersion', { backend: backendLabel })">
-                  <span class="readonly-value">{{ settings.version || t('common.unknown') }}</span>
-                </el-form-item>
-              </el-col>
-              <el-col :xs="24" :md="8">
-                <el-form-item :label="t('settings.transmission.rpcVersion')">
-                  <span class="readonly-value">{{ settings['rpc-version'] ?? t('common.unknown') }}</span>
-                </el-form-item>
-              </el-col>
-              <el-col :xs="24" :md="8">
-                <el-form-item :label="t('settings.transmission.rpcMinVersion')">
-                  <span class="readonly-value">{{ settings['rpc-version-minimum'] ?? t('common.unknown') }}</span>
-                </el-form-item>
-              </el-col>
-            </el-row>
-          </el-form>
+          <div v-loading="loading" class="sys-info">
+            <div class="sys-info__item">
+              <span class="sys-info__label">{{ t('settings.transmission.backendVersion', { backend: backendLabel }) }}</span>
+              <span class="sys-info__value">{{ settings.version || t('common.unknown') }}</span>
+            </div>
+            <div class="sys-info__item">
+              <span class="sys-info__label">{{ t('settings.transmission.rpcVersion') }}</span>
+              <span class="sys-info__value">{{ settings['rpc-version'] ?? t('common.unknown') }}</span>
+            </div>
+            <div class="sys-info__item">
+              <span class="sys-info__label">{{ t('settings.transmission.rpcMinVersion') }}</span>
+              <span class="sys-info__value">{{ settings['rpc-version-minimum'] ?? t('common.unknown') }}</span>
+            </div>
+            <div class="sys-info__item">
+              <span class="sys-info__label">{{ t('settings.transmission.downloadDir') }}</span>
+              <span class="sys-info__value sys-info__value--path">{{ settings['download-dir'] || t('common.unknown') }}</span>
+            </div>
+          </div>
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -503,7 +496,7 @@ const portTestResult = ref<boolean | null>(null)
 
 const isMobile = useMediaQuery('(max-width: 768px)')
 const formLabelPosition = computed(() => (isMobile.value ? 'top' : 'left'))
-const formLabelWidth = computed(() => (isMobile.value ? 'auto' : '220px'))
+const formLabelWidth = computed(() => (isMobile.value ? 'auto' : '230px'))
 
 const editableFields: (keyof SessionConfig)[] = [
   'download-dir',
@@ -774,38 +767,133 @@ onMounted(() => {
 }
 
 .compact-form {
-  max-width: 1200px;
+  max-width: 1120px;
 }
 
-.compact-form :deep(.el-col) {
-  flex: 0 0 100%;
-  max-width: 100%;
-  width: 100%;
+/* 标签自然宽度、允许换行，避免长文案被截断 */
+.compact-form :deep(.el-form-item__label) {
+  white-space: normal;
+  line-height: 1.4;
+  color: var(--el-text-color-regular);
+  font-weight: 500;
 }
 
-.inline-row {
+.compact-form :deep(.el-form-item) {
+  margin-bottom: 12px;
+  min-height: 38px;
+}
+
+/* 表单内容项：左对齐，控件紧凑连贯 */
+.compact-form :deep(.el-form-item__content) {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  min-width: 0;
+  margin-left: 0;
+}
+
+/* 超长标签专属宽度（在全宽行中使用，防止折行） */
+.form-item--long-label :deep(.el-form-item__label) {
+  width: 320px !important;
+  flex: 0 0 320px !important;
+}
+
+.compact-form :deep(.el-divider) {
+  margin: 24px 0 16px;
+}
+
+.compact-form :deep(.el-divider__text) {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+  background-color: var(--el-bg-color-overlay, #ffffff);
+}
+
+/* 数字输入：紧凑适度，步进按钮在右侧 */
+.num-field {
+  width: 140px;
+}
+
+/* 时间选择：时间值宽度固定 */
+.time-field {
+  width: 140px;
+}
+
+/* 枚举选择：按选项文本长度定宽 */
+.select-field {
+  width: 240px;
+}
+
+/* 文本输入 */
+.text-field {
+  width: 260px;
+}
+
+/* 路径输入：宽度适中，不无限拉长 */
+.path-field {
+  width: 480px;
+  max-width: 100%;
+}
+
+/* 文本域输入 */
+.textarea-field {
+  width: 520px;
+  max-width: 100%;
+}
+
+/* 开关 + 数值/文本的紧凑组合行 */
+.inline-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-start;
+  width: auto;
+  flex-wrap: nowrap;
+}
+
+/* 系统信息：信息瓦片 */
+.sys-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
-  width: 100%;
+  max-width: 1120px;
+  min-height: 80px;
 }
 
-.inline-input {
-  flex: 1;
+.sys-info__item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--bc-radius-md);
 }
 
-.full-width {
-  width: 100%;
+.sys-info__label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.4;
 }
 
-.readonly-value {
-  color: var(--el-text-color-regular);
-  font-size: 14px;
+.sys-info__value {
+  font-size: 17px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  word-break: break-all;
+}
+
+.sys-info__value--path {
+  font-size: 13px;
+  font-weight: 500;
+  /* deslop-ignore-next-line 34 */
+  font-family: var(--bc-font-mono);
 }
 
 .compat-hint {
   margin-bottom: 16px;
-  color: #606266;
+  color: var(--bc-text-muted);
   line-height: 1.6;
 }
 
@@ -837,6 +925,26 @@ onMounted(() => {
 
   .compact-form :deep(.el-form-item__label) {
     margin-bottom: 4px;
+  }
+
+  .form-item--long-label :deep(.el-form-item__label) {
+    width: auto !important;
+    flex: auto !important;
+  }
+
+  .inline-row {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  /* 小屏下控件占满单行，便于点按 */
+  .num-field,
+  .time-field,
+  .select-field,
+  .text-field,
+  .path-field,
+  .textarea-field {
+    width: 100%;
   }
 }
 </style>

@@ -497,8 +497,9 @@ onMounted(() => {
 .table-container {
   flex: 1;
   overflow: auto;
-  background: #fff;
-  border-radius: 6px;
+  background: var(--bc-surface);
+  border: 1px solid var(--bc-border);
+  border-radius: var(--bc-radius-md);
 }
 
 .scope-text {
@@ -507,7 +508,7 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #606266;
+  color: var(--bc-text-muted);
 }
 
 .limit-row {
@@ -532,11 +533,11 @@ onMounted(() => {
 .form-tip {
   margin-top: 4px;
   font-size: 12px;
-  color: #909399;
+  color: var(--bc-text-subtle);
 }
 
 .text-muted {
-  color: #909399;
+  color: var(--bc-text-subtle);
 }
 
 @media (max-width: 768px) {

@@ -1,245 +1,277 @@
 <template>
   <div class="home-view">
-    <div class="toolbar">
-      <div class="actions-group">
-        <el-button type="primary" :icon="Plus" @click="showAddDialog = true">
-          {{ t('torrent.addTorrent') }}
-        </el-button>
-        <el-button :icon="Refresh" @click="handleManualRefresh">{{ t('common.refresh') }}</el-button>
-        <template v-if="!isMobile">
-          <el-button
-            :icon="VideoPlay"
-            :disabled="!hasSelection"
-            @click="startSelected"
-          >
-            {{ t('torrent.startSelected') }}
-          </el-button>
-          <el-button
-            :icon="VideoPause"
-            :disabled="!hasSelection"
-            @click="stopSelected"
-          >
-            {{ t('torrent.stopSelected') }}
-          </el-button>
-          <el-button
-            type="danger"
-            :icon="Delete"
-            :disabled="!hasSelection"
-            @click="removeSelected"
-          >
-            {{ t('torrent.deleteSelected') }}
-          </el-button>
-          <el-button @click="openBatchLimitDialog"> {{ t('torrent.batchLimit') }} </el-button>
-          <el-button :disabled="!hasSelection" @click="openLabelsDialog">
-            {{ t('torrent.batchLabels') }}
-          </el-button>
-          <el-button @click="openReplaceTrackerDialog">
-            {{ t('torrent.batchReplaceTracker') }}
-          </el-button>
-          <el-button @click="showColumnDialog = true" :title="t('torrent.columnSettings')">
-            {{ t('torrent.columnSettings') }}
-          </el-button>
-          <el-button 
-            v-if="notificationState.supported"
-            :icon="notificationState.enabled ? Bell : MuteNotification" 
-            :type="notificationState.enabled ? 'success' : 'info'"
-            @click="toggleNotifications"
-            :title="notificationState.enabled ? t('notification.disableNotifications') : t('notification.enableNotifications')"
-          >
-            {{ notificationState.enabled ? t('notification.disableNotifications') : t('notification.enableNotifications') }}
-          </el-button>
-        </template>
-        <template v-else>
-          <el-dropdown trigger="click" @command="handleActionCommand">
-            <el-button :icon="Operation">{{ t('common.operation') }}</el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="start" :disabled="!hasSelection">
-                  {{ t('torrent.startSelected') }}
-                </el-dropdown-item>
-                <el-dropdown-item command="stop" :disabled="!hasSelection">
-                  {{ t('torrent.stopSelected') }}
-                </el-dropdown-item>
-                <el-dropdown-item command="remove" :disabled="!hasSelection">
-                  {{ t('torrent.deleteSelected') }}
-                </el-dropdown-item>
-                <el-dropdown-item command="limit">
-                  {{ t('torrent.batchLimit') }}
-                </el-dropdown-item>
-                <el-dropdown-item command="labels" :disabled="!hasSelection">
-                  {{ t('torrent.batchLabels') }}
-                </el-dropdown-item>
-                <el-dropdown-item command="replaceTracker">
-                  {{ t('torrent.batchReplaceTracker') }}
-                </el-dropdown-item>
-                <el-dropdown-item command="columnVisibility">
-                  {{ t('torrent.columnSettings') }}
-                </el-dropdown-item>
-                <el-dropdown-item
-                  v-if="notificationState.supported"
-                  command="toggleNotifications"
-                >
-                  {{ notificationState.enabled ? t('notification.disableNotifications') : t('notification.enableNotifications') }}
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </template>
-      </div>
-      <el-button
-        v-if="isMobile"
-        class="filter-toggle"
-        :icon="Filter"
-        plain
-        @click="toggleMobileFilters"
-      >
-        {{ showMobileFilters ? t('torrent.collapseFilter') : t('torrent.expandFilter') }}
-      </el-button>
-    </div>
-
-    <Transition name="fade">
-      <div
-        v-if="!isMobile || showMobileFilters"
-        class="filter-submenu"
-        :class="{ 'is-mobile': isMobile }"
-      >
-        <div class="submenu-section filter-controls">
-          <el-select
-            v-model="trackerFilter"
-            :placeholder="t('torrent.selectTracker')"
-            clearable
-            filterable
-            :filter-method="filterTrackerOptions"
-            class="filter-select"
-            @clear="trackerFilter = ''"
-          >
-            <el-option :label="t('torrent.allTrackers')" value="" />
-            <el-option
-              v-for="tracker in filteredTrackerOptions"
-              :key="tracker.value"
-              :label="tracker.label"
-              :value="tracker.value"
-            />
-          </el-select>
-          <el-select
-            v-if="!isTransmission && categoryOptions.length > 0"
-            v-model="categoryFilter"
-            :placeholder="t('torrent.selectCategory')"
-            clearable
-            filterable
-            class="filter-select"
-            @clear="categoryFilter = ''"
-          >
-            <el-option :label="t('torrent.allCategories')" value="" />
-            <el-option
-              v-for="category in categoryOptions"
-              :key="category.value"
-              :label="category.label"
-              :value="category.value"
-            />
-          </el-select>
-          <el-select
-            v-if="downloadDirOptions.length > 0"
-            v-model="downloadDirFilter"
-            :placeholder="t('torrent.selectSaveDir')"
-            clearable
-            filterable
-            class="filter-select"
-            @clear="downloadDirFilter = ''"
-          >
-            <el-option :label="t('torrent.allDirs')" value="" />
-            <el-option
-              v-for="option in downloadDirOptions"
-              :key="option.value"
-              :label="option.label"
-              :value="option.value"
-            />
-          </el-select>
-          <el-select
-            v-if="errorTypeOptions.length > 0"
-            v-model="errorTypeFilter"
-            :placeholder="t('torrent.selectErrorType')"
-            clearable
-            filterable
-            class="filter-select"
-            @clear="errorTypeFilter = ''"
-          >
-            <el-option :label="t('torrent.allErrors')" value="" />
-            <el-option
-              v-for="option in errorTypeOptions"
-              :key="option.value"
-              :label="option.label"
-              :value="option.value"
-            />
-          </el-select>
-          <el-select
-            v-if="labelOptions.length > 0"
-            v-model="labelFilter"
-            :placeholder="t('torrent.selectLabel')"
-            clearable
-            filterable
-            class="filter-select"
-            @clear="labelFilter = ''"
-          >
-            <el-option :label="t('torrent.allLabels')" value="" />
-            <el-option
-              v-if="hasNoLabelTorrent"
-              :label="t('torrent.noLabel')"
-              value="__no_label__"
-            />
-            <el-option
-              v-for="option in labelOptions"
-              :key="option.value"
-              :label="option.label"
-              :value="option.value"
-            />
-          </el-select>
-          <el-input
-            v-model="searchKeyword"
-            :placeholder="t('torrent.searchTorrent')"
-            :prefix-icon="Search"
-            clearable
-            class="filter-input"
-          />
-        </div>
-        <div class="submenu-section update-info" v-if="lastFetchedAt">
-          <span>{{ t('torrent.dataUpdateTime') }}：{{ lastFetchedAt }}</span>
-        </div>
-      </div>
-    </Transition>
-
-    <div class="table-container">
-      <div class="table-scroll" v-loading="loading">
-        <el-auto-resizer>
-          <template #default="{ height, width }">
-            <el-table-v2
-              :columns="tableV2Columns"
-              :data="paginatedTorrents"
-              :width="width"
-              :height="height"
-              fixed
-              :sort-by="v2SortState"
-              @column-sort="handleV2Sort"
-              @column-resize="handleColumnResizeV2"
-              :row-event-handlers="v2RowEventHandlers"
-              :row-class="v2RowClassName"
-            />
-          </template>
-        </el-auto-resizer>
-      </div>
-
-      <div class="pagination" v-if="displayedTorrents.length > 0">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :page-sizes="pageSizeOptions"
-          :pager-count="5"
-          layout="total, sizes, prev, pager, next"
-          :total="displayedTorrents.length"
-          background
+  <div class="toolbar">
+  <div class="actions-group">
+  <el-button type="primary" :icon="Plus" @click="showAddDialog = true">
+  {{ t('torrent.addTorrent') }}
+  </el-button>
+  <el-button :icon="Refresh" @click="handleManualRefresh">
+  {{ isMobile ? '' : t('common.refresh') }}
+  </el-button>
+  <template v-if="!isMobile">
+  <el-button :icon="VideoPlay" :disabled="!hasSelection" @click="startSelected">
+  {{ t('torrent.startSelected') }}
+  </el-button>
+  <el-button :icon="VideoPause" :disabled="!hasSelection" @click="stopSelected">
+  {{ t('torrent.stopSelected') }}
+  </el-button>
+  <el-button
+  type="danger"
+  :icon="Delete"
+  :disabled="!hasSelection"
+  @click="removeSelected"
+  >
+  {{ t('torrent.deleteSelected') }}
+  </el-button>
+  <el-button :icon="Odometer" @click="openBatchLimitDialog">
+  {{ t('torrent.batchLimit') }}
+  </el-button>
+  <el-dropdown trigger="click" @command="handleActionCommand">
+  <el-button :icon="MoreFilled">{{ t('common.more') }}</el-button>
+  <template #dropdown>
+  <el-dropdown-menu>
+  <el-dropdown-item command="labels" :disabled="!hasSelection">
+  {{ t('torrent.batchLabels') }}
+  </el-dropdown-item>
+  <el-dropdown-item command="replaceTracker">
+  {{ t('torrent.batchReplaceTracker') }}
+  </el-dropdown-item>
+  <el-dropdown-item command="columnVisibility">
+  {{ t('torrent.columnSettings') }}
+  </el-dropdown-item>
+  <el-dropdown-item
+  v-if="notificationState.supported"
+  command="toggleNotifications"
+  >
+  {{ notificationState.enabled ? t('notification.disableNotifications') : t('notification.enableNotifications') }}
+  </el-dropdown-item>
+  </el-dropdown-menu>
+  </template>
+  </el-dropdown>
+  <el-button
+  class="view-toggle"
+  :icon="isCardView ? List : Grid"
+  :title="isCardView ? t('home.tableView') : t('home.cardView')"
+  @click="toggleViewMode"
+  />
+  </template>
+  <template v-else>
+  <el-dropdown trigger="click" @command="handleActionCommand">
+  <el-button :icon="Operation">{{ t('common.operation') }}</el-button>
+  <template #dropdown>
+  <el-dropdown-menu>
+  <el-dropdown-item command="start" :disabled="!hasSelection">
+  {{ t('torrent.startSelected') }}
+  </el-dropdown-item>
+  <el-dropdown-item command="stop" :disabled="!hasSelection">
+  {{ t('torrent.stopSelected') }}
+  </el-dropdown-item>
+  <el-dropdown-item command="remove" :disabled="!hasSelection">
+  {{ t('torrent.deleteSelected') }}
+  </el-dropdown-item>
+  <el-dropdown-item command="limit">{{ t('torrent.batchLimit') }}</el-dropdown-item>
+  <el-dropdown-item command="labels" :disabled="!hasSelection">
+  {{ t('torrent.batchLabels') }}
+  </el-dropdown-item>
+  <el-dropdown-item command="replaceTracker">
+  {{ t('torrent.batchReplaceTracker') }}
+  </el-dropdown-item>
+  <el-dropdown-item command="columnVisibility">
+  {{ t('torrent.columnSettings') }}
+  </el-dropdown-item>
+  <el-dropdown-item
+  v-if="notificationState.supported"
+  command="toggleNotifications"
+  >
+  {{ notificationState.enabled ? t('notification.disableNotifications') : t('notification.enableNotifications') }}
+  </el-dropdown-item>
+  </el-dropdown-menu>
+  </template>
+  </el-dropdown>
+        <el-button
+          class="view-toggle"
+          :icon="Filter"
+          :title="showMobileFilters ? t('torrent.collapseFilter') : t('torrent.expandFilter')"
+          @click="toggleMobileFilters"
         />
-      </div>
+        <el-button
+          class="view-toggle"
+          :icon="isCardView ? List : Grid"
+          :title="isCardView ? t('home.tableView') : t('home.cardView')"
+          @click="toggleViewMode"
+        />
+  </template>
+  </div>
+  </div>
+  
+  <Transition name="fade">
+  <div v-if="!isMobile || showMobileFilters" class="filter-submenu" :class="{ 'is-mobile': isMobile }">
+  <div class="submenu-section filter-controls">
+  <el-select
+  v-model="trackerFilter"
+  :placeholder="t('torrent.selectTracker')"
+  clearable
+  filterable
+  :filter-method="filterTrackerOptions"
+  class="filter-select"
+  @clear="trackerFilter = ''"
+  >
+  <el-option :label="t('torrent.allTrackers')" value="" />
+  <el-option
+  v-for="tracker in filteredTrackerOptions"
+  :key="tracker.value"
+  :label="tracker.label"
+  :value="tracker.value"
+  />
+  </el-select>
+  <el-select
+  v-if="!isTransmission && categoryOptions.length > 0"
+  v-model="categoryFilter"
+  :placeholder="t('torrent.selectCategory')"
+  clearable
+  filterable
+  class="filter-select"
+  @clear="categoryFilter = ''"
+  >
+  <el-option :label="t('torrent.allCategories')" value="" />
+  <el-option
+  v-for="category in categoryOptions"
+  :key="category.value"
+  :label="category.label"
+  :value="category.value"
+  />
+  </el-select>
+  <el-select
+  v-if="downloadDirOptions.length > 0"
+  v-model="downloadDirFilter"
+  :placeholder="t('torrent.selectSaveDir')"
+  clearable
+  filterable
+  class="filter-select"
+  @clear="downloadDirFilter = ''"
+  >
+  <el-option :label="t('torrent.allDirs')" value="" />
+  <el-option
+  v-for="option in downloadDirOptions"
+  :key="option.value"
+  :label="option.label"
+  :value="option.value"
+  />
+  </el-select>
+  <el-select
+  v-if="errorTypeOptions.length > 0"
+  v-model="errorTypeFilter"
+  :placeholder="t('torrent.selectErrorType')"
+  clearable
+  filterable
+  class="filter-select"
+  @clear="errorTypeFilter = ''"
+  >
+  <el-option :label="t('torrent.allErrors')" value="" />
+  <el-option
+  v-for="option in errorTypeOptions"
+  :key="option.value"
+  :label="option.label"
+  :value="option.value"
+  />
+  </el-select>
+  <el-select
+  v-if="labelOptions.length > 0"
+  v-model="labelFilter"
+  :placeholder="t('torrent.selectLabel')"
+  clearable
+  filterable
+  class="filter-select"
+  @clear="labelFilter = ''"
+  >
+  <el-option :label="t('torrent.allLabels')" value="" />
+  <el-option
+  v-if="hasNoLabelTorrent"
+  :label="t('torrent.noLabel')"
+  value="__no_label__"
+  />
+  <el-option
+  v-for="option in labelOptions"
+  :key="option.value"
+  :label="option.label"
+  :value="option.value"
+  />
+  </el-select>
+  <el-input
+  v-model="searchKeyword"
+  :placeholder="t('torrent.searchTorrent')"
+  :prefix-icon="Search"
+  clearable
+  class="filter-input"
+  />
+  </div>
+  <div class="submenu-section update-info" v-if="lastFetchedAt">
+  <span>{{ t('torrent.dataUpdateTime') }}：{{ lastFetchedAt }}</span>
+  </div>
+  </div>
+  </Transition>
+  
+  <div class="table-container">
+    <TransitionGroup v-if="isCardView" name="card-list" tag="div" class="card-list">
+      <TorrentCard
+        v-for="torrent in paginatedTorrents"
+        :key="torrent.id"
+        :name="torrent.name"
+        :selected="isTorrentSelected(torrent.id)"
+        :is-paused="torrent.status === TorrentStatusEnum.STOPPED"
+        :status-text="getStatusText(torrent)"
+        :status-type="getStatusType(torrent)"
+        :progress-percent="Math.round(getTorrentProgress(torrent) * 100)"
+        :size-text="formatBytes(torrent.totalSize)"
+        :speed-text="`↓ ${formatSpeed(torrent.rateDownload)} ↑ ${formatSpeed(torrent.rateUpload)}`"
+        :eta-text="formatETA(torrent.eta, torrent.status)"
+        :ratio-text="formatRatio(torrent.uploadRatio)"
+        :error-text="getCardErrorText(torrent)"
+        :labels="cardLabels"
+        @toggle="(value: boolean) => toggleTorrentSelection(torrent, value)"
+        @open="openDetailDialog(torrent)"
+        @menu="({ x, y }) => handleCardContextMenu(torrent, x, y)"
+      />
+    </TransitionGroup>
+
+    <div class="table-scroll" v-else v-loading="loading">
+      <el-auto-resizer>
+        <template #default="{ height, width }">
+          <el-table-v2
+            :columns="tableV2Columns"
+            :data="paginatedTorrents"
+            :width="width"
+            :height="height"
+            fixed
+            :sort-by="v2SortState"
+            @column-sort="handleV2Sort"
+            @column-resize="handleColumnResizeV2"
+            :row-event-handlers="v2RowEventHandlers"
+            :row-class="v2RowClassName"
+          />
+        </template>
+      </el-auto-resizer>
     </div>
+
+    <el-empty
+      v-if="displayedTorrents.length === 0 && !loading"
+      class="list-empty"
+      :description="t('home.emptyDescription')"
+      :image-size="isMobile ? 72 : 96"
+    />
+
+    <div class="pagination" v-if="displayedTorrents.length > 0">
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :page-sizes="pageSizeOptions"
+        :pager-count="isMobile ? 5 : 7"
+        :layout="isMobile ? 'prev, pager, next' : 'total, sizes, prev, pager, next'"
+        :total="displayedTorrents.length"
+        background
+      />
+    </div>
+  </div>
 
     <div
       v-if="contextMenu.visible"
@@ -255,19 +287,19 @@
         v-if="contextMenuHasStoppedTorrent"
         @click="handleContextAction('start')"
       >
-        {{ t('torrent.startItem') }}{{ contextMenuTargets.length > 1 ? t('common.start') : '' }}
+        {{ contextMenuTargets.length > 1 ? t('torrent.startAll') : t('torrent.startItem') }}
       </button>
       <button
         v-if="contextMenuHasRunningTorrent"
         @click="handleContextAction('stop')"
       >
-        {{ t('torrent.stopItem') }}{{ contextMenuTargets.length > 1 ? t('common.stop') : '' }}
+        {{ contextMenuTargets.length > 1 ? t('torrent.stopAll') : t('torrent.stopItem') }}
       </button>
       <button @click="handleContextAction('verify')">
-        {{ t('torrent.verify') }}{{ contextMenuTargets.length > 1 ? t('common.start') : '' }}
+        {{ contextMenuTargets.length > 1 ? t('torrent.verifyAll') : t('torrent.verify') }}
       </button>
       <button @click="handleContextAction('reannounce')">
-        {{ t('torrent.reannounce') }}{{ contextMenuTargets.length > 1 ? t('common.start') : '' }}
+        {{ contextMenuTargets.length > 1 ? t('torrent.reannounceAll') : t('torrent.reannounce') }}
       </button>
       <button @click="handleContextAction('location')">{{ t('torrent.changeLocation') }}</button>
       <button @click="handleContextAction('category')">{{ t('torrent.setCategory') }}</button>
@@ -702,17 +734,36 @@
                       min-width="200"
                       show-overflow-tooltip
                     />
-                    <el-table-column :label="t('torrent.state')" width="100" align="center">
+                    <el-table-column :label="t('torrent.trackerStatus')" width="100" align="center">
                       <template #default="{ row }">
-                        <el-tag size="small" :type="row.statusType">{{
-                          row.statusText
-                        }}</el-tag>
+                        <el-tooltip
+                          :content="row.announceResult"
+                          :disabled="row.statusType !== 'danger' || !row.announceResult"
+                          placement="top"
+                        >
+                          <el-tag size="small" :type="row.statusType">{{
+                            row.statusText
+                          }}</el-tag>
+                        </el-tooltip>
                       </template>
                     </el-table-column>
                     <el-table-column
                       prop="lastAnnounce"
                       :label="t('torrent.lastAnnounce')"
                       width="140"
+                      v-if="isTransmission"
+                    />
+                    <el-table-column
+                      prop="nextAnnounce"
+                      :label="t('torrent.nextAnnounce')"
+                      width="140"
+                      v-if="isTransmission"
+                    />
+                    <el-table-column
+                      prop="announceResult"
+                      :label="t('torrent.announceResult')"
+                      min-width="160"
+                      show-overflow-tooltip
                       v-if="isTransmission"
                     />
                   </el-table>
@@ -741,7 +792,7 @@
                         <span v-if="row.countryFlag" :title="row.country">
                           {{ row.countryFlag }} {{ row.country }}
                         </span>
-                        <span v-else style="color: #909399">-</span>
+                        <span v-else style="color: var(--bc-text-subtle)">-</span>
                       </template>
                     </el-table-column>
                     <el-table-column
@@ -825,7 +876,7 @@
       class="limit-dialog"
     >
       <p class="dialog-subtitle" v-if="limitDialogMode === 'batch'">
-        {{ t('torrent.allTorrents') }}：{{ limitDialogTargetTorrents.length }} {{ t('torrent.torrentsCount') }}
+        {{ (limitDialogTargetTorrents.length === torrents.length ? t('torrent.allTorrents') : t('torrent.selected')) }}：{{ limitDialogTargetTorrents.length }} {{ t('torrent.torrentsCount') }}
       </p>
       <p class="dialog-subtitle" v-else>
         {{ limitDialogTargetName }}
@@ -1016,21 +1067,28 @@ import {
   VideoPlay,
   VideoPause,
   Delete,
+  Odometer,
   Upload,
   Filter,
   Folder,
   Document,
   Operation,
-  Bell,
-  MuteNotification,
+  MoreFilled,
   Edit,
+  Grid,
+  List,
 } from "@element-plus/icons-vue";
+import TorrentCard from "@/components/TorrentCard.vue";
 import * as api from "@/api/torrents";
 import type { Torrent, TorrentStatus } from "@/types/transmission";
 import { TorrentStatusEnum } from "@/types/transmission";
 import {
   getTrackerDisplayName,
 } from "@/utils/torrent";
+import {
+  getTorrentErrorMessage,
+  isTorrentError,
+} from "@/utils/torrentStatus";
 import { getIPGeolocation } from "@/utils/ipGeolocation";
 import { useMediaQuery } from "@/utils/useMediaQuery";
 import { formatBytes, formatSpeed } from "@/utils/format";
@@ -1774,6 +1832,33 @@ const limitDialogFilteredCount = computed(() => {
 const isMobile = useMediaQuery("(max-width: 768px)");
 const isCompactTable = useMediaQuery("(max-width: 1100px)");
 const showMobileFilters = ref(!isMobile.value);
+
+// 2.0：视图模式（表格 / 卡片），移动端默认卡片，可手动切换
+const preferredViewMode = ref<"table" | "card">(isMobile.value ? "card" : "table");
+const isCardView = computed(() => preferredViewMode.value === "card");
+const toggleViewMode = () => {
+  preferredViewMode.value = preferredViewMode.value === "card" ? "table" : "card";
+};
+
+const cardLabels = computed(() => ({
+  size: t("home.cardLabels.size"),
+  speed: t("home.cardLabels.speed"),
+  eta: t("home.cardLabels.eta"),
+  ratio: t("home.cardLabels.ratio"),
+}));
+const getCardErrorText = (torrent: Torrent): string | undefined => {
+  if (!isTorrentError(torrent)) return undefined;
+  return getErrorType(getTorrentErrorMessage(torrent));
+};
+const handleCardContextMenu = (torrent: Torrent, x: number, y: number) => {
+  const isRowSelected = isTorrentSelected(torrent.id);
+  contextMenuTargets.value =
+    isRowSelected && selectedTorrents.value.length > 0
+      ? [...selectedTorrents.value]
+      : [torrent];
+  contextMenu.value = { visible: true, x, y, torrent };
+  nextTick(adjustContextMenuPosition);
+};
 const columnWidths = ref<Record<string, number>>({ ...defaultColumnWidths });
 const createDialogWidth = (desktopWidth: string, mobileWidth = "94vw") =>
   computed(() => (isMobile.value ? mobileWidth : desktopWidth));
@@ -1963,6 +2048,13 @@ const formatLastActivity = (timestamp?: number): string => {
   return dayjs(timestamp * 1000).fromNow();
 };
 
+// 下次汇报：显示相对时间（如「5 分钟后」），已过期或未安排则显示 —
+const formatNextAnnounce = (timestamp?: number): string => {
+  if (!timestamp || timestamp <= 0) return "—";
+  if (timestamp * 1000 <= Date.now()) return "—";
+  return dayjs(timestamp * 1000).fromNow();
+};
+
 const formatTorrentDate = (timestamp?: number): string => {
   if (!timestamp) return "—";
   return dayjs(timestamp * 1000).format("YYYY-MM-DD HH:mm");
@@ -1984,10 +2076,6 @@ const formatSpeedLimitText = (torrent: Torrent): { text: string; tooltip: string
   }
   const tooltip = `${t('torrent.perTorrentLimit')}：${parts.join("，")}`;
   return { text: parts.join(" "), tooltip, active: true };
-};
-
-const isTorrentError = (torrent: Torrent) => {
-  return (torrent.error ?? 0) > 0 || !!torrent.errorString;
 };
 
 const {
@@ -2121,17 +2209,44 @@ const detailTrackerRows = computed(() => {
       (s) => s.announce === tracker.announce
     );
     const success = stat?.lastAnnounceSucceeded;
-    const statusType = success ? "success" : "warning";
+    const announceResult = (stat?.lastAnnounceResult || "").trim();
+    const hasAnnounced = stat?.hasAnnounced ?? Boolean(announceResult);
+    // 汇报过且失败：说明没连上 tracker（如 "Connection failed"），需要重点关注
+    const failed = Boolean(stat) && hasAnnounced && !success && Boolean(announceResult);
+
+    let statusText: string;
+    let statusType: string;
+    if (success) {
+      statusText = t('torrent.announceSuccess');
+      statusType = "success";
+    } else if (failed) {
+      statusText = t('torrent.announceFailed');
+      statusType = "danger";
+    } else if (stat && hasAnnounced) {
+      statusText = t('torrent.announceWaiting');
+      statusType = "warning";
+    } else {
+      statusText = t('torrent.announceNotYet');
+      statusType = "info";
+    }
+
     const lastAnnounce = stat?.lastAnnounceTime
       ? formatLastActivity(stat.lastAnnounceTime)
       : "—";
-    const statusText = success ? t('torrent.announceSuccess') : stat ? t('torrent.announceWaitOrFail') : t('common.unknown');
+    const nextAnnounce = formatNextAnnounce(stat?.nextAnnounceTime);
+    // 成功时 Transmission 会返回 "Success"，展示成本地化的成功文案即可
+    const resultText = /^success$/i.test(announceResult)
+      ? t('torrent.announceSuccess')
+      : announceResult;
+
     return {
       tier: tracker.tier ?? index,
       announce: tracker.announce,
       statusText,
       statusType,
       lastAnnounce,
+      nextAnnounce,
+      announceResult: resultText,
     };
   });
 });
@@ -2576,9 +2691,12 @@ const checkTorrentStatusChanges = () => {
         notifyTorrentCompleted(torrent.name);
       }
       
-      // 检查是否出错
-      if ((!prev.error || prev.error === 0) && torrent.error && torrent.error > 0) {
-        notifyTorrentError(torrent.name, torrent.errorString || 'Unknown error');
+      // 检查是否出错（tracker 的正常响应如 `ook` 不算错误）
+      if ((!prev.error || prev.error === 0) && isTorrentError(torrent)) {
+        notifyTorrentError(
+          torrent.name,
+          getTorrentErrorMessage(torrent) || 'Unknown error'
+        );
       }
       
       // 检查校验是否完成（从校验状态变为非校验状态且进度100%）
@@ -3430,9 +3548,10 @@ const openBatchLimitDialog = () => {
   limitDialogMode.value = "batch";
   limitDialogTargetName.value = "";
   limitDialogLoading.value = false;
-  // 使用所有种子，而不是选中的种子
-  limitDialogIds.value = torrents.value.map((t) => t.id);
-  limitDialogTargetTorrents.value = [...torrents.value];
+  // 若有选中的种子则针对选中的种子，否则针对所有种子
+  const targets = selectedTorrents.value.length > 0 ? selectedTorrents.value : torrents.value;
+  limitDialogIds.value = targets.map((t) => t.id);
+  limitDialogTargetTorrents.value = [...targets];
   resetLimitDialogForm();
   limitDialogVisible.value = true;
 };
@@ -3747,7 +3866,7 @@ const getStatusText = (torrent: Torrent): string => {
 
   // 其他状态下，如果存在错误则显示错误类型（type字段）
   if (isTorrentError(torrent)) {
-    return getErrorType(torrent.errorString);
+    return getErrorType(getTorrentErrorMessage(torrent));
   }
 
   return statusTextMap[torrent.status] || t('torrent.unknownClient');
@@ -3854,7 +3973,8 @@ const formatCommentWithLinks = (comment: string): string => {
   let escapedComment = escapeHtml(comment);
   // 然后将 URL 替换为超链接
   return escapedComment.replace(urlRegex, (url) => {
-    return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: #409eff; text-decoration: underline;">${url}</a>`;
+    // deslop-ignore-next-line 09
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: var(--bc-accent); text-decoration: underline;">${url}</a>`;
   });
 };
 
@@ -3884,6 +4004,7 @@ const {
   getStatusType,
   getStatusText,
   isTorrentError,
+  getErrorMessage: getTorrentErrorMessage,
   getProgress: getTorrentProgress,
   getProgressTooltip,
   getRatioClass,

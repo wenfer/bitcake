@@ -49,6 +49,8 @@ interface TorrentTableOptions {
   getStatusType: (torrent: Torrent) => string;
   getStatusText: (torrent: Torrent) => string;
   isTorrentError: (torrent: Torrent) => boolean;
+  /** 归一化后的错误描述（会过滤 tracker 的正常响应，如 `ook`） */
+  getErrorMessage?: (torrent: Torrent) => string | undefined;
   getProgress: (torrent: Torrent) => number;
   getProgressTooltip: (torrent: Torrent) => string;
   getRatioClass: (ratio: number) => string;
@@ -168,8 +170,8 @@ export const useTorrentTable = (options: TorrentTableOptions) => {
                     borderBottomColor:
                       props.sortBy?.key === props.column.key &&
                       props.sortBy?.order === "asc"
-                        ? "#409eff"
-                        : "#c0c4cc",
+                        ? "var(--bc-accent)"
+                        : "var(--bc-text-subtle)",
                   },
                 }),
                 h("i", {
@@ -178,8 +180,8 @@ export const useTorrentTable = (options: TorrentTableOptions) => {
                     borderTopColor:
                       props.sortBy?.key === props.column.key &&
                       props.sortBy?.order === "desc"
-                        ? "#409eff"
-                        : "#c0c4cc",
+                        ? "var(--bc-accent)"
+                        : "var(--bc-text-subtle)",
                   },
                 }),
               ]
@@ -206,7 +208,8 @@ export const useTorrentTable = (options: TorrentTableOptions) => {
           ? h(
               ElTooltip,
               {
-                content: row.errorString || options.unknownErrorText(),
+                content:
+                  options.getErrorMessage?.(row) || options.unknownErrorText(),
                 placement: "top",
               },
               () => tag

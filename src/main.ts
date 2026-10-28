@@ -5,7 +5,10 @@ import router from './router'
 
 // Import Element Plus
 import ElementPlus from 'element-plus'
+// Element Plus 基础样式
 import 'element-plus/dist/index.css'
+// BitCake 2.0 设计系统（必须在 Element Plus 之后加载，用于覆盖语义变量）
+import './style.css'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import en from 'element-plus/es/locale/lang/en'
 
@@ -15,6 +18,10 @@ import i18n, { getLocale } from './i18n'
 // Register Service Worker
 import { registerSW } from './utils/swRegister'
 registerSW()
+
+// 在挂载前应用主题（强调色 + 深浅模式），避免首屏闪烁
+import { applyStoredTheme } from './utils/themeBoot'
+applyStoredTheme()
 
 // --- Edge 兼容性修复（vue-router 4.6.x 无法最小化） ---
 // vue-router 4.6.0+ 内部监听 visibilitychange：页面隐藏（窗口最小化）时调用

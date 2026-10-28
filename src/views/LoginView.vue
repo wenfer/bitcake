@@ -1,23 +1,65 @@
 <template>
   <div class="login-view">
-    <el-card class="login-card">
-      <template #header>
-        <h2><img :src="logoSrc" class="login-logo" /> {{ backendLabel }} {{ t('login.title') }}</h2>
-      </template>
-      <el-form :model="form" :rules="rules" ref="formRef" label-width="80px" @submit.prevent="handleLogin">
-        <el-form-item :label="t('login.username')" prop="username">
-          <el-input v-model="form.username" :placeholder="t('login.usernamePlaceholder')" />
-        </el-form-item>
-        <el-form-item :label="t('login.password')" prop="password">
-          <el-input v-model="form.password" type="password" :placeholder="t('login.passwordPlaceholder')" @keyup.enter="handleLogin" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :loading="loading" @click="handleLogin" class="login-button">
+    <div class="login-shell">
+      <section class="login-hero" aria-hidden="true">
+        <div class="login-hero__content">
+          <h1 class="login-hero__title">{{ t('login.title') }}</h1>
+          <p class="login-hero__desc">
+            {{ backendLabel }} · {{ t('nav.torrentList') }} / {{ t('nav.stats') }}
+          </p>
+        </div>
+      </section>
+
+      <section class="login-panel">
+        <header class="login-panel__head">
+          <span class="login-panel__logo">
+            <img :src="logoSrc" alt="" />
+          </span>
+          <div>
+            <h2>{{ backendLabel }} {{ t('login.title') }}</h2>
+            <p>{{ t('login.usernamePlaceholder') }}</p>
+          </div>
+        </header>
+
+        <el-form
+          :model="form"
+          :rules="rules"
+          ref="formRef"
+          label-position="top"
+          class="login-form"
+          @submit.prevent="handleLogin"
+        >
+          <el-form-item :label="t('login.username')" prop="username">
+            <el-input
+              v-model="form.username"
+              size="large"
+              :placeholder="t('login.usernamePlaceholder')"
+              autocomplete="username"
+            />
+          </el-form-item>
+          <el-form-item :label="t('login.password')" prop="password">
+            <el-input
+              v-model="form.password"
+              type="password"
+              size="large"
+              show-password
+              :placeholder="t('login.passwordPlaceholder')"
+              autocomplete="current-password"
+              @keyup.enter="handleLogin"
+            />
+          </el-form-item>
+          <el-button
+            type="primary"
+            size="large"
+            :loading="loading"
+            class="login-button"
+            @click="handleLogin"
+          >
             {{ t('login.loginButton') }}
           </el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+        </el-form>
+      </section>
+    </div>
   </div>
 </template>
 
@@ -109,37 +151,113 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
+  min-height: 100dvh;
+  padding: 16px;
+  background: var(--bc-bg);
 }
 
-.login-card {
-  width: min(380px, 100%);
+.login-shell {
+  width: min(920px, 100%);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  overflow: hidden;
+  border-radius: var(--bc-radius-lg);
+  border: 1px solid var(--bc-border);
+  background: var(--bc-surface);
+  box-shadow: var(--bc-shadow-lg);
 }
 
-.login-card h2 {
+/* 左侧品牌区：小屏隐藏，中屏以上展示 */
+.login-hero {
+  display: none;
+  position: relative;
+  padding: 32px;
+  background: var(--bc-header-bg);
+  color: var(--bc-header-text);
+}
+
+.login-hero__content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+  height: 100%;
+}
+
+.login-hero__title {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.login-hero__desc {
   margin: 0;
-  text-align: center;
-  font-size: 22px;
+  font-size: 14px;
+  color: var(--bc-header-text-muted);
 }
-.login-card h2 .login-logo {
-  width: 28px;
-  height: 28px;
-  margin-right: 8px;
-  vertical-align: -6px;
+
+.login-panel {
+  padding: 26px 22px 28px;
+}
+
+.login-panel__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.login-panel__logo {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: var(--bc-accent-soft);
+}
+
+.login-panel__logo img {
+  width: 26px;
+  height: 26px;
+}
+
+.login-panel__head h2 {
+  font-size: 19px;
+  margin-bottom: 2px;
+}
+
+.login-panel__head p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--bc-text-subtle);
+}
+
+.login-form :deep(.el-form-item__label) {
+  font-size: 13px;
+  color: var(--bc-text-muted);
+  padding-bottom: 4px;
 }
 
 .login-button {
   width: 100%;
+  margin-top: 6px;
+  font-weight: 600;
 }
 
-@media (max-width: 600px) {
-  .login-view {
-    padding: 12px;
+@media (min-width: 768px) {
+  .login-shell {
+    grid-template-columns: 1.05fr 1fr;
   }
 
-  .login-card h2 {
-    font-size: 20px;
+  .login-hero {
+    display: block;
+  }
+
+  .login-panel {
+    padding: 36px 34px;
   }
 }
 </style>

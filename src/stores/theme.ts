@@ -1,48 +1,75 @@
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
+import {
+  ACCENT_STORAGE_KEY,
+  MODE_STORAGE_KEY,
+  applyThemeToRoot,
+  normalizeAccent,
+  prefersDark,
+  resolveStoredMode,
+  type ThemeAccent,
+  type ThemeModeType,
+} from '@/utils/themeBoot'
 
-export type ThemeType = 'green' | 'blue' | 'pink'
+// 对外保持原有类型名，MainLayout 等处无需改动
+export type ThemeType = ThemeAccent
+export type ThemeMode = ThemeModeType
 
 export const useThemeStore = defineStore('theme', () => {
   const currentTheme = ref<ThemeType>('green')
+  const currentMode = ref<ThemeMode>(prefersDark() ? 'dark' : 'light')
 
-  // 从 localStorage 加载主题
+  /** 把主题写入 <html>，Element Plus 与自定义样式都从这里取值 */
+  const applyTheme = () => {
+    applyThemeToRoot(currentTheme.value, currentMode.value)
+  }
+
   const loadTheme = () => {
-    const savedTheme = localStorage.getItem('app-theme') as ThemeType | 'fresh' | 'default'
-    // 兼容旧的主题名称
-    if (savedTheme === 'fresh' || savedTheme === 'default') {
-      currentTheme.value = 'green'
-      localStorage.setItem('app-theme', 'green')
-      applyTheme('green')
-    } else if (savedTheme === 'green' || savedTheme === 'blue' || savedTheme === 'pink') {
-      currentTheme.value = savedTheme
-      applyTheme(savedTheme)
-    } else {
-      // 首次访问，应用默认主题
-      applyTheme('green')
+    let savedAccent: string | null = null
+    try {
+      savedAccent = localStorage.getItem(ACCENT_STORAGE_KEY)
+    } catch {
+      savedAccent = null
     }
+
+    currentTheme.value = normalizeAccent(savedAccent)
+    currentMode.value = resolveStoredMode()
+    applyTheme()
   }
 
-  // 应用主题到 HTML 根元素
-  const applyTheme = (theme: ThemeType) => {
-    document.documentElement.setAttribute('data-theme', theme)
-  }
-
-  // 切换主题
   const setTheme = (theme: ThemeType) => {
     currentTheme.value = theme
-    localStorage.setItem('app-theme', theme)
-    applyTheme(theme)
+    try {
+      localStorage.setItem(ACCENT_STORAGE_KEY, theme)
+    } catch {
+      /* localStorage 不可用时仅更新内存状态 */
+    }
+    applyTheme()
   }
 
-  // 监听主题变化
-  watch(currentTheme, (newTheme) => {
-    applyTheme(newTheme)
-  })
+  const setMode = (mode: ThemeMode) => {
+    currentMode.value = mode
+    try {
+      localStorage.setItem(MODE_STORAGE_KEY, mode)
+    } catch {
+      /* localStorage 不可用时仅更新内存状态 */
+    }
+    applyTheme()
+  }
+
+  const toggleMode = () => {
+    setMode(currentMode.value === 'dark' ? 'light' : 'dark')
+  }
+
+  // 首次进入时立即应用，避免出现主题闪烁
+  loadTheme()
 
   return {
     currentTheme,
+    currentMode,
     loadTheme,
     setTheme,
+    setMode,
+    toggleMode,
   }
 })

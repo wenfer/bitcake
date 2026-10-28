@@ -6,6 +6,7 @@ import type { SessionStats, SessionConfig } from '@/types/transmission'
 import type { Torrent } from '@/types/transmission'
 import { TorrentStatusEnum } from '@/types/transmission'
 import { AdaptivePoller, SingleFlightExecutor } from '@/utils/polling'
+import { isTorrentError } from '@/utils/torrentStatus'
 
 const POLL_INTERVAL = 3000
 const CONFIG_REFRESH_INTERVAL = 30_000
@@ -87,8 +88,8 @@ export const useSystemStatusStore = defineStore('systemStatus', () => {
         counts.queued = (counts.queued || 0) + 1
       }
 
-      // Count error torrents
-      if ((torrent.error ?? 0) > 0 || !!torrent.errorString) {
+      // Count error torrents（tracker 的正常响应如 `ook` 不计入错误）
+      if (isTorrentError(torrent)) {
         counts.error = (counts.error || 0) + 1
       }
     })

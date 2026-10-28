@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
     (env.VITE_TORRENT_BACKEND || mode || 'transmission').toLowerCase()
   const isQbittorrent = backend === 'qbittorrent'
 
-  console.log('🚀 Vite Config:')
+  console.log('[vite] config:')
   console.log('  Mode:', mode)
   console.log('  Backend:', backend)
   console.log('  API Base:', env.VITE_TORRENT_API_BASE || (isQbittorrent ? '/api/v2' : '/transmission/rpc'))

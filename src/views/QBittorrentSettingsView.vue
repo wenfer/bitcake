@@ -578,7 +578,7 @@ const encryptionOptions = computed(() => [
 
 const isMobile = useMediaQuery('(max-width: 768px)')
 const formLabelPosition = computed(() => (isMobile.value ? 'top' : 'left'))
-const formLabelWidth = computed(() => (isMobile.value ? 'auto' : '220px'))
+const formLabelWidth = computed(() => (isMobile.value ? 'auto' : '230px'))
 const qbDontStartAuto = computed<boolean>({
   get: () => !(settings.value['start-added-torrents'] ?? true),
   set: (v) => {
@@ -988,25 +988,66 @@ onMounted(() => {
   max-width: 1200px;
 }
 
-.compact-form :deep(.el-col) {
-  flex: 0 0 100%;
-  max-width: 100%;
-  width: 100%;
+.compact-form :deep(.el-form-item) {
+  margin-bottom: 12px;
+  min-height: 38px;
+}
+
+.compact-form :deep(.el-form-item__label) {
+  white-space: normal;
+  line-height: 1.4;
+  color: var(--el-text-color-regular);
+  font-weight: 500;
+}
+
+.compact-form :deep(.el-form-item__content) {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  min-width: 0;
+  margin-left: 0;
+}
+
+.compact-form :deep(.el-divider) {
+  margin: 24px 0 16px;
+}
+
+.compact-form :deep(.el-divider__text) {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+  background-color: var(--el-bg-color-overlay, #ffffff);
 }
 
 .inline-row {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  width: 100%;
+  gap: 10px;
+  justify-content: flex-start;
+  width: auto;
+  flex-wrap: nowrap;
 }
 
-.inline-input {
-  flex: 1;
+/* 行内数字输入框 */
+.inline-input.el-input-number,
+.inline-input :deep(.el-input-number),
+.full-width.el-input-number {
+  width: 140px;
+}
+
+/* 行内文本/路径输入框 */
+.inline-input:not(.el-input-number) {
+  width: 320px;
+  max-width: 100%;
 }
 
 .full-width {
-  width: 100%;
+  width: 240px;
+}
+
+.full-width.el-time-select {
+  width: 140px;
 }
 
 .readonly-value {
@@ -1035,6 +1076,20 @@ onMounted(() => {
 
   .compact-form :deep(.el-form-item__label) {
     margin-bottom: 4px;
+  }
+
+  .inline-row {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .inline-input,
+  .inline-input.el-input-number,
+  .inline-input:not(.el-input-number),
+  .full-width,
+  .full-width.el-input-number,
+  .full-width.el-time-select {
+    width: 100%;
   }
 }
 </style>

@@ -500,7 +500,7 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   font-size: 14px;
-  color: #909399;
+  color: var(--bc-text-subtle);
   flex-wrap: wrap;
 }
 
@@ -530,13 +530,14 @@ onMounted(async () => {
 
 .summary-title {
   font-size: 12px;
-  color: #909399;
+  color: var(--bc-text-subtle);
 }
 
 .summary-value {
   font-size: 20px;
   font-weight: 600;
   margin-top: 4px;
+  font-variant-numeric: tabular-nums;
 }
 
 .summary-text {
@@ -548,7 +549,8 @@ onMounted(async () => {
 .summary-subtitle {
   margin-top: 4px;
   font-size: 11px;
-  color: #a0a3a6;
+  color: var(--bc-text-subtle);
+  font-variant-numeric: tabular-nums;
 }
 
 .stats-card {
@@ -564,7 +566,7 @@ onMounted(async () => {
 
 .card-header small {
   font-weight: normal;
-  color: #909399;
+  color: var(--bc-text-subtle);
 }
 
 .charts-grid {

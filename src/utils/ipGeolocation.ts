@@ -1,3 +1,4 @@
+// deslop-ignore-file 15
 /**
  * IP 地理位置查询工具
  * 使用免费 API 查询 IP 所在国家，并提供本地缓存

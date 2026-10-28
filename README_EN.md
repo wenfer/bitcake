@@ -2,7 +2,7 @@
 
 [中文](./README.md) | **English**
 
-> A web UI optimized specifically for PT players - Priority support for Transmission - Theoretically compatible with qBittorrent
+> A web UI optimized for PT players - Full support for Transmission - qBittorrent compatible
 
 > Thanks to jackloves111 for joining and contributing
 
@@ -20,6 +20,7 @@ BitCake is a modern, unified web interface for Transmission and qBittorrent, des
 - Compact layout with high information density
 - Multi-language support (Chinese & English)
 - Multiple theme options (Fresh Green, Simple Blue, Cute Pink)
+- Dark mode, following the system preference or switched manually
 - Advanced torrent management with labels and categories
 - Batch operations and speed limit strategies
 - Real-time speed monitoring and tracker statistics
@@ -31,7 +32,7 @@ BitCake is a modern, unified web interface for Transmission and qBittorrent, des
 
 The easiest way to get started is using the pre-built Docker image:
 
-baseon transmission:4.0,5
+Based on linuxserver/transmission 4.0.5
 
 ```yaml
 services:
@@ -93,9 +94,7 @@ environment:
 
 BitCake includes a `trackerSites.json` file in the `public` directory that maps tracker URLs to site names. This makes it easier to identify torrents by site name in statistics and lists.
 
-The configuration supports internationalization with separate files for different languages:
-- `trackerSites-zh-CN.json` - Chinese site names
-- `trackerSites-en-US.json` - English site names
+Site name display supports internationalization: configure `trackerSites.<site>` translations in `src/i18n/locales/zh-CN.ts` and `en-US.ts`. Without a translation, the site name or tracker host is shown as-is.
 
 Feel free to contribute additional tracker mappings!
 
@@ -112,8 +111,8 @@ Click the logout button in the top-right corner to sign out.
 
 ### Prerequisites
 
-- Node.js 18+
-- npm or yarn
+- Node.js 20+
+- pnpm (the project uses pnpm for dependency management)
 
 ### Environment Variables
 
@@ -135,19 +134,19 @@ VITE_PROXY_QB_URL=http://localhost:8080
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Development server
-npm run dev
+pnpm dev
 
 # Build for Transmission
-npm run build:transmission
+pnpm build:transmission
 
 # Build for qBittorrent
-npm run build:qbittorrent
+pnpm build:qbittorrent
 
 # Build for production (generic)
-npm run build
+pnpm build:both
 ```
 
 ## Screenshots

@@ -1,155 +1,200 @@
 <template>
-  <el-container class="main-layout" :class="{ 'is-mobile': isMobile }">
-    <el-header class="header">
-      <div class="header-left">
-        <el-button
-          v-if="isMobile"
-          class="menu-toggle"
-          :icon="Menu"
-          circle
-          plain
-          :aria-label="t('header.expandMenu')"
-          @click="isMenuOpen = true"
-        />
-        <h1 class="title">{{ backendLabel }} {{ versionText }}</h1>
-      </div>
-      <div class="header-right">
-        <el-dropdown @command="handleThemeChange" trigger="click">
-          <el-button :icon="Sunny" circle plain :title="t('header.switchTheme')" />
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item
-                command="green"
-                :disabled="currentTheme === 'green'"
-              >
-                <span>{{ t('theme.green') }}</span>
-              </el-dropdown-item>
-              <el-dropdown-item
-                command="blue"
-                :disabled="currentTheme === 'blue'"
-              >
-                <span>{{ t('theme.blue') }}</span>
-              </el-dropdown-item>
-              <el-dropdown-item
-                command="pink"
-                :disabled="currentTheme === 'pink'"
-              >
-                <span>{{ t('theme.pink') }}</span>
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-        <el-dropdown @command="localeStore.switchLocale" trigger="click">
-          <el-button circle plain :title="t('header.switchLanguage')">
-            <img src="/icons/earth.svg" style="width: 1em; height: 1em; vertical-align: -0.15em;" />
-          </el-button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item
-                v-for="option in localeStore.localeOptions"
-                :key="option.value"
-                :command="option.value"
-                :disabled="localeStore.currentLocale === option.value"
-              >
-                {{ option.label }}
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-        <el-button
-          :icon="SwitchButton"
-          circle
-          plain
-          @click="handleLogout"
-          :title="t('header.logout')"
-        />
-      </div>
-    </el-header>
-
-    <el-container class="content-container">
-      <el-aside v-if="!isMobile" width="240px" class="aside">
-        <div class="aside-content">
-          <el-menu :default-active="activeMenuItem" @select="handleMenuSelect">
-            <el-sub-menu index="torrents">
-              <template #title>
-                <el-icon><List /></el-icon>
-                <span>{{ t('nav.torrentList') }}</span>
-              </template>
-              <el-menu-item
-                v-for="status in statusOptions"
-                :key="status.value"
-                :index="`status:${status.value}`"
-              >
-                <span class="status-label-with-count">
-                  {{ status.label }}
-                  <el-tag class="status-count" size="small" type="info">
-                    {{ getTorrentCount(status.value) }}
-                  </el-tag>
-                </span>
-              </el-menu-item>
-            </el-sub-menu>
-            <el-menu-item
-              v-for="item in navigationItems"
-              :key="item.index"
-              :index="item.index"
-            >
-              <el-icon><component :is="item.icon" /></el-icon>
-              <span>{{ item.label }}</span>
-            </el-menu-item>
-          </el-menu>
-          <SidebarStatus :metrics="statusMetrics" />
+  <div class="app-shell" :class="{ 'is-mobile': isMobile }">
+    <!-- 顶部栏 -->
+    <header class="app-header">
+      <div class="app-header__inner">
+        <div class="app-header__left">
+          <button
+            v-if="isMobile"
+            class="icon-button app-header__menu"
+            type="button"
+            :aria-label="t('header.expandMenu')"
+            @click="isMenuOpen = true"
+          >
+            <el-icon :size="18"><Menu /></el-icon>
+          </button>
+          <h1 class="app-header__title">{{ backendLabel }} {{ versionText }}</h1>
         </div>
-      </el-aside>
 
-      <el-main class="main">
-        <router-view />
-      </el-main>
-    </el-container>
+        <div class="app-header__right">
+          <el-dropdown trigger="click" @command="handleThemeChange">
+            <button
+              class="icon-button"
+              type="button"
+              :title="t('header.switchTheme')"
+              :aria-label="t('header.switchTheme')"
+            >
+              <el-icon :size="18"><Brush /></el-icon>
+            </button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item
+                  v-for="accent in accentOptions"
+                  :key="accent.value"
+                  :command="accent.value"
+                  :disabled="currentTheme === accent.value"
+                >
+                  <span class="accent-option">
+                    <span class="accent-dot" :style="{ background: accent.color }" />
+                    {{ accent.label }}
+                  </span>
+                </el-dropdown-item>
+                <el-dropdown-item divided command="__toggle_mode__">
+                  <span class="accent-option">
+                    <el-icon>
+                      <component :is="currentMode === 'dark' ? Sunny : Moon" />
+                    </el-icon>
+                    {{ currentMode === 'dark' ? t('theme.light') : t('theme.dark') }}
+                  </span>
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
 
+          <el-dropdown trigger="click" @command="localeStore.switchLocale">
+            <button
+              class="icon-button"
+              type="button"
+              :title="t('header.switchLanguage')"
+              :aria-label="t('header.switchLanguage')"
+            >
+              <img src="/icons/earth.svg" class="icon-inline" alt="" />
+            </button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item
+                  v-for="option in localeStore.localeOptions"
+                  :key="option.value"
+                  :command="option.value"
+                  :disabled="localeStore.currentLocale === option.value"
+                >
+                  {{ option.label }}
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+
+          <button
+            class="icon-button"
+            type="button"
+            :title="t('header.logout')"
+            :aria-label="t('header.logout')"
+            @click="handleLogout"
+          >
+            <el-icon :size="18"><SwitchButton /></el-icon>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 主体：桌面侧栏 + 内容 -->
+    <div class="app-body">
+      <aside v-if="!isMobile" class="app-sidebar" aria-label="导航">
+        <nav class="sidebar-nav">
+          <p class="sidebar-nav__title">{{ t('nav.torrentList') }}</p>
+          <button
+            v-for="status in statusOptions"
+            :key="status.value"
+            class="nav-item"
+            type="button"
+            :class="{ 'is-active': activeMenuItem === `status:${status.value}` }"
+            @click="handleMenuSelect(`status:${status.value}`)"
+          >
+            <span class="nav-item__label">{{ status.label }}</span>
+            <span class="nav-item__badge">{{ getTorrentCount(status.value) }}</span>
+          </button>
+
+          <p class="sidebar-nav__title">{{ t('nav.navigationMenu') }}</p>
+          <button
+            v-for="item in navigationItems"
+            :key="item.index"
+            class="nav-item"
+            type="button"
+            :class="{ 'is-active': activeMenuItem === item.index }"
+            @click="handleMenuSelect(item.index)"
+          >
+            <el-icon class="nav-item__icon"><component :is="item.icon" /></el-icon>
+            <span class="nav-item__label">{{ item.label }}</span>
+          </button>
+        </nav>
+        <SidebarStatus :metrics="statusMetrics" />
+      </aside>
+
+      <main class="app-main">
+        <router-view v-slot="{ Component }">
+          <Transition name="page-fade" mode="out-in">
+            <component :is="Component" />
+          </Transition>
+        </router-view>
+      </main>
+    </div>
+
+    <!-- 移动端底部导航 -->
+    <nav v-if="isMobile" class="tabbar bc-safe-bottom" aria-label="主导航">
+      <button
+        v-for="tab in mobileTabs"
+        :key="tab.key"
+        class="tabbar__item"
+        type="button"
+        :class="{ 'is-active': tab.key === activeTabKey }"
+        @click="handleTabSelect(tab)"
+      >
+        <el-icon :size="20"><component :is="tab.icon" /></el-icon>
+        <span>{{ tab.shortLabel }}</span>
+      </button>
+    </nav>
+
+    <!-- 移动端抽屉 -->
     <el-drawer
       v-model="isMenuOpen"
       direction="ltr"
-      size="70%"
+      size="82%"
       :with-header="false"
       class="mobile-drawer"
     >
-      <div class="mobile-drawer-header">
-        <h3>{{ t('nav.navigationMenu') }}</h3>
-        <span class="drawer-version">v{{ frontendVersion }}</span>
-      </div>
-      <div class="drawer-body">
-        <el-menu :default-active="activeMenuItem" @select="handleMenuSelect">
-          <el-sub-menu index="torrents">
-            <template #title>
-              <el-icon><List /></el-icon>
-              <span>{{ t('nav.torrentList') }}</span>
-            </template>
-            <el-menu-item
-              v-for="status in statusOptions"
-              :key="status.value"
-              :index="`status:${status.value}`"
-            >
-              <span class="status-label-with-count">
-                {{ status.label }}
-                <el-tag class="status-count" size="small" type="info">
-                  {{ getTorrentCount(status.value) }}
-                </el-tag>
-              </span>
-            </el-menu-item>
-          </el-sub-menu>
-          <el-menu-item
+      <div class="drawer-inner">
+        <div class="drawer-header">
+          <div>
+            <h3>{{ backendLabel }}</h3>
+            <span class="drawer-version">{{ versionText || ('v' + frontendVersion) }}</span>
+          </div>
+          <button class="icon-button" type="button" @click="isMenuOpen = false">
+            <el-icon :size="18"><Close /></el-icon>
+          </button>
+        </div>
+
+        <div class="drawer-scroll">
+          <p class="sidebar-nav__title">{{ t('nav.torrentList') }}</p>
+          <button
+            v-for="status in statusOptions"
+            :key="status.value"
+            class="nav-item"
+            type="button"
+            :class="{ 'is-active': activeMenuItem === `status:${status.value}` }"
+            @click="handleMenuSelect(`status:${status.value}`)"
+          >
+            <span class="nav-item__label">{{ status.label }}</span>
+            <span class="nav-item__badge">{{ getTorrentCount(status.value) }}</span>
+          </button>
+
+          <p class="sidebar-nav__title">{{ t('nav.navigationMenu') }}</p>
+          <button
             v-for="item in navigationItems"
             :key="item.index"
-            :index="item.index"
+            class="nav-item"
+            type="button"
+            :class="{ 'is-active': activeMenuItem === item.index }"
+            @click="handleMenuSelect(item.index)"
           >
-            <el-icon><component :is="item.icon" /></el-icon>
-            <span>{{ item.label }}</span>
-          </el-menu-item>
-        </el-menu>
-        <SidebarStatus :metrics="statusMetrics" />
+            <el-icon class="nav-item__icon"><component :is="item.icon" /></el-icon>
+            <span class="nav-item__label">{{ item.label }}</span>
+          </button>
+
+          <SidebarStatus :metrics="statusMetrics" />
+        </div>
       </div>
     </el-drawer>
-  </el-container>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -159,13 +204,15 @@ import { storeToRefs } from "pinia";
 import { useI18n } from "vue-i18n";
 import {
   Setting,
-  List,
   TrendCharts,
   Menu,
   SwitchButton,
   Sunny,
+  Moon,
   Connection,
   Timer,
+  Brush,
+  Close,
 } from "@element-plus/icons-vue";
 import { ElMessageBox } from "element-plus";
 import { useSystemStatusStore } from "@/stores/systemStatus";
@@ -190,7 +237,7 @@ const connectionStore = useConnectionStore();
 const filterStore = useFilterStore();
 const themeStore = useThemeStore();
 const { torrentCounts } = storeToRefs(systemStatusStore);
-const { currentTheme } = storeToRefs(themeStore);
+const { currentTheme, currentMode } = storeToRefs(themeStore);
 const backendLabel = torrentBackendName;
 const { sessionStats, freeSpaceBytes, sessionConfig, lastUpdated } =
   storeToRefs(systemStatusStore);
@@ -208,12 +255,6 @@ const statusTextMap = computed(() => ({
   [TorrentStatusEnum.SEED_WAIT]: t('status.waitSeed'),
   [TorrentStatusEnum.SEED]: t('status.seeding'),
 }));
-
-// interface StatusOption {
-//   label: string
-//   value: StatusFilter
-//   showCount?: boolean
-// }
 
 const statusOptions = computed(() => [
   { label: t('status.all'), value: "all" as StatusFilter },
@@ -263,6 +304,38 @@ const navigationItems = computed(() => [
   { index: "/settings", label: t('nav.settings'), icon: Setting },
   { index: "/stats", label: t('nav.stats'), icon: TrendCharts },
 ]);
+
+const accentOptions = computed(() => [
+  { value: "green", label: t('theme.green'), color: "#2f9e63" },
+  { value: "blue", label: t('theme.blue'), color: "#2f6fed" },
+  { value: "pink", label: t('theme.pink'), color: "#e0518a" },
+]);
+
+// 移动端底部导航：种子入口默认打开抽屉（含状态筛选）
+const mobileTabs = computed(() => [
+  { key: "torrents", label: t('nav.torrentList'), shortLabel: t('nav.torrentList'), icon: Menu },
+  { key: "/speed-strategy", label: t('nav.speedStrategy'), shortLabel: t('nav.speedStrategy'), icon: Timer },
+  { key: "/stats", label: t('nav.stats'), shortLabel: t('nav.stats'), icon: TrendCharts },
+  { key: "/reseed", label: t('nav.reseed'), shortLabel: t('nav.reseed'), icon: Connection },
+  { key: "/settings", label: t('nav.settings'), shortLabel: t('nav.settings'), icon: Setting },
+]);
+
+const activeTabKey = computed(() => {
+  if (route.path === "/") return "torrents";
+  return mobileTabs.value.find((tab) => tab.key === route.path)?.key ?? "";
+});
+
+const handleTabSelect = (tab: { key: string }) => {
+  if (tab.key === "torrents") {
+    if (route.path !== "/") {
+      router.push({ path: "/", query: route.query });
+    } else {
+      isMenuOpen.value = true;
+    }
+    return;
+  }
+  router.push(tab.key);
+};
 
 const uploadLimitKBps = computed(() => {
   const c = sessionConfig.value;
@@ -378,6 +451,10 @@ onBeforeUnmount(() => {
 });
 
 const handleThemeChange = (theme: string) => {
+  if (theme === "__toggle_mode__") {
+    themeStore.toggleMode();
+    return;
+  }
   themeStore.setTheme(theme as ThemeType);
 };
 
@@ -407,200 +484,337 @@ const handleLogout = async () => {
 </script>
 
 <style scoped>
-.main-layout {
+.app-shell {
+  display: flex;
+  flex-direction: column;
   height: 100vh;
-  background-color: #f0f2f5;
+  height: 100dvh;
+  background: var(--bc-bg);
+  color: var(--bc-text);
 }
 
-.header {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  background-color: #409eff;
-  color: white;
-  padding: 12px 20px;
-  gap: 16px;
+/* ---------------- 顶部栏 ---------------- */
+.app-header {
+  position: relative;
+  z-index: 20;
+  background: var(--bc-header-bg);
+  color: var(--bc-header-text);
+  border-bottom: 1px solid var(--bc-border);
+  box-shadow: var(--bc-shadow-sm);
+  flex: 0 0 auto;
 }
 
-.header-left {
+.app-header__inner {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex: 1 1 auto;
-  min-width: 0;
-  flex-wrap: nowrap;
+  gap: var(--bc-space-3);
+  padding: 10px 14px;
+  min-height: 58px;
 }
 
-.title {
+.app-header__left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.app-header__right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.app-header__title {
   margin: 0;
-  font-size: 20px;
-  font-weight: 500;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--bc-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.header-right {
-  display: flex;
+.icon-button {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--bc-radius-sm);
+  border: 1px solid var(--bc-border);
+  background: var(--bc-surface-muted);
+  color: var(--bc-text-muted);
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background var(--bc-duration) var(--bc-ease),
+    border-color var(--bc-duration) var(--bc-ease),
+    color var(--bc-duration) var(--bc-ease),
+    transform var(--bc-duration) var(--bc-ease);
+}
+
+.icon-button:hover {
+  background: var(--bc-surface-hover);
+  border-color: var(--bc-border-strong);
+  color: var(--bc-text);
+}
+
+.icon-button:active {
+  transform: scale(0.94);
+}
+
+.icon-inline {
+  width: 17px;
+  height: 17px;
+  display: inline-block;
+  background-color: currentColor;
+  mask: url("/icons/earth.svg") no-repeat center / contain;
+  -webkit-mask: url("/icons/earth.svg") no-repeat center / contain;
+}
+
+.accent-option {
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
-  flex-shrink: 0;
-  justify-self: end;
 }
 
-.menu-toggle {
-  border: none;
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
+.accent-dot {
+  width: 12px;
+  height: 12px;
+  /* deslop-ignore-next-line 19 */
+  border-radius: 50%;
+  display: inline-block;
 }
 
-.status-label {
-  font-size: 12px;
-  opacity: 0.85;
+/* ---------------- 主体 ---------------- */
+.app-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
 }
 
-.status-value {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.content-container {
-  height: calc(100vh - 60px);
-}
-
-.aside {
-  background-color: #f5f7fa;
-  border-right: 1px solid #e4e7ed;
+.app-sidebar {
+  width: 232px;
+  flex: 0 0 232px;
+  border-right: 1px solid var(--bc-border);
+  background: var(--bc-surface);
   display: flex;
   flex-direction: column;
-}
-
-.main {
-  background-color: #fff;
-  padding: 20px;
-}
-
-.aside-content {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
   min-height: 0;
 }
 
-.aside-content :deep(.el-menu) {
+.sidebar-nav {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  border-right: none;
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.aside-content :deep(.el-menu-item .el-icon),
-.aside-content :deep(.el-sub-menu__title .el-icon) {
+.sidebar-nav__title {
+  margin: 14px 8px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bc-text-subtle);
+}
+
+.sidebar-nav__title:first-child {
+  margin-top: 0;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--bc-text-muted);
+  font-size: 14px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--bc-duration) var(--bc-ease),
+    color var(--bc-duration) var(--bc-ease);
+}
+
+.nav-item:hover {
+  background: var(--bc-surface-hover);
+  color: var(--bc-text);
+}
+
+.nav-item.is-active {
+  background: var(--bc-accent-soft);
+  color: var(--bc-accent-strong);
+  font-weight: 600;
+}
+
+.nav-item__icon {
+  font-size: 16px;
   flex: 0 0 auto;
 }
 
-.aside-content :deep(.el-icon svg) {
-  display: block;
+.nav-item__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.status-label-with-count {
+.nav-item__badge {
+  flex: 0 0 auto;
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: var(--bc-radius-pill);
+  background: var(--bc-surface-muted);
+  border: 1px solid var(--bc-border);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--bc-text-muted);
+}
+
+.nav-item.is-active .nav-item__badge {
+  background: var(--bc-accent);
+  border-color: var(--bc-accent);
+  color: #fff;
+}
+
+.app-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 14px;
+  /* 纵向 flex：让页面根元素可通过 flex:1 撑满视口（列表页表格填满剩余高度） */
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+}
+
+/* ---------------- 移动端底部导航 ---------------- */
+.tabbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  background: var(--bc-surface);
+  border-top: 1px solid var(--bc-border);
+  box-shadow: 0 -6px 20px rgba(16, 24, 40, 0.08);
+}
+
+.tabbar__item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  width: 100%;
+  justify-content: center;
+  gap: 2px;
+  padding: 7px 2px 6px;
+  border: none;
+  background: transparent;
+  color: var(--bc-text-subtle);
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  min-height: 52px;
+  transition: color var(--bc-duration) var(--bc-ease);
 }
 
-.status-count {
-  margin-left: auto;
+.tabbar__item.is-active {
+  color: var(--bc-accent);
+  font-weight: 600;
 }
 
-.mobile-drawer :deep(.el-drawer__body) {
-  padding: 20px 0;
+.tabbar__item.is-active::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 26px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--bc-accent);
+  transform: translateY(-7px);
+}
+
+.tabbar__item span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------- 移动端抽屉 ---------------- */
+.drawer-inner {
   display: flex;
   flex-direction: column;
   height: 100%;
+  background: var(--bc-surface);
 }
 
-.mobile-drawer-header {
+.drawer-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0 20px 12px;
-  border-bottom: 1px solid #ebeef5;
-  margin-bottom: 12px;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid var(--bc-border);
 }
 
-.mobile-drawer-header h3 {
-  margin: 0;
-  font-size: 16px;
+.drawer-header h3 {
+  font-size: 17px;
 }
 
 .drawer-version {
   font-size: 12px;
-  color: #909399;
+  color: var(--bc-text-subtle);
 }
 
-.drawer-body {
-  display: flex;
-  flex-direction: column;
-  height: calc(100% - 72px);
-  padding-bottom: 0;
-  min-height: 0;
+.drawer-header .icon-button {
+  background: var(--bc-surface-muted);
+  border-color: var(--bc-border);
+  color: var(--bc-text);
 }
 
-.drawer-body :deep(.el-menu) {
+.drawer-scroll {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  border-right: none;
-}
-
-.drawer-body :deep(.el-menu-item .el-icon),
-.drawer-body :deep(.el-sub-menu__title .el-icon) {
-  flex: 0 0 auto;
-}
-
-.drawer-body :deep(.el-icon svg) {
-  display: block;
-}
-
-.status-label-with-count {
+  padding: 12px 10px 20px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.status-count {
-  margin-left: auto;
+/* ---------------- 过渡 ---------------- */
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition: opacity 160ms var(--bc-ease), transform 160ms var(--bc-ease);
 }
 
-@media (max-width: 768px) {
-  .main-layout {
-    height: auto;
-    min-height: 100vh;
+.page-fade-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.page-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+@media (min-width: 769px) {
+  .app-header__inner {
+    padding: 10px 20px;
   }
 
-  .header {
-    align-items: center;
-    padding: 12px 16px;
-    gap: 12px;
-  }
-
-  .status-cards {
-    width: 100%;
-  }
-
-  .content-container {
-    height: calc(100vh - 60px);
-    min-height: calc(100vh - 60px);
-    flex-direction: column;
+  .app-main {
+    padding: 18px 22px;
   }
 }
-</style>
-<style>
-  @media (max-width: 768px){
-    .el-drawer__body {
-      padding-bottom: 0;
-    }
-  }
 </style>

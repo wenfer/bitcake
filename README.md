@@ -2,7 +2,7 @@
 
 **中文** | [English](./README_EN.md)
 
-> 专门针对 PT 玩家优化的下载器 WebUI - 优先支持 Transmission - 理论上兼容 qBittorrent
+> 专为 PT 玩家优化的下载器 WebUI - 完整支持 Transmission - 兼容 qBittorrent
 
 > 感谢 jackloves111 的加入和贡献
 
@@ -20,6 +20,7 @@ BitCake 是一个专为 PT（Private Tracker）用户设计的现代化 Transmis
 - 紧凑的布局设计，信息密度更高
 - 多语言支持（中文 & 英文）
 - 多主题选择（清新绿、简约蓝、可爱粉）
+- 深色模式，支持跟随系统或手动切换
 - 高级种子管理，支持标签和分类
 - 批量操作和限速策略
 - 实时速度监控和 Tracker 统计
@@ -255,9 +256,7 @@ echo "备份位于: $BACKUP_DIR"
 
 BitCake 在 `public` 目录下包含 `trackerSites.json` 文件，用于将 Tracker URL 映射到站点名称。这使得在统计和列表中更容易通过站点名称识别种子。
 
-配置支持国际化，不同语言使用独立的映射文件：
-- `trackerSites-zh-CN.json` - 中文站点名称
-- `trackerSites-en-US.json` - 英文站点名称
+站点名称的展示文案支持国际化：在 `src/i18n/locales/zh-CN.ts` 和 `en-US.ts` 中为 `trackerSites.<站点名>` 配置对应语言的翻译，未配置翻译时直接显示站点名或 Tracker host。
 
 欢迎贡献更多 Tracker 映射！
 
@@ -274,8 +273,8 @@ BitCake 在 `public` 目录下包含 `trackerSites.json` 文件，用于将 Trac
 
 ### 环境要求
 
-- Node.js 18+
-- npm 或 yarn
+- Node.js 20+
+- pnpm（项目使用 pnpm 管理依赖）
 
 ### 环境变量
 
@@ -297,19 +296,19 @@ VITE_PROXY_QB_URL=http://localhost:8080
 
 ```bash
 # 安装依赖
-npm install
+pnpm install
 
 # 开发服务器
-npm run dev
+pnpm dev
 
 # 构建 Transmission 版本
-npm run build:transmission
+pnpm build:transmission
 
 # 构建 qBittorrent 版本
-npm run build:qbittorrent
+pnpm build:qbittorrent
 
 # 构建生产版本（通用）
-npm run build:both
+pnpm build:both
 ```
 
 ## 预览

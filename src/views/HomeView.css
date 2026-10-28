@@ -1,47 +1,45 @@
-.home-view {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
+/* ==========================================================================
+   HomeView 2.0 —— 移动优先布局
+   基础样式面向小屏，>=1024px 时增强为宽松的多栏布局
+   ========================================================================== */
 
-.column-toggle-list {
+.home-view {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: 50vh;
-  overflow-y: auto;
-  padding: 0 10px 10px;
+  color: var(--bc-text);
+  /* 撑满 app-main 剩余高度，让列表区域随视口伸缩 */
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
-.column-toggle-item {
-  margin-bottom: 4px;
-}
-
+/* ---------------- 工具栏 ---------------- */
 .toolbar {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .actions-group {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
   flex: 1 1 auto;
 }
 
-.filter-toggle {
-  align-self: flex-start;
-  flex: 0 0 auto;
+.view-toggle {
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
+/* ---------------- 筛选区 ---------------- */
 .filter-submenu {
-  margin-top: 12px;
   padding: 12px;
-  background-color: #f5f7fa;
-  border: 1px solid #ebeef5;
-  border-radius: 6px;
+  background: var(--bc-surface);
+  border: 1px solid var(--bc-border);
+  border-radius: var(--bc-radius-md);
+  box-shadow: var(--bc-shadow-sm);
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
@@ -57,11 +55,180 @@
 .filter-controls {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
 }
 
 .filter-select {
-  width: 200px;
+  width: 100%;
+}
+
+.filter-input {
+  width: 100%;
+}
+
+.update-info {
+  color: var(--bc-text-subtle);
+  font-size: 12px;
+}
+
+/* ---------------- 列表容器 ---------------- */
+.table-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  /* 占据 home-view 中除工具栏/筛选区外的全部剩余高度 */
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.card-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.table-scroll {
+  flex: 1;
+  min-height: 320px;
+  overflow: hidden;
+  border-radius: var(--bc-radius-md);
+  background: var(--bc-surface);
+  border: 1px solid var(--bc-border);
+  box-shadow: var(--bc-shadow-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+/* el-auto-resizer 作为 flex 子项时需要显式撑满，否则表格高度为 0 */
+.table-scroll :deep(.el-auto-resizer) {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+}
+
+.list-empty {
+  padding: 28px 0;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.pagination :deep(.el-pagination) {
+  justify-content: center;
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+/* ---------------- 卡片动画 ---------------- */
+.card-list-enter-active,
+.card-list-leave-active {
+  transition: opacity 180ms var(--bc-ease), transform 180ms var(--bc-ease);
+}
+
+.card-list-enter-from,
+.card-list-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 200ms var(--bc-ease), transform 200ms var(--bc-ease);
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* ==========================================================================
+   宽屏增强
+   ========================================================================== */
+@media (min-width: 700px) {
+  .card-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .home-view {
+    gap: 16px;
+  }
+
+  .filter-select {
+    width: 200px;
+  }
+
+  .filter-input {
+    width: 240px;
+  }
+
+  .update-info {
+    margin-left: auto;
+  }
+
+  .pagination {
+    justify-content: flex-end;
+  }
+
+  .pagination :deep(.el-pagination) {
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+  }
+}
+
+@media (min-width: 1600px) {
+  .card-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ==========================================================================
+   小屏细化
+   ========================================================================== */
+@media (max-width: 768px) {
+  .actions-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  .actions-group :deep(.el-button) {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .filter-toggle {
+    width: 100%;
+  }
+}
+
+/* ==========================================================================
+   以下为既有组件样式（对话框 / 表格 / 右键菜单等）
+   ========================================================================== */
+
+.column-toggle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 0 10px 10px;
+}
+
+.column-toggle-item {
+  margin-bottom: 4px;
+}
+
+.filter-toggle {
+  align-self: flex-start;
+  flex: 0 0 auto;
 }
 
 .filter-select :deep(.el-select-dropdown) {
@@ -70,10 +237,6 @@
 
 .filter-select :deep(.el-select-dropdown__list) {
   max-height: 280px;
-}
-
-.filter-input {
-  width: 240px;
 }
 
 .filter-submenu.is-mobile {
@@ -91,12 +254,6 @@
   width: 100%;
 }
 
-.update-info {
-  margin-left: auto;
-  color: #909399;
-  font-size: 13px;
-}
-
 .label-tag {
   margin-right: 4px;
   margin-bottom: 4px;
@@ -106,23 +263,23 @@
   cursor: pointer;
   user-select: none;
   font-variant-numeric: tabular-nums;
-  color: #909399;
+  color: var(--bc-text-subtle);
 }
 
 .limit-cell.active {
-  color: #606266;
+  color: var(--bc-text);
 }
 
 .limit-cell:hover {
-  color: #409eff;
+  color: var(--bc-accent);
 }
 
 .context-menu {
   position: fixed;
-  background-color: #fff;
-  border: 1px solid #ebeef5;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
+  background-color: var(--bc-surface);
+  border: 1px solid var(--bc-border);
+  box-shadow: var(--bc-shadow-md);
+  border-radius: var(--bc-radius-sm);
   padding: 8px 0;
   z-index: 2000;
   min-width: 120px;
@@ -131,8 +288,8 @@
 .context-menu-header {
   padding: 6px 16px;
   font-size: 12px;
-  color: #909399;
-  border-bottom: 1px solid #ebeef5;
+  color: var(--bc-text-subtle);
+  border-bottom: 1px solid var(--bc-border);
   margin-bottom: 4px;
 }
 
@@ -142,40 +299,25 @@
   padding: 6px 16px;
   text-align: left;
   background: transparent;
+  color: var(--bc-text);
   border: none;
   cursor: pointer;
   font-size: 14px;
+  font-family: inherit;
 }
 
 .context-menu button:hover {
-  background-color: #f5f7fa;
+  background-color: var(--bc-surface-hover);
 }
 
 .context-menu button.danger {
-  color: #f56c6c;
+  color: var(--bc-danger);
 }
 
 .context-menu-divider {
   height: 1px;
-  background-color: #ebeef5;
+  background-color: var(--bc-border);
   margin: 4px 0;
-}
-
-.table-container {
-  flex: 1;
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.table-scroll {
-  flex: 1;
-  overflow: hidden;
-  border-radius: 6px;
-  background: #fff;
-  display: flex;
-  flex-direction: column;
 }
 
 .table-scroll :deep(.el-table) {
@@ -220,16 +362,6 @@
   font-size: 12px !important;
 }
 
-.pagination {
-  margin-top: 16px;
-  display: flex;
-  justify-content: flex-end;
-  width: 100%;
-  max-width: 100%;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
 .pagination :deep(.el-pagination) {
   width: 100%;
   max-width: 100%;
@@ -262,7 +394,7 @@
 
 .detail-tabs :deep(.el-tabs__header) {
   margin: 0;
-  background-color: #f5f7fa;
+  background-color: var(--bc-surface-muted);
 }
 
 .detail-tabs :deep(.el-tabs__content) {
@@ -298,6 +430,7 @@
 }
 
 .hash-value {
+  /* deslop-ignore-next-line 34 */
   font-family: monospace;
   font-size: 12px;
   word-break: break-all;
@@ -314,13 +447,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background-color: #f5f7fa;
-  border-radius: 4px;
+  background-color: var(--bc-surface-muted);
+  border-radius: var(--bc-radius-sm);
   font-size: 13px;
 }
 
 .files-count {
-  color: #606266;
+  color: var(--bc-text-muted);
   font-weight: 500;
 }
 
@@ -330,9 +463,9 @@
 }
 
 .files-tree {
-  border: 1px solid #ebeef5;
-  border-radius: 4px;
-  background: #fff;
+  border: 1px solid var(--bc-border);
+  border-radius: var(--bc-radius-sm);
+  background: var(--bc-surface);
   padding: 6px 8px;
   max-height: 400px;
   overflow: auto;
@@ -350,7 +483,7 @@
   width: 100%;
 }
 .file-icon {
-  color: #909399;
+  color: var(--bc-text-subtle);
 }
 .file-name {
   flex: 1;
@@ -359,9 +492,10 @@
   white-space: nowrap;
 }
 .file-meta {
-  color: #909399;
+  color: var(--bc-text-subtle);
   font-size: 12px;
   flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
 }
 .file-rename-btn {
   opacity: 0;
@@ -401,23 +535,23 @@
 .form-tip {
   margin-top: 4px;
   font-size: 12px;
-  color: #909399;
+  color: var(--bc-text-subtle);
 }
 
 .form-tip-inline {
   font-size: 12px;
-  color: #909399;
+  color: var(--bc-text-subtle);
   margin-left: 8px;
 }
 
 .dialog-subtitle {
   margin: 0 0 12px;
   font-size: 13px;
-  color: #909399;
+  color: var(--bc-text-subtle);
 }
 
 .table-placeholder {
-  color: #909399;
+  color: var(--bc-text-subtle);
   font-size: 13px;
   margin: 0 0 16px;
 }
@@ -429,27 +563,30 @@
 .ratio-tag {
   border: none;
   color: #fff;
+  border-radius: var(--bc-radius-sm);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
 }
 
 .ratio-zero {
-  background-color: #909399;
+  background-color: var(--bc-text-subtle);
 }
 
 .ratio-low {
-  background-color: #e6a23c;
+  background-color: var(--bc-warning);
 }
 
 .ratio-mid {
-  background-color: #67c23a;
+  background-color: var(--bc-success);
 }
 
 .ratio-high {
-  background-color: #f56c6c;
+  background-color: var(--bc-accent);
 }
 
 .delete-message {
   margin-bottom: 12px;
-  color: #606266;
+  color: var(--bc-text-muted);
 }
 
 .torrent-file-upload {
@@ -484,49 +621,9 @@
   transform: translateY(-6px);
 }
 
-@media (max-width: 1200px) {
-}
-
-@media (max-width: 1024px) {
-  .toolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .actions-group {
-    width: 100%;
-  }
-
-  .filter-submenu {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .filter-controls {
-    width: 100%;
-  }
-
-  .update-info {
-    margin-left: 0;
-    width: 100%;
-  }
-
-  .table-scroll {
-    border: 1px solid #ebeef5;
-  }
-}
-
-@media (max-width: 900px) {
-}
-
 @media (max-width: 768px) {
   .home-view {
     gap: 10px;
-  }
-
-  .actions-group {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   }
 
   .actions-group :deep(.el-button) {
@@ -536,10 +633,6 @@
 
   .filter-toggle {
     width: 100%;
-  }
-
-  .table-container {
-    margin-top: 12px;
   }
 
   .pagination :deep(.el-pagination) {
@@ -605,29 +698,23 @@
 }
 
 .no-labels-text {
-  color: var(--el-text-color-secondary);
+  color: var(--bc-text-subtle);
   font-size: 14px;
-}
-
-.form-tip {
-  margin-top: 4px;
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
 }
 
 /* Table V2 Custom Styles */
 .table-scroll :deep(.el-table-v2__row--striped) .el-table-v2__row-cell {
-  background-color: #fafafa;
+  background-color: var(--bc-surface-muted);
 }
 .table-scroll :deep(.current-row) .el-table-v2__row-cell {
-  background-color: #ecf5ff !important;
+  background-color: var(--bc-accent-soft) !important;
 }
 .table-scroll :deep(.el-table-v2__header-cell) {
-  background-color: #f5f7fa;
-  color: #909399;
+  background-color: var(--bc-surface-muted);
+  color: var(--bc-text-muted);
   font-weight: 600;
-  border-right: 1px solid #ebeef5;
-  border-bottom: 1px solid #ebeef5;
+  border-right: 1px solid var(--bc-border);
+  border-bottom: 1px solid var(--bc-border);
   overflow: visible;
   position: relative;
 }
@@ -668,15 +755,16 @@
 }
 
 .table-scroll :deep(.el-table-v2__row-cell) {
-  border-right: 1px solid #ebeef5;
-  border-bottom: 1px solid #ebeef5;
+  border-right: 1px solid var(--bc-border);
+  border-bottom: 1px solid var(--bc-border);
   padding: 0 8px;
   display: flex;
   align-items: center;
+  font-variant-numeric: tabular-nums;
 }
 .table-scroll :deep(.el-table-v2__left) {
-  border-right: 1px solid #ebeef5;
-  box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+  border-right: 1px solid var(--bc-border);
+  box-shadow: 2px 0 5px var(--bc-shadow-sm);
 }
 
 /* Custom sort icon visibility control */

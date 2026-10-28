@@ -2,6 +2,7 @@ import { computed, onScopeDispose, ref, watch, type Ref } from "vue";
 import type { StatusFilter } from "@/stores/filter";
 import { TorrentStatusEnum, type Torrent } from "@/types/transmission";
 import { matchesTrackerFilter } from "@/utils/torrent";
+import { isTorrentError } from "@/utils/torrentStatus";
 
 export type TorrentSortOrder = "ascending" | "descending" | null;
 
@@ -17,9 +18,6 @@ interface TorrentListQueryOptions {
   getErrorType: (error?: string) => string;
   getDefaultTracker: (torrent: Torrent) => string;
 }
-
-const isTorrentError = (torrent: Torrent) =>
-  (torrent.error ?? 0) > 0 || Boolean(torrent.errorString);
 
 const getActiveLimit = (torrent: Torrent) => {
   const download = torrent.downloadLimited
