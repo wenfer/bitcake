@@ -233,7 +233,7 @@ export default {
     trackerLabel: 'Tracker',
     tier: '层级',
     announceUrl: 'Tracker汇报地址',
-    trackerStatus: '状态',
+    trackerStatus: '汇报状态',
     lastAnnounce: '上次汇报',
     nextAnnounce: '下次汇报',
     announceResult: '汇报结果',

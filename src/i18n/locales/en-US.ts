@@ -233,7 +233,7 @@ export default {
     trackerLabel: 'Tracker',
     tier: 'Tier',
     announceUrl: 'Announce URL',
-    trackerStatus: 'Status',
+    trackerStatus: 'Announce Status',
     lastAnnounce: 'Last Announce',
     nextAnnounce: 'Next Announce',
     announceResult: 'Announce Result',
