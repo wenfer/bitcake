@@ -357,9 +357,9 @@ import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useSystemStatusStore } from '@/stores/systemStatus'
 import { getTrackerDisplayName } from '@/utils/torrent'
-import { getTorrentErrorMessage, isTorrentError } from '@/utils/torrentStatus'
+import { getTorrentErrorMessage, isTorrentError, getTorrentStatusText } from '@/utils/torrentStatus'
 import { formatBytes, formatSpeed } from '@/utils/format'
-import { buildTrackerErrorMappings } from '@/utils/errorMapping'
+import { buildErrorMappings, matchErrorMapping } from '@/utils/errorMapping'
 import * as api from '@/api/torrents'
 import type { Torrent, TorrentStatus } from '@/types/torrent'
 import { TorrentStatusEnum } from '@/types/torrent'
@@ -411,99 +411,13 @@ interface ReseedData {
   }[]
 }
 
-// 错误消息映射配置
-interface ErrorMapping {
-  keywords: string[] // 关键字列表，只要匹配其中之一就命中
-  type: string // 错误类型（用于筛选）
-  message: string // 友好的错误提示
-}
-
-const errorMappings: ErrorMapping[] = [
-  {
-    keywords: [
-      'No data found',
-      'Ensure your drives are connected',
-      'Set Location',
-    ],
-    type: t('reseed.errorType.fileNotExist'),
-    message: t('reseed.errorType.fileNotExist'),
-  },
-  {
-    keywords: ['more than', '上传同一个种子', 'other location'],
-    type: t('reseed.errorType.duplicateAnnounce'),
-    message: t('reseed.errorType.duplicateAnnounceMsg'),
-  },
-  {
-    keywords: ['You already are downloading'],
-    type: t('reseed.errorType.duplicateAnnounce'),
-    message: t('reseed.errorType.duplicateDownloadMsg'),
-  },
-  {
-    keywords: ['missingFiles'],
-    type: t('reseed.errorType.fileNotExist'),
-    message: t('reseed.errorType.fileNotExist'),
-  },
-  {
-    keywords: ['Permission denied', 'permission'],
-    type: t('reseed.errorType.permissionError'),
-    message: t('reseed.errorType.permissionError'),
-  },
-  {
-    keywords: ['No space left', 'disk full', 'Disk full'],
-    type: t('reseed.errorType.diskSpaceError'),
-    message: t('reseed.errorType.diskSpaceError'),
-  },
-  {
-    keywords: ['Tracker gave HTTP response code 404', 'Tracker not found'],
-    type: t('reseed.errorType.networkError'),
-    message: t('reseed.errorType.trackerNotFound'),
-  },
-  {
-    keywords: ['Tracker gave HTTP response code 403', 'Forbidden'],
-    type: t('reseed.errorType.authError'),
-    message: t('reseed.errorType.trackerDenied'),
-  },
-  {
-    keywords: ['Tracker gave a warning', 'Unregistered torrent'],
-    type: t('reseed.errorType.torrentError'),
-    message: t('reseed.errorType.torrentNotRegistered'),
-  },
-  {
-    keywords: ['Tracker gave HTTP response code 5', '502'],
-    type: t('reseed.errorType.networkError'),
-    message: t('reseed.errorType.trackerServerError'),
-  },
-  {
-    keywords: ['Connection refused', 'Could not connect', 'timeout'],
-    type: t('reseed.errorType.networkError'),
-    message: t('reseed.errorType.networkFailed'),
-  },
-  {
-    keywords: ['Piece #', 'corrupt', 'checksum'],
-    type: t('reseed.errorType.verifyError'),
-    message: t('reseed.errorType.verifyFailed'),
-  },
-  ...buildTrackerErrorMappings({ t, namespace: 'reseed', locale: locale.value }),
-]
+// 错误消息映射：与 HomeView 共用 buildErrorMappings，避免关键词表双份漂移
+const errorMappings = buildErrorMappings({ t, namespace: 'reseed', locale: locale.value })
 
 // 获取错误类型（用于筛选）
 const getErrorType = (errorString?: string): string => {
   if (!errorString) return t('reseed.errorType.otherError')
-
-  const lowerError = errorString.toLowerCase()
-
-  // 遍历错误映射配置
-  for (const mapping of errorMappings) {
-    const matched = mapping.keywords.some((keyword) =>
-      lowerError.includes(keyword.toLowerCase())
-    )
-
-    if (matched) {
-      return mapping.type
-    }
-  }
-
-  return t('reseed.errorType.otherError')
+  return matchErrorMapping(errorString, errorMappings)?.type ?? t('reseed.errorType.otherError')
 }
 
 const systemStatusStore = useSystemStatusStore()
@@ -706,16 +620,8 @@ const getTrackerTagType = (tracker: ReseedTracker): string => {
 
 // 获取状态文本
 const getStatusText = (status: TorrentStatus): string => {
-  const statusMap = {
-    [TorrentStatusEnum.STOPPED]: t('reseed.status.stopped'),
-    [TorrentStatusEnum.CHECK_WAIT]: t('reseed.status.checkWait'),
-    [TorrentStatusEnum.CHECK]: t('reseed.status.checking'),
-    [TorrentStatusEnum.DOWNLOAD_WAIT]: t('reseed.status.downloadWait'),
-    [TorrentStatusEnum.DOWNLOAD]: t('reseed.status.downloading'),
-    [TorrentStatusEnum.SEED_WAIT]: t('reseed.status.seedWait'),
-    [TorrentStatusEnum.SEED]: t('reseed.status.seeding')
-  }
-  return statusMap[status] || t('common.unknown')
+  // 状态文案与主列表共用 status.* 命名空间（原 reseed.status.* 文案与之完全一致，已合并）
+  return getTorrentStatusText(t, status, t('common.unknown'))
 }
 
 // 获取状态标签类型

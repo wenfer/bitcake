@@ -35,7 +35,7 @@ export const resolveStoredMode = (): ThemeModeType => {
 /** 把主题写入 <html>，Element Plus 与自定义样式都从这里取值 */
 export const applyThemeToRoot = (accent: ThemeAccent, mode: ThemeModeType): void => {
   const root = document.documentElement
-  root.setAttribute('data-theme', accent)
+  root.setAttribute('data-bc-theme', accent)
   root.setAttribute('data-bc-mode', mode)
   root.classList.toggle('dark', mode === 'dark')
 }

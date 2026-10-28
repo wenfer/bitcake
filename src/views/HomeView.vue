@@ -1082,12 +1082,14 @@ import TorrentCard from "@/components/TorrentCard.vue";
 import * as api from "@/api/torrents";
 import type { Torrent, TorrentStatus } from "@/types/transmission";
 import { TorrentStatusEnum } from "@/types/transmission";
+import type { StatusTagType } from "@/types/torrent";
 import {
   getTrackerDisplayName,
 } from "@/utils/torrent";
 import {
   getTorrentErrorMessage,
   isTorrentError,
+  getTorrentStatusText,
 } from "@/utils/torrentStatus";
 import { getIPGeolocation } from "@/utils/ipGeolocation";
 import { useMediaQuery } from "@/utils/useMediaQuery";
@@ -1103,7 +1105,7 @@ import { storeToRefs } from "pinia";
 import { isTransmission } from "@/config/torrentClient";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { buildTrackerErrorMappings } from "@/utils/errorMapping";
+import { buildErrorMappings, matchErrorMapping } from "@/utils/errorMapping";
 import { useNotifications } from "@/composables/useNotifications";
 import { useTorrentSelection } from "@/composables/useTorrentSelection";
 import { useTorrentListQuery } from "@/composables/useTorrentListQuery";
@@ -1379,137 +1381,19 @@ const createEmptyLimitForm = (): LimitFormState => ({
   selectedTrackers: [],
 });
 
-const statusTextMap: Record<TorrentStatus, string> = {
-  [TorrentStatusEnum.STOPPED]: t('status.stopped'),
-  [TorrentStatusEnum.CHECK_WAIT]: t('status.waitCheck'),
-  [TorrentStatusEnum.CHECK]: t('status.checking'),
-  [TorrentStatusEnum.DOWNLOAD_WAIT]: t('status.waitDownload'),
-  [TorrentStatusEnum.DOWNLOAD]: t('status.downloading'),
-  [TorrentStatusEnum.SEED_WAIT]: t('status.waitSeed'),
-  [TorrentStatusEnum.SEED]: t('status.seeding'),
-};
-
-// 错误消息映射配置
-interface ErrorMapping {
-  keywords: string[]; // 关键字列表，只要匹配其中之一就命中
-  type: string; // 错误类型（用于筛选）
-  message: string; // 友好的错误提示
-  originalPattern?: RegExp; // 可选的正则表达式，用于更精确的匹配
-}
-
-const errorMappings: ErrorMapping[] = [
-  {
-    keywords: [
-      "No data found",
-      "Ensure your drives are connected",
-      "Set Location",
-    ],
-    type: t('torrent.errorType.fileNotExist'),
-    message: t('torrent.errorType.fileNotExist'),
-  },
-  {
-    keywords: ["more than", "上传同一个种子", "other location"],
-    type: t('torrent.errorType.duplicateAnnounce'),
-    message: t('torrent.errorType.duplicateAnnounce'),
-  },
-  {
-    keywords: ["Request too frequent"],
-    type: t('torrent.errorType.frequentAnnounce'),
-    message: t('torrent.errorType.frequentAnnounce'),
-  },
-  {
-    keywords: ["You already are downloading"],
-    type: t('torrent.errorType.duplicateAnnounce'),
-    message: t('torrent.errorType.duplicateAnnounce'),
-  },
-  {
-    keywords: ["missingFiles"],
-    type: t('torrent.errorType.fileNotExist'),
-    message: t('torrent.errorType.fileNotExist'),
-  },
-  {
-    keywords: ["Permission denied", "permission"],
-    type: t('torrent.errorType.permissionError'),
-    message: t('torrent.errorType.permissionError'),
-  },
-  {
-    keywords: ["No space left", "disk full", "Disk full"],
-    type: t('torrent.errorType.diskSpaceError'),
-    message: t('torrent.errorType.diskSpaceError'),
-  },
-  {
-    keywords: ["Tracker gave HTTP response code 404", "Tracker not found"],
-    type: t('torrent.errorType.networkError'),
-    message: t('torrent.errorType.trackerNotFound'),
-  },
-  {
-    keywords: ["Tracker gave HTTP response code 403", "Forbidden"],
-    type: t('torrent.errorType.authError'),
-    message: t('torrent.errorType.trackerDenied'),
-  },
-  {
-    keywords: ["Tracker gave a warning", "Unregistered torrent"],
-    type: t('torrent.errorType.torrentError'),
-    message: t('torrent.errorType.torrentNotRegistered'),
-  },
-  {
-    keywords: ["Tracker gave HTTP response code 5", "502"],
-    type: t('torrent.errorType.networkError'),
-    message: t('torrent.errorType.trackerServerError'),
-  },
-  {
-    keywords: ["Connection refused", "Could not connect", "timeout"],
-    type: t('torrent.errorType.networkError'),
-    message: t('torrent.errorType.networkFailed'),
-  },
-  {
-    keywords: ["Piece #", "corrupt", "checksum"],
-    type: t('torrent.errorType.verifyError'),
-    message: t('torrent.errorType.verifyFailed'),
-  },
-  ...buildTrackerErrorMappings({ t, namespace: "torrent", locale: locale.value }),
-];
+// 错误消息映射：与 ReseedView 共用 buildErrorMappings，避免关键词表双份漂移
+const errorMappings = buildErrorMappings({ t, namespace: "torrent", locale: locale.value });
 
 // 获取友好的错误提示
 const getFriendlyErrorMessage = (errorString?: string): string => {
   if (!errorString) return t('torrent.unknownError');
-
-  const lowerError = errorString.toLowerCase();
-
-  // 遍历错误映射配置
-  for (const mapping of errorMappings) {
-    // 检查是否匹配任一关键字
-    const matched = mapping.keywords.some((keyword) =>
-      lowerError.includes(keyword.toLowerCase())
-    );
-
-    if (matched) {
-      return mapping.message;
-    }
-  }
-
-  // 如果没有匹配到任何规则，返回原始错误信息
-  return errorString;
+  return matchErrorMapping(errorString, errorMappings)?.message ?? errorString;
 };
 
 // 获取错误类型（用于筛选）
 const getErrorType = (errorString?: string): string => {
   if (!errorString) return t('torrent.otherError');
-
-  const lowerError = errorString.toLowerCase();
-
-  // 遍历错误映射配置
-  for (const mapping of errorMappings) {
-    const matched = mapping.keywords.some((keyword) =>
-      lowerError.includes(keyword.toLowerCase())
-    );
-
-    if (matched) {
-      return mapping.type;
-    }
-  }
-
-  return t('torrent.otherError');
+  return matchErrorMapping(errorString, errorMappings)?.type ?? t('torrent.otherError');
 };
 
 const defaultColumnWidths: Record<string, number> = {
@@ -1707,8 +1591,8 @@ const getActivePerTorrentLimitsKB = (torrent: Torrent) => {
   return { downloadLimit, uploadLimit };
 };
 const hasAnyPerTorrentLimit = computed(() => {
-  return torrents.value.some((t) => {
-    const { downloadLimit, uploadLimit } = getActivePerTorrentLimitsKB(t);
+  return torrents.value.some((tor) => {
+    const { downloadLimit, uploadLimit } = getActivePerTorrentLimitsKB(tor);
     return downloadLimit > 0 || uploadLimit > 0;
   });
 });
@@ -1911,12 +1795,12 @@ const contextMenuSelectedText = ref<string>("");
 
 // 计算右键菜单目标中是否有已停止的种子
 const contextMenuHasStoppedTorrent = computed(() =>
-  contextMenuTargets.value.some((t) => t.status === TorrentStatusEnum.STOPPED)
+  contextMenuTargets.value.some((tor) => tor.status === TorrentStatusEnum.STOPPED)
 );
 
 // 计算右键菜单目标中是否有运行中的种子
 const contextMenuHasRunningTorrent = computed(() =>
-  contextMenuTargets.value.some((t) => t.status !== TorrentStatusEnum.STOPPED)
+  contextMenuTargets.value.some((tor) => tor.status !== TorrentStatusEnum.STOPPED)
 );
 
 const getDefaultTracker = (torrent: Torrent): string => {
@@ -2900,7 +2784,7 @@ const handleContextAction = (
   const targets = [...contextMenuTargets.value];
   if (!targets.length) return;
 
-  const targetIds = targets.map((t) => t.id);
+  const targetIds = targets.map((tor) => tor.id);
   const isBatch = targets.length > 1;
 
   hideContextMenu();
@@ -2972,7 +2856,7 @@ const handleContextAction = (
       
     // 如果没有选中文本，则默认复制选中的种子名称
     if (!selectedText && targets.length > 0) {
-      selectedText = targets.map((t) => t.name).join('\n');
+      selectedText = targets.map((tor) => tor.name).join('\n');
     }
 
     if (!selectedText) {
@@ -3550,7 +3434,7 @@ const openBatchLimitDialog = () => {
   limitDialogLoading.value = false;
   // 若有选中的种子则针对选中的种子，否则针对所有种子
   const targets = selectedTorrents.value.length > 0 ? selectedTorrents.value : torrents.value;
-  limitDialogIds.value = targets.map((t) => t.id);
+  limitDialogIds.value = targets.map((tor) => tor.id);
   limitDialogTargetTorrents.value = [...targets];
   resetLimitDialogForm();
   limitDialogVisible.value = true;
@@ -3562,7 +3446,7 @@ const openBatchLimitDialogWithTargets = (targets: Torrent[]) => {
   limitDialogMode.value = "batch";
   limitDialogTargetName.value = "";
   limitDialogLoading.value = false;
-  limitDialogIds.value = targets.map((t) => t.id);
+  limitDialogIds.value = targets.map((tor) => tor.id);
   limitDialogTargetTorrents.value = targets;
   resetLimitDialogForm();
   limitDialogVisible.value = true;
@@ -3623,7 +3507,7 @@ const submitLimitSettings = async () => {
     return;
   }
 
-  const targetIds = targetTorrents.map((t) => t.id);
+  const targetIds = targetTorrents.map((tor) => tor.id);
   limitDialogSaving.value = true;
 
   try {
@@ -3674,7 +3558,7 @@ const submitReplaceTracker = async () => {
 
   try {
     // 使用所有种子的ID
-    const allIds = torrents.value.map((t) => t.id);
+    const allIds = torrents.value.map((tor) => tor.id);
     await api.replaceTrackers(allIds, oldUrl, newUrl);
     ElMessage.success(t('torrent.message.trackerReplaced', { count: allIds.length }));
     replaceTrackerDialogVisible.value = false;
@@ -3861,7 +3745,7 @@ const getStatusText = (torrent: Torrent): string => {
     torrent.status === TorrentStatusEnum.CHECK ||
     torrent.status === TorrentStatusEnum.CHECK_WAIT
   ) {
-    return statusTextMap[torrent.status];
+    return getTorrentStatusText(t, torrent.status, t('torrent.unknownClient'));
   }
 
   // 其他状态下，如果存在错误则显示错误类型（type字段）
@@ -3869,11 +3753,11 @@ const getStatusText = (torrent: Torrent): string => {
     return getErrorType(getTorrentErrorMessage(torrent));
   }
 
-  return statusTextMap[torrent.status] || t('torrent.unknownClient');
+  return getTorrentStatusText(t, torrent.status, t('torrent.unknownClient'));
 };
 
 // 获取状态类型
-const getStatusType = (torrent: Torrent): string => {
+const getStatusType = (torrent: Torrent): StatusTagType => {
   // 如果正在校验中，则显示校验中状态，忽略错误状态
   if (
     torrent.status === TorrentStatusEnum.CHECK ||
@@ -3887,7 +3771,7 @@ const getStatusType = (torrent: Torrent): string => {
     return "danger";
   }
 
-  const typeMap: Record<TorrentStatus, string> = {
+  const typeMap: Record<TorrentStatus, StatusTagType> = {
     [TorrentStatusEnum.STOPPED]: "info",
     [TorrentStatusEnum.CHECK_WAIT]: "warning",
     [TorrentStatusEnum.CHECK]: "warning",

@@ -60,6 +60,7 @@
 import { computed } from "vue";
 import { ElCheckbox, ElProgress, ElTag } from "element-plus";
 import { WarningFilled } from "@element-plus/icons-vue";
+import type { StatusTagType } from "@/types/torrent";
 
 interface CardLabels {
   size: string;
@@ -68,13 +69,11 @@ interface CardLabels {
   ratio: string;
 }
 
-type StatusTagType = "success" | "info" | "warning" | "danger" | "primary";
-
 const props = defineProps<{
   name: string;
   selected: boolean;
   statusText: string;
-  statusType: string;
+  statusType: StatusTagType;
   progressPercent: number;
   sizeText: string;
   speedText: string;
@@ -91,10 +90,7 @@ const emit = defineEmits<{
   (e: "menu", payload: { x: number; y: number }): void;
 }>();
 
-const ALLOWED_TYPES: StatusTagType[] = ["success", "info", "warning", "danger", "primary"];
-const tagType = computed<StatusTagType>(
-  () => ALLOWED_TYPES.find((type) => type === props.statusType) ?? "info"
-);
+const tagType = computed<StatusTagType>(() => props.statusType);
 
 const progressStatus = computed(() => {
   if (props.progressPercent >= 100) return "success";

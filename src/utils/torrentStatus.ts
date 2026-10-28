@@ -1,4 +1,5 @@
 import type { Torrent } from '@/types/transmission'
+import { TorrentStatusEnum, type TorrentStatus } from '@/types/torrent'
 
 /**
  * 种子错误等级（沿用 Transmission RPC 的 error 字段语义）
@@ -91,3 +92,27 @@ export const isTorrentError = (torrent: Pick<Torrent, 'error' | 'errorString'>):
 
   return Boolean(getTorrentErrorMessage(torrent))
 }
+
+/**
+ * 种子状态文案的单一来源（`status.*` i18n 命名空间）。
+ * HomeView / MainLayout / ReseedView 共用；传入响应式作用域里的 t，
+ * 在 computed / 渲染中调用即可随语言切换更新。
+ */
+export const buildTorrentStatusTextMap = (
+  t: (key: string) => string
+): Record<TorrentStatus, string> => ({
+  [TorrentStatusEnum.STOPPED]: t('status.stopped'),
+  [TorrentStatusEnum.CHECK_WAIT]: t('status.waitCheck'),
+  [TorrentStatusEnum.CHECK]: t('status.checking'),
+  [TorrentStatusEnum.DOWNLOAD_WAIT]: t('status.waitDownload'),
+  [TorrentStatusEnum.DOWNLOAD]: t('status.downloading'),
+  [TorrentStatusEnum.SEED_WAIT]: t('status.waitSeed'),
+  [TorrentStatusEnum.SEED]: t('status.seeding'),
+})
+
+/** 取单个状态的文案，未命中时返回调用方提供的兜底文案 */
+export const getTorrentStatusText = (
+  t: (key: string) => string,
+  status: TorrentStatus,
+  fallback: string
+): string => buildTorrentStatusTextMap(t)[status] ?? fallback

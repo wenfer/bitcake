@@ -10,6 +10,9 @@ export const TorrentStatusEnum = {
 
 export type TorrentStatus = (typeof TorrentStatusEnum)[keyof typeof TorrentStatusEnum]
 
+/** Element Plus el-tag 的 type 取值（状态标签用） */
+export type StatusTagType = "primary" | "success" | "warning" | "danger" | "info"
+
 export interface TorrentTracker {
   id?: number
   announce: string

@@ -225,6 +225,7 @@ import { formatBytes } from "@/utils/format";
 import SidebarStatus from "./components/SidebarStatus.vue";
 import { torrentBackendName, isTransmission } from "@/config/torrentClient";
 import { TorrentStatusEnum } from "@/types/transmission";
+import { buildTorrentStatusTextMap } from "@/utils/torrentStatus";
 import { logout as apiLogout } from "@/api/torrents";
 
 const { t } = useI18n();
@@ -246,15 +247,7 @@ const isMobile = useMediaQuery("(max-width: 768px)");
 const isMenuOpen = ref(false);
 const activeMenuItem = ref("/");
 
-const statusTextMap = computed(() => ({
-  [TorrentStatusEnum.STOPPED]: t('status.stopped'),
-  [TorrentStatusEnum.CHECK_WAIT]: t('status.waitCheck'),
-  [TorrentStatusEnum.CHECK]: t('status.checking'),
-  [TorrentStatusEnum.DOWNLOAD_WAIT]: t('status.waitDownload'),
-  [TorrentStatusEnum.DOWNLOAD]: t('status.downloading'),
-  [TorrentStatusEnum.SEED_WAIT]: t('status.waitSeed'),
-  [TorrentStatusEnum.SEED]: t('status.seeding'),
-}));
+const statusTextMap = computed(() => buildTorrentStatusTextMap(t));
 
 const statusOptions = computed(() => [
   { label: t('status.all'), value: "all" as StatusFilter },

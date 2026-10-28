@@ -1060,7 +1060,7 @@ const qbittorrentService: TorrentService = {
   async replaceTrackers(ids, oldUrl, newUrl) {
     await qbEnsureAuth()
     const torrentsData = await qbittorrentService.getTorrents()
-    const targetTorrents = torrentsData.torrents.filter((t) => ids.includes(t.id))
+    const targetTorrents = torrentsData.torrents.filter((tor) => ids.includes(tor.id))
 
     const changedHashes = new Set<string>()
     for (const torrent of targetTorrents) {

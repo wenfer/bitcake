@@ -499,15 +499,6 @@ export default {
       deleteWithFiles: 'Delete local files',
       confirmDelete: 'Confirm Delete',
     },
-    status: {
-      stopped: 'Stopped',
-      checkWait: 'Wait Check',
-      checking: 'Checking',
-      downloadWait: 'Wait Download',
-      downloading: 'Downloading',
-      seedWait: 'Wait Seed',
-      seeding: 'Seeding',
-    },
     trackerStatus: {
       normal: 'Normal',
       abnormal: 'Abnormal',

@@ -408,7 +408,7 @@ const handleApply = async (strategy: SpeedLimitStrategy) => {
     }
 
     // 应用限速
-    const targetIds = targetTorrents.map((t) => t.id)
+    const targetIds = targetTorrents.map((tor) => tor.id)
     await api.setTorrents(targetIds, payload)
 
     ElMessage.success(

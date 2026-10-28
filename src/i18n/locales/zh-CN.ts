@@ -499,15 +499,6 @@ export default {
       deleteWithFiles: '同时删除本地文件',
       confirmDelete: '确认删除',
     },
-    status: {
-      stopped: '已停止',
-      checkWait: '等待校验',
-      checking: '校验中',
-      downloadWait: '等待下载',
-      downloading: '下载中',
-      seedWait: '等待做种',
-      seeding: '做种中',
-    },
     trackerStatus: {
       normal: '正常',
       abnormal: '异常',
