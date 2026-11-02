@@ -1,6 +1,7 @@
 import { computed, type Ref } from "vue";
 import type { Torrent } from "@/types/transmission";
 import { getTrackerDisplayName, getTrackerHost } from "@/utils/torrent";
+import { normalizePath } from "@/utils/path";
 
 interface TorrentFacetOptions {
   torrents: Ref<Torrent[]>;
@@ -52,7 +53,10 @@ export const useTorrentFacets = (options: TorrentFacetOptions) => {
 
       if (torrent.category) categories.add(torrent.category);
       else hasUncategorizedTorrent = true;
-      if (torrent.downloadDir) downloadDirs.add(torrent.downloadDir);
+      if (torrent.downloadDir) {
+        const normalizedDir = normalizePath(torrent.downloadDir);
+        if (normalizedDir) downloadDirs.add(normalizedDir);
+      }
       if (options.isTorrentError(torrent)) {
         errorTypes.add(options.getErrorType(torrent.errorString));
       }

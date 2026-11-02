@@ -1106,6 +1106,7 @@ import { isTransmission } from "@/config/torrentClient";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { buildErrorMappings, matchErrorMapping } from "@/utils/errorMapping";
+import { normalizePath } from "@/utils/path";
 import { useNotifications } from "@/composables/useNotifications";
 import { useTorrentSelection } from "@/composables/useTorrentSelection";
 import { useTorrentListQuery } from "@/composables/useTorrentListQuery";
@@ -2071,9 +2072,12 @@ const filterTrackerOptions = (query: string) => {
 
 const allDownloadDirs = computed(() => {
   const set = new Set<string>();
-  const def = sessionConfig.value?.["download-dir"];
+  const def = normalizePath(sessionConfig.value?.["download-dir"]);
   if (def) set.add(def);
-  downloadDirs.value.forEach((dir) => set.add(dir));
+  downloadDirs.value.forEach((dir) => {
+    const normalized = normalizePath(dir);
+    if (normalized) set.add(normalized);
+  });
   return Array.from(set).sort((a, b) => a.localeCompare(b));
 });
 
@@ -2265,7 +2269,7 @@ watch(showLocationDialog, (visible) => {
 
 watch(showAddDialog, (visible) => {
   if (visible) {
-    const def = sessionConfig.value?.["download-dir"] || "";
+    const def = normalizePath(sessionConfig.value?.["download-dir"] || "");
     if (def && !addForm.value.downloadDir) {
       addForm.value.downloadDir = def;
     }
@@ -2936,7 +2940,7 @@ const reannounceTorrentsById = async (ids: number[]) => {
 const openLocationDialog = (torrent: Torrent, batchIds?: number[]) => {
   locationTarget.value = torrent;
   locationTargetIds.value = batchIds || [torrent.id];
-  locationForm.value.path = torrent.downloadDir;
+  locationForm.value.path = normalizePath(torrent.downloadDir);
   locationForm.value.move = true;
   showLocationDialog.value = true;
 };
@@ -2946,7 +2950,7 @@ const submitLocationChange = async () => {
     showLocationDialog.value = false;
     return;
   }
-  const path = locationForm.value.path.trim();
+  const path = normalizePath(locationForm.value.path);
   if (!path) {
     ElMessage.warning(t('torrent.message.enterNewPath'));
     return;
@@ -3598,7 +3602,7 @@ const handleAddTorrent = async () => {
   try {
     const basePayload = {
       paused: addForm.value.paused,
-      downloadDir: addForm.value.downloadDir || undefined,
+      downloadDir: normalizePath(addForm.value.downloadDir) || undefined,
     };
 
     let successCount = 0;

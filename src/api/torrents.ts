@@ -10,6 +10,7 @@ import { TorrentStatusEnum } from '@/types/torrent'
 import { transmissionClient } from './client'
 import { qbittorrentClient } from './qbittorrentClient'
 import { isTransmission, torrentApiBase } from '@/config/torrentClient'
+import { normalizePath } from '@/utils/path'
 
 interface GetTorrentsOptions {
   ids?: number[] | 'recently-active'
@@ -138,6 +139,10 @@ const transmissionService: TorrentService = {
       // 为每个种子计算流行度并提取分类信息
       if (result.torrents) {
         result.torrents.forEach(torrent => {
+          if (torrent.downloadDir) {
+            torrent.downloadDir = normalizePath(torrent.downloadDir)
+          }
+
           torrent.popularity = calculatePopularity(
             torrent.uploadRatio,
             torrent.addedDate,
@@ -171,7 +176,7 @@ const transmissionService: TorrentService = {
       paused: payload.paused ?? false,
     }
     if (payload.downloadDir) {
-      params['download-dir'] = payload.downloadDir
+      params['download-dir'] = normalizePath(payload.downloadDir)
     }
     if (payload.magnet) {
       params.filename = payload.magnet
@@ -209,7 +214,7 @@ const transmissionService: TorrentService = {
   setTorrentLocation(ids, location, move = false) {
     return transmissionClient.request('torrent-set-location', {
       ids,
-      location,
+      location: normalizePath(location),
       move,
     })
   },
@@ -223,7 +228,7 @@ const transmissionService: TorrentService = {
 
   renameTorrentPath(id, oldPath, newName) {
     if (!oldPath || !newName) throw new Error('Path and new name cannot be empty')
-    const normalizedPath = oldPath.replace(/\\/g, '/').replace(/\/+$/, '')
+    const normalizedPath = normalizePath(oldPath)
     return transmissionClient.request('torrent-rename-path', {
       ids: [id],
       path: normalizedPath,
@@ -326,11 +331,15 @@ const transmissionService: TorrentService = {
   },
 
   setSession(params) {
-    return transmissionClient.request('session-set', params)
+    const nextParams = { ...params }
+    if (nextParams['download-dir']) {
+      nextParams['download-dir'] = normalizePath(nextParams['download-dir'])
+    }
+    return transmissionClient.request('session-set', nextParams)
   },
 
   getFreeSpace(path) {
-    return transmissionClient.request<FreeSpaceResult>('free-space', { path })
+    return transmissionClient.request<FreeSpaceResult>('free-space', { path: normalizePath(path) })
   },
 
   testPort() {
@@ -698,7 +707,7 @@ const mapQBTorrent = (item: QBTorrentInfo, properties?: QBTorrentProperties): To
     errorString: ['error', 'missingFiles'].includes(item.state)
       ? `客户端状态：${item.state}`
       : '',
-    downloadDir: item.save_path,
+    downloadDir: normalizePath(item.save_path),
     hashString: item.hash,
     uploadedEver: item.uploaded,
     downloadedEver: item.downloaded,
@@ -890,7 +899,7 @@ const qbittorrentService: TorrentService = {
       throw new Error('未提供种子来源')
     }
     if (payload.downloadDir) {
-      formData.append('savepath', payload.downloadDir)
+      formData.append('savepath', normalizePath(payload.downloadDir))
       formData.append('autoTMM', 'false')
     }
     if (payload.paused) {
@@ -958,7 +967,7 @@ const qbittorrentService: TorrentService = {
     if (!hashes.length) return
     const body = qbittorrentClient.buildFormData({
       hashes: hashes.join('|'),
-      location,
+      location: normalizePath(location),
     })
     await qbittorrentClient.post('/torrents/setLocation', body, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -1041,7 +1050,7 @@ const qbittorrentService: TorrentService = {
     const hash = hashes[0]
     if (!hash) throw new Error('Torrent hash not found')
 
-    const normalizedOldPath = oldPath.replace(/\\/g, '/').replace(/\/+$/, '')
+    const normalizedOldPath = normalizePath(oldPath)
     const parts = normalizedOldPath.split('/')
     parts[parts.length - 1] = newName
     const newPath = parts.join('/')
@@ -1157,7 +1166,7 @@ const qbittorrentService: TorrentService = {
       'alt-speed-time-enabled': !!preferences.scheduler_enabled,
       'alt-speed-time-end': scheduleEnd,
       'alt-speed-time-day': qbDaysToMask(preferences.scheduler_days),
-      'download-dir': preferences.save_path || '',
+      'download-dir': normalizePath(preferences.save_path || ''),
       'incomplete-dir': preferences.temp_path || '',
       'incomplete-dir-enabled': !!preferences.temp_path_enabled,
       'rename-partial-files': !!preferences.incomplete_files_ext,
@@ -1252,7 +1261,7 @@ const qbittorrentService: TorrentService = {
     }
 
     // 下载与文件设置
-    if ('download-dir' in params) qbParams.save_path = params['download-dir']
+    if ('download-dir' in params) qbParams.save_path = normalizePath(params['download-dir'])
     if ('incomplete-dir' in params) qbParams.temp_path = params['incomplete-dir']
     if ('incomplete-dir-enabled' in params) qbParams.temp_path_enabled = params['incomplete-dir-enabled']
     if ('rename-partial-files' in params) qbParams.incomplete_files_ext = !!params['rename-partial-files']

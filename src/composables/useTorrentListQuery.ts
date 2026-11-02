@@ -3,6 +3,7 @@ import type { StatusFilter } from "@/stores/filter";
 import { TorrentStatusEnum, type Torrent } from "@/types/transmission";
 import { matchesTrackerFilter } from "@/utils/torrent";
 import { isTorrentError } from "@/utils/torrentStatus";
+import { isSamePath, normalizePath } from "@/utils/path";
 
 export type TorrentSortOrder = "ascending" | "descending" | null;
 
@@ -128,7 +129,7 @@ export const useTorrentListQuery = (options: TorrentListQueryOptions) => {
       }
       if (
         options.downloadDirFilter.value &&
-        torrent.downloadDir !== options.downloadDirFilter.value
+        !isSamePath(torrent.downloadDir, options.downloadDirFilter.value)
       ) {
         return false;
       }
@@ -169,7 +170,7 @@ export const useTorrentListQuery = (options: TorrentListQueryOptions) => {
           ? torrent.eta
           : Number.MAX_SAFE_INTEGER;
       case "downloadDir":
-        return (torrent.downloadDir || "").toLowerCase();
+        return (normalizePath(torrent.downloadDir) || "").toLowerCase();
       default:
         return (torrent as unknown as Record<string, unknown>)[prop] ?? 0;
     }
